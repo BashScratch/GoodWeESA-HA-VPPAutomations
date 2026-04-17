@@ -1,0 +1,47 @@
+alias: "Energy: EV Free Window Reminder"
+description: Reminds you to plug in your EV before the free charging window opens.
+mode: single
+
+triggers:
+  - trigger: time
+    at: "10:45:00"
+    id: pre_window_reminder
+  - trigger: state
+    entity_id: binary_sensor.ev_charger_vehicle_connected # EDIT: Replace with your EV Charger connected sensor
+    to: "on"
+    id: car_connected_during_window
+
+conditions: []
+
+actions:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: pre_window_reminder
+          - condition: state
+            entity_id: binary_sensor.ev_charger_vehicle_connected # EDIT: Replace with your EV Charger connected sensor
+            state: "off"
+        sequence:
+          - action: notify.mobile_app_your_device_name # EDIT: Replace with your HA Companion App device name
+            data:
+              title: Free Window in 15min ⚡
+              message: >-
+                EV is not plugged in. Connect now to charge for free
+                11am–2pm.
+              data:
+                push:
+                  sound:
+                    name: default
+      - conditions:
+          - condition: trigger
+            id: car_connected_during_window
+          - condition: time
+            after: "11:01:00"
+            before: "14:00:00"
+        sequence:
+          - action: notify.mobile_app_your_device_name # EDIT: Replace with your HA Companion App device name
+            data:
+              title: EV Connected — Free Window Active ✅
+              message: >-
+                Car plugged in during free window. Set EV to charge now
+                via your vehicle app.
