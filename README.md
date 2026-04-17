@@ -1,12 +1,12 @@
-# GoodWe ESA - Home Assistant VPP Automations ⚡
+# GoodWe ESA - Home Assistant VPP Automations
 
-Welcome! This repository is a community-driven collection of Home Assistant YAML automations, guides, and template sensors designed specifically for **GoodWe ESA series inverters**.
+Welcome. This repository is a collection of Home Assistant YAML automations, guides, and template sensors designed specifically for GoodWe ESA series inverters.
 
 If you are connected to a Virtual Power Plant (VPP) or a dynamic wholesale energy plan (like GloBird Zero Hero, Amber Electric, etc.), configuring your inverter to charge and discharge at the right times is critical. These ready-to-use YAML files aim to make it as easy as copy, paste, and edit, so you can stop manually managing your battery and let Home Assistant maximize your savings automatically.
 
 ---
 
-## 🛠️ Prerequisites
+## Prerequisites
 
 Before you begin, ensure you have the following:
 1. **Home Assistant:** Up and running.
@@ -15,7 +15,7 @@ Before you begin, ensure you have the following:
 
 ---
 
-## 📖 How to Use These Automations
+## How to Use These Automations
 
 1. Browse the `automations` folder in this repository.
 2. Find the YAML file that matches your energy plan or desired scenario.
@@ -24,14 +24,16 @@ Before you begin, ensure you have the following:
 5. Click the three dots in the top right corner and select **Edit in YAML**.
 6. Paste the code.
 7. **CRITICAL STEP:** Use `Ctrl+F` to find the `# EDIT:` comments in the code. You **must** replace the placeholder entity IDs (like `select.inverter_operation_mode`) with the exact entity IDs used by your specific Home Assistant setup.
-8. Save and test!
+8. Save and test.
 
 ---
 
-## 📂 Available Guides & Automations
+## Available Guides & Automations
 
-*   [GloBird Zero Hero Schedule](./automations/globird_zero_hero.yaml) - Automates free grid charging (11am-2pm) and peak exporting (6pm-9pm).
-*   *(More coming soon!)*
+*   [GloBird Zero Hero Command](./automations/globird_zero_hero.yaml) - Automates free grid charging (11am-2pm) and peak exporting (18:00-20:00).
+*   [EV Free Window Reminder](./automations/ev_free_window_reminder.yaml) - Reminds to plug in EV before the 11am free window.
+*   [GoodWe Time Sync](./automations/goodwe_time_sync.yaml) - Keeps inverter clock synced with Home Assistant.
+*   [GoodWe Battery Fault Alert](./automations/goodwe_battery_fault_alert.yaml) - Critical mobile alerts for BMS errors or warnings.
 
 ---
 
