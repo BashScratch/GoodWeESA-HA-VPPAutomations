@@ -1,0 +1,38 @@
+alias: "System: GoodWe Battery Fault Alert"
+description: Notifies immediately via critical alert on any BMS error or warning.
+mode: single
+
+triggers:
+  - trigger: template
+    value_template: >
+      {{ states('sensor.goodwe_battery_error') not in ['', 'unknown',
+      'unavailable', 'None'] 
+         and states('sensor.goodwe_battery_error') | length > 0 }}
+    id: battery_error
+  - trigger: template
+    value_template: >
+      {{ states('sensor.goodwe_battery_warning') not in ['', 'unknown',
+      'unavailable', 'None'] 
+         and states('sensor.goodwe_battery_warning') | length > 0 }}
+    id: battery_warning
+
+conditions: []
+
+actions:
+  - action: notify.mobile_app_your_device_name # EDIT: Replace with your HA Companion App device name
+    data:
+      title: GoodWe BMS Alert
+      message: >
+        {% if trigger.id == 'battery_error' %} 
+          Battery ERROR: {{ states('sensor.goodwe_battery_error') }} 
+        {% else %} 
+          Battery WARNING: {{ states('sensor.goodwe_battery_warning') }} 
+        {% endif %}  Temp: {{ states('sensor.goodwe_battery_temperature') }}°C |
+        SOH: {{ states('sensor.goodwe_battery_state_of_health') }}%
+      data:
+        push:
+          interruption-level: critical
+          sound:
+            name: default
+            critical: 1
+            volume: 1
