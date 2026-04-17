@@ -1,0 +1,17 @@
+alias: "System: GoodWe Time Sync"
+description: >-
+  Keeps the inverter clock perfectly aligned with Home Assistant to prevent SEMS
+  schedule drift.
+mode: single
+
+triggers:
+  - trigger: time
+    at: "03:00:00"
+    id: daily_sync
+
+conditions: []
+
+actions:
+  - action: button.press
+    target:
+      entity_id: button.goodwe_synchronize_inverter_clock # EDIT: Replace with your GoodWe Sync Clock button
