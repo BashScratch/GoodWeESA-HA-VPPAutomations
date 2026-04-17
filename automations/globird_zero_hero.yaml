@@ -1,6 +1,6 @@
 alias: "GoodWe ESA: GloBird Zero Hero Command"
 description: >
-  Always Eco strategy for the current plan. Manages free charging period (11am-2pm) and
+  General mode strategy for the current plan. Manages free charging period (11am-2pm) and
   enforces a strict grid export limit between 18:00 and 20:00 to maximize profit.
   Calculates nightly earnings based on current rates.
 mode: queued
@@ -130,7 +130,7 @@ actions:
                     data:
                       title: Zero Hero Armed
                       message: >-
-                        Eco mode active. SOC {{
+                        Peak export armed. SOC {{
                         states('sensor.goodwe_battery_state_of_charge') }}
                         percent. Exporting at 5kW until end of peak.
             default:
