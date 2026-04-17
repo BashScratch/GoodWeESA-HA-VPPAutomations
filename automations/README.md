@@ -1,4 +1,4 @@
-# ⚡ GoodWe VPP Automations
+# GoodWe VPP Automations
 
 This folder contains ready-to-use YAML automations. To use them, copy the YAML code and paste it into a new Home Assistant automation (using the "Edit in YAML" option). 
 
@@ -6,7 +6,7 @@ This folder contains ready-to-use YAML automations. To use them, copy the YAML c
 
 ---
 
-## 🛠️ Required Helpers for the "GloBird Zero Hero" Automation
+## Required Helpers for the "GloBird Zero Hero" Automation
 
 The GloBird Zero Hero automation is highly advanced. It calculates your nightly profit and prevents the battery from draining into the grid if your State of Charge (SOC) is too low. 
 
