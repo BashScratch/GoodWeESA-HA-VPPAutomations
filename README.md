@@ -2,6 +2,8 @@
 
 Welcome. This repository is a collection of Home Assistant YAML automations, guides, and template sensors designed specifically for GoodWe ESA series inverters.
 
+This is an active work in progress - changes may be sweeping, so please check back regularly and use at your own risk.
+
 If you are connected to a Virtual Power Plant (VPP) or a dynamic wholesale energy plan, configuring your inverter to charge and discharge at the right times is critical to maximising your return. 
 
 **Note on Scope:** Currently, the primary focus and available guides in this repository are built around the **GloBird Zero Hero** plan. However, the repository has been structured modularly to allow for future VPP automations (such as Amber Electric or Energy Locals) to be added easily as they are developed.
