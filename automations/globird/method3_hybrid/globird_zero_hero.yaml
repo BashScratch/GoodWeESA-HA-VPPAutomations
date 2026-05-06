@@ -1,0 +1,213 @@
+alias: "GoodWe ESA: GloBird Zero Hero (Method 3 - Hybrid)"
+description: >
+  Hybrid delegation strategy for GloBird Zero Hero. The 11:00-14:00 free charging
+  window is handled natively by a GoodWe Economic Mode / TOU schedule set in the
+  SolarGo/SEMS+ app - the firmware charges to 100% and holds correctly without HA
+  intervention, solving the battery-drain edge case that HA's fast_charging_switch
+  could not prevent.
+
+  HA handles the smart layer: at 17:56 it evaluates SOC, arms or blocks the 5kW
+  peak export limit, and sends a nightly profit notification. All tariff values
+  are read from input_number helpers so rates can be updated from the dashboard
+  without touching YAML.
+
+  See GLOSSARY.md for the full terminology breakdown (Eco Mode vs Economic Mode
+  vs TOU, and what each system owns in this delegation strategy).
+mode: queued
+max: 5
+
+# =============================================================================
+# REQUIRED HELPERS (create via Settings > Helpers > Number / Toggle):
+#   input_boolean.zero_hero_enabled          - master on/off toggle
+#   input_number.zero_hero_export_start      - internal session kWh tracker
+#   input_number.zero_hero_rate_super        - super export rate $/kWh  (e.g. 0.15)
+#   input_number.zero_hero_rate_base         - base export rate $/kWh   (e.g. 0.06)
+#   input_number.zero_hero_rate_credit       - daily zero-grid credit $ (e.g. 1.00)
+#   input_number.zero_hero_super_cap         - kWh cap for super rate   (10 or 15)
+#   input_number.zero_hero_min_export_soc    - SOC % below which peak export is blocked (e.g. 65)
+#
+# GOODWE APP SETUP REQUIRED:
+#   In SolarGo / SEMS+, create an Economic Mode / TOU charge schedule:
+#     Time:    11:00 - 14:00
+#     Target:  100% SOC
+#     Source:  Grid (high priority)
+#   This replaces the HA fast_charging_switch approach and correctly holds the
+#   battery at 100% for the remainder of the window without HA involvement.
+#   See GLOSSARY.md for the Economic Mode / TOU naming explanation.
+# =============================================================================
+
+triggers:
+  - trigger: time
+    at: "00:01:00"
+    id: midnight_reset
+
+  # Free window triggers removed - handled by GoodWe native Economic Mode / TOU schedule.
+  # - trigger: time
+  #   at: "11:02:00"
+  #   id: free_start
+  # - trigger: time
+  #   at: "13:59:00"
+  #   id: free_end
+
+  # EDIT: Peak window timing varies by GloBird plan vintage.
+  #   Newer plans (default below): 18:00-21:00 (peak_end should be 21:01)
+  #   Older plans:                 18:00-20:00 (peak_end should be 20:01)
+  - trigger: time
+    at: "17:56:00"
+    id: peak_guard_check
+
+  - trigger: time
+    at: "21:01:00"   # EDIT: change to 20:01 if your plan runs to 20:00
+    id: peak_end
+
+conditions: []
+
+actions:
+  - choose:
+
+      # ==========================================================
+      # MIDNIGHT RESET
+      # Resets the export tracker and turns off the fast charging
+      # switch as a safety net (in case it was left on manually).
+      # ==========================================================
+      - conditions:
+          - condition: trigger
+            id: midnight_reset
+        sequence:
+          - action: switch.turn_off
+            target:
+              entity_id: switch.goodwe_fast_charging_switch   # EDIT: your GoodWe Fast Charging Switch
+          - action: input_number.set_value
+            target:
+              entity_id: input_number.zero_hero_export_start
+            data:
+              value: 0
+
+      # ==========================================================
+      # 5:56 PM - PRE-PEAK GUARD CHECK
+      # Verify SOC is sufficient before arming peak export.
+      # ==========================================================
+      - conditions:
+          - condition: trigger
+            id: peak_guard_check
+          - condition: state
+            entity_id: input_boolean.zero_hero_enabled
+            state: "on"
+        sequence:
+          - wait_template: >
+              {{ is_number(states('sensor.goodwe_battery_state_of_charge')) and
+              is_number(states('sensor.goodwe_total_energy_export')) }}
+            timeout: "00:02:00"
+            continue_on_timeout: true
+
+          - if:
+              - condition: template
+                value_template: >
+                  {{ not is_number(states('sensor.goodwe_battery_state_of_charge')) }}   # EDIT: your SOC sensor
+            then:
+              - action: notify.mobile_app_your_device_name   # EDIT: your notify service
+                data:
+                  title: Zero Hero Aborted
+                  message: >-
+                    SOC sensor unavailable at 17:56. Export limit unchanged.
+                    Check GoodWe integration.
+              - stop: SOC sensor unavailable
+
+          - choose:
+              # SOC above guard threshold - arm peak export.
+              # Threshold pulled from input_number.zero_hero_min_export_soc helper.
+              # Tune via dashboard to suit your battery size and nightly consumption.
+              - conditions:
+                  - condition: numeric_state
+                    entity_id: sensor.goodwe_battery_state_of_charge   # EDIT: your SOC sensor
+                    above: input_number.zero_hero_min_export_soc
+                sequence:
+                  - action: input_number.set_value
+                    target:
+                      entity_id: input_number.zero_hero_export_start
+                    data:
+                      value: >-
+                        {{ states('sensor.goodwe_total_energy_export') | float(0) }}   # EDIT: your Total Export sensor
+                  - action: number.set_value
+                    target:
+                      entity_id: number.goodwe_grid_export_limit   # EDIT: your Grid Export Limit entity (may be _2 suffixed)
+                    data:
+                      value: 5000
+                  - action: notify.mobile_app_your_device_name   # EDIT: your notify service
+                    data:
+                      title: Zero Hero Armed
+                      message: >-
+                        Peak export armed. SOC {{
+                        states('sensor.goodwe_battery_state_of_charge') }}%.
+                        Exporting at 5kW until end of peak.
+
+            default:
+              - if:
+                  - condition: numeric_state
+                    entity_id: number.goodwe_grid_export_limit   # EDIT: your Grid Export Limit entity
+                    above: 0
+                then:
+                  - action: number.set_value
+                    target:
+                      entity_id: number.goodwe_grid_export_limit
+                    data:
+                      value: 0
+              - action: notify.mobile_app_your_device_name   # EDIT: your notify service
+                data:
+                  title: Zero Hero Alert
+                  message: >-
+                    Peak export blocked. SOC {{
+                    states('sensor.goodwe_battery_state_of_charge') }}%
+                    is too low. Export limit dropped to 0W.
+
+      # ==========================================================
+      # PEAK END (21:01 default; 20:01 for older GloBird plans)
+      # Restores normal export behaviour and reports nightly profit.
+      # ==========================================================
+      - conditions:
+          - condition: trigger
+            id: peak_end
+        sequence:
+          - if:
+              - condition: numeric_state
+                entity_id: number.goodwe_grid_export_limit   # EDIT: your Grid Export Limit entity
+                below: 10000
+            then:
+              - action: number.set_value
+                target:
+                  entity_id: number.goodwe_grid_export_limit
+                data:
+                  value: 10000
+
+          - condition: numeric_state
+            entity_id: input_number.zero_hero_export_start
+            above: 0
+
+          - action: notify.mobile_app_your_device_name   # EDIT: your notify service
+            data:
+              title: Zero Hero Complete
+              message: >
+                {% set start_exp  = states('input_number.zero_hero_export_start') | float(0) %}
+                {% set end_exp    = states('sensor.goodwe_total_energy_export') | float(0) %}
+                {% set kwh_sold   = [(end_exp - start_exp), 0] | max | round(2) %}
+
+                {# Rates and cap pulled from helpers - edit via the UI, not here. #}
+                {% set rate_super = states('input_number.zero_hero_rate_super') | float(0.15) %}
+                {% set rate_base  = states('input_number.zero_hero_rate_base')  | float(0.06) %}
+                {% set credit     = states('input_number.zero_hero_rate_credit') | float(1.00) %}
+                {% set super_cap  = states('input_number.zero_hero_super_cap')   | float(10) %}
+
+                {% set super_kwh  = [kwh_sold, super_cap] | min %}
+                {% set base_kwh   = [kwh_sold - super_cap, 0] | max %}
+                {% set profit     = ((super_kwh * rate_super) + (base_kwh * rate_base)) | round(2) %}
+                {% set total      = (profit + credit) | round(2) %}
+
+                Exported {{ kwh_sold }} kWh. Revenue: ${{ '%.2f' | format(profit) }}
+                + ${{ '%.2f' | format(credit) }} daily credit
+                = ${{ '%.2f' | format(total) }}. Goodnight.
+
+          - action: input_number.set_value
+            target:
+              entity_id: input_number.zero_hero_export_start
+            data:
+              value: 0

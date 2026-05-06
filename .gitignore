@@ -1,0 +1,20 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Local working area — not for the public repo
+_inbox/
+CLAUDE.md
+.claude/
+
+# Local notes
+NOTES.md
+TODO.md

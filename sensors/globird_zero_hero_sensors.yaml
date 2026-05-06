@@ -1,0 +1,60 @@
+# GoodWe / GloBird Zero Hero Template Sensors
+#
+# Place this under the `template:` integration in configuration.yaml, OR in
+# templates.yaml if you've split your configuration:
+#
+#   template: !include templates.yaml
+#
+# These sensors read your live export total and calculate session profit
+# against the helpers created for the Zero Hero automations.
+#
+# REQUIRED HELPERS (create via Settings > Helpers > Number):
+#   input_boolean.zero_hero_enabled         - master on/off toggle
+#   input_number.zero_hero_export_start     - internal session tracker (set by automation)
+#   input_number.zero_hero_rate_super       - super export rate $/kWh (e.g. 0.15)
+#   input_number.zero_hero_rate_base        - base export rate $/kWh  (e.g. 0.06)
+#   input_number.zero_hero_rate_credit      - daily zero-grid credit $  (e.g. 1.00)
+#   input_number.zero_hero_super_cap        - kWh cap for super rate  (10 old plan / 15 new plan)
+#
+# REQUIRED GOODWE INTEGRATION SENSORS (verify each in Developer Tools > States
+# before reloading templates - names have varied across mletenay integration
+# versions; older builds use slightly different IDs and the templates will
+# silently return 0 if the sensor is missing):
+#   sensor.goodwe_total_energy_export        - lifetime exported kWh counter
+
+- sensor:
+    - name: "Zero Hero Session Export"
+      unique_id: zero_hero_session_export
+      unit_of_measurement: "kWh"
+      device_class: energy
+      state_class: measurement
+      icon: mdi:solar-power
+      state: >
+        {% set start_exp = states('input_number.zero_hero_export_start') | float(0) %}
+        {% set current_exp = states('sensor.goodwe_total_energy_export') | float(0) %}
+        {% if states('input_boolean.zero_hero_enabled') == 'on' and start_exp > 0 %}
+          {{ [(current_exp - start_exp), 0] | max | round(2) }}
+        {% else %}
+          0.0
+        {% endif %}
+
+    - name: "Zero Hero Session Profit"
+      unique_id: zero_hero_session_profit
+      unit_of_measurement: "AUD"
+      device_class: monetary
+      state_class: measurement
+      icon: mdi:currency-usd
+      state: >
+        {% set kwh_sold   = states('sensor.zero_hero_session_export') | float(0) %}
+        {% set rate_super = states('input_number.zero_hero_rate_super') | float(0.15) %}
+        {% set rate_base  = states('input_number.zero_hero_rate_base')  | float(0.06) %}
+        {% set credit     = states('input_number.zero_hero_rate_credit') | float(1.00) %}
+        {% set super_cap  = states('input_number.zero_hero_super_cap')   | float(10) %}
+        {% set super_kwh  = [kwh_sold, super_cap] | min %}
+        {% set base_kwh   = [kwh_sold - super_cap, 0] | max %}
+        {% set profit     = ((super_kwh * rate_super) + (base_kwh * rate_base)) | round(2) %}
+        {% if states('input_boolean.zero_hero_enabled') == 'on' and states('input_number.zero_hero_export_start') | float(0) > 0 %}
+          {{ (profit + credit) | round(2) }}
+        {% else %}
+          0.00
+        {% endif %}

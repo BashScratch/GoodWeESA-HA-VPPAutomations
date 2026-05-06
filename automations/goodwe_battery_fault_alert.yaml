@@ -19,7 +19,7 @@ triggers:
 conditions: []
 
 actions:
-  - action: notify.mobile_app_your_device_name # EDIT: Replace with your HA Companion App device name
+  - action: notify.mobile_app_your_device_name # EDIT: your notify service
     data:
       title: GoodWe BMS Alert
       message: >

@@ -7,7 +7,7 @@ triggers:
     at: "10:45:00"
     id: pre_window_reminder
   - trigger: state
-    entity_id: binary_sensor.ev_charger_vehicle_connected # EDIT: Replace with your EV Charger connected sensor
+    entity_id: binary_sensor.ev_charger_vehicle_connected # EDIT: your EV charger connected binary sensor
     to: "on"
     id: car_connected_during_window
 
@@ -19,15 +19,15 @@ actions:
           - condition: trigger
             id: pre_window_reminder
           - condition: state
-            entity_id: binary_sensor.ev_charger_vehicle_connected # EDIT: Replace with your EV Charger connected sensor
+            entity_id: binary_sensor.ev_charger_vehicle_connected # EDIT: your EV charger connected binary sensor
             state: "off"
         sequence:
-          - action: notify.mobile_app_your_device_name # EDIT: Replace with your HA Companion App device name
+          - action: notify.mobile_app_your_device_name # EDIT: your notify service
             data:
-              title: Free Window in 15min ⚡
+              title: Free Window in 15min
               message: >-
                 EV is not plugged in. Connect now to charge for free
-                11am–2pm.
+                11am-2pm.
               data:
                 push:
                   sound:
@@ -39,9 +39,9 @@ actions:
             after: "11:01:00"
             before: "14:00:00"
         sequence:
-          - action: notify.mobile_app_your_device_name # EDIT: Replace with your HA Companion App device name
+          - action: notify.mobile_app_your_device_name # EDIT: your notify service
             data:
-              title: EV Connected — Free Window Active ✅
+              title: EV Connected - Free Window Active
               message: >-
                 Car plugged in during free window. Set EV to charge now
                 via your vehicle app.

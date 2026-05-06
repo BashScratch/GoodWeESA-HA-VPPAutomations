@@ -1,0 +1,284 @@
+alias: "GoodWe ESA: GloBird Zero Hero (Method 2 - EMS RAM Commands)"
+description: >
+  Uses EMS (Energy Management System) RAM registers via the experimental HACS
+  integration to force charging and exporting. Preserves SolarGo/SEMS+ TOU
+  schedules (the operation mode is never changed) and writes nothing to flash.
+  IMPORTANT: Check the exact option strings for select.goodwe_ems_mode in
+  Developer Tools before saving - they vary by inverter model and firmware.
+  Method 2 is experimental. Read the README before enabling.
+  See GLOSSARY.md for EMS mode descriptions.
+mode: queued
+max: 5
+
+# =============================================================================
+# REQUIRED INTEGRATION
+#   GoodWe Experimental by mletenay (via HACS):
+#     https://github.com/mletenay/home-assistant-goodwe-inverter
+#
+# REQUIRED HELPERS (create these in HA before use):
+#   input_boolean.zero_hero_enabled          - master toggle
+#   input_boolean.zero_hero_force_safe       - panic switch: forces inverter to Auto
+#   input_number.zero_hero_export_start      - tracks export kWh at peak start
+#   input_number.zero_hero_rate_super        - GloBird super export rate $/kWh (e.g. 0.15)
+#   input_number.zero_hero_rate_base         - GloBird base export rate $/kWh (e.g. 0.06)
+#   input_number.zero_hero_rate_credit       - GloBird daily zero-grid credit (e.g. 1.00)
+#   input_number.zero_hero_super_cap         - kWh cap for super rate (10 or 15)
+#   input_number.zero_hero_min_export_soc    - SOC % below which peak export is blocked
+# See automations/globird/README.md for full helper setup instructions.
+#
+# WATCHDOG: This automation includes a 5-minute watchdog (17:55-22:00) that
+# returns the inverter to "Auto" mode if zero_hero_enabled is off or
+# zero_hero_force_safe is on. This addresses the failure mode where HA crashes
+# mid-export and leaves the inverter stuck in forced-discharge.
+# =============================================================================
+
+triggers:
+  - trigger: time
+    at: "00:01:00"
+    id: midnight_reset
+  - trigger: time
+    at: "11:00:00"
+    id: free_charge_start
+  - trigger: time
+    at: "14:00:00"
+    id: free_charge_end
+  - trigger: time
+    at: "18:00:00"
+    id: peak_export_start
+  # EDIT: Change to 20:00 if your GloBird plan's peak ends at 20:00.
+  - trigger: time
+    at: "21:00:00"
+    id: peak_export_end
+  - trigger: time_pattern
+    minutes: "/5"
+    id: watchdog
+
+conditions: []
+
+actions:
+  - choose:
+
+      # ==========================================================
+      # MIDNIGHT RESET
+      # ==========================================================
+      - conditions:
+          - condition: trigger
+            id: midnight_reset
+        sequence:
+          - action: input_number.set_value
+            target:
+              entity_id: input_number.zero_hero_export_start
+            data:
+              value: 0
+
+      # ==========================================================
+      # 11:00 AM - FORCE CHARGE (EMS RAM COMMAND)
+      # Skipped if zero_hero_enabled is off.
+      # IMPORTANT: Verify "Charge" is a valid option for your select.goodwe_ems_mode
+      # entity before enabling. Check Developer Tools > States first.
+      # ==========================================================
+      - conditions:
+          - condition: trigger
+            id: free_charge_start
+          - condition: state
+            entity_id: input_boolean.zero_hero_enabled
+            state: "on"
+          - condition: state
+            entity_id: input_boolean.zero_hero_force_safe
+            state: "off"
+        sequence:
+          - wait_template: >
+              {{ is_number(states('sensor.goodwe_battery_state_of_charge')) }}
+            timeout: "00:02:00"
+            continue_on_timeout: true
+          - if:
+              - condition: template
+                value_template: >
+                  {{ not is_number(states('sensor.goodwe_battery_state_of_charge')) }}
+            then:
+              - action: notify.mobile_app_your_device_name   # EDIT: your notify service
+                data:
+                  title: Zero Hero Aborted
+                  message: >-
+                    SOC sensor unavailable at 11:00. Charge command not sent.
+              - stop: SOC sensor unavailable
+          - action: select.select_option
+            target:
+              entity_id: select.goodwe_ems_mode   # EDIT: your GoodWe EMS Mode entity
+            data:
+              option: "Charge"   # EDIT: verify this string matches your entity's options
+          - action: number.set_value
+            target:
+              entity_id: number.goodwe_ems_power_limit   # EDIT: your GoodWe EMS Power Limit entity
+            data:
+              value: 5000   # Watts. Charges at up to 5kW from grid.
+
+      # ==========================================================
+      # 2:00 PM - END FREE CHARGE (RETURN TO AUTO)
+      # ==========================================================
+      - conditions:
+          - condition: trigger
+            id: free_charge_end
+        sequence:
+          - action: select.select_option
+            target:
+              entity_id: select.goodwe_ems_mode
+            data:
+              option: "Auto"   # EDIT: verify this string matches your entity's options
+
+      # ==========================================================
+      # 6:00 PM - FORCE EXPORT (EMS RAM COMMAND)
+      # Records baseline export for profit calculation.
+      # The EMS discharge mode covers house load first, then exports the target wattage.
+      # ==========================================================
+      - conditions:
+          - condition: trigger
+            id: peak_export_start
+          - condition: state
+            entity_id: input_boolean.zero_hero_enabled
+            state: "on"
+          - condition: state
+            entity_id: input_boolean.zero_hero_force_safe
+            state: "off"
+        sequence:
+          - wait_template: >
+              {{ is_number(states('sensor.goodwe_battery_state_of_charge')) and
+              is_number(states('sensor.goodwe_total_energy_export')) }}
+            timeout: "00:02:00"
+            continue_on_timeout: true
+          - if:
+              - condition: template
+                value_template: >
+                  {{ not is_number(states('sensor.goodwe_battery_state_of_charge')) }}
+            then:
+              - action: notify.mobile_app_your_device_name   # EDIT: your notify service
+                data:
+                  title: Zero Hero Aborted
+                  message: >-
+                    SOC sensor unavailable at 18:00. Export command not sent.
+              - stop: SOC sensor unavailable
+          - if:
+              - condition: numeric_state
+                entity_id: sensor.goodwe_battery_state_of_charge   # EDIT: your SOC sensor
+                below: input_number.zero_hero_min_export_soc
+            then:
+              - action: notify.mobile_app_your_device_name   # EDIT: your notify service
+                data:
+                  title: Zero Hero Alert
+                  message: >-
+                    Peak export blocked. SOC {{ states('sensor.goodwe_battery_state_of_charge') }}%
+                    is below your minimum export threshold.
+              - stop: SOC below threshold
+          - action: input_number.set_value
+            target:
+              entity_id: input_number.zero_hero_export_start
+            data:
+              value: >-
+                {{ states('sensor.goodwe_total_energy_export') | float(0) }}   # EDIT: your Total Export sensor
+          - action: select.select_option
+            target:
+              entity_id: select.goodwe_ems_mode
+            data:
+              # EDIT: verify this string. The EMS discharge scenario that covers house
+              # load first and then exports the remaining target wattage. See GLOSSARY.md.
+              option: "Discharge"   # EDIT: may be "Export AC", "Discharge", or similar - check your entity
+          - action: number.set_value
+            target:
+              entity_id: number.goodwe_ems_power_limit
+            data:
+              # EDIT: target discharge/export in Watts. 5000 = 5kW net export after house load.
+              value: 5000
+
+      # ==========================================================
+      # PEAK END (20:00 or 21:00)
+      # Returns to Auto mode and reports nightly profit.
+      # ==========================================================
+      - conditions:
+          - condition: trigger
+            id: peak_export_end
+        sequence:
+          - action: select.select_option
+            target:
+              entity_id: select.goodwe_ems_mode
+            data:
+              option: "Auto"   # EDIT: verify this string matches your entity's options
+          - if:
+              - condition: numeric_state
+                entity_id: input_number.zero_hero_export_start
+                above: 0
+            then:
+              - action: notify.mobile_app_your_device_name   # EDIT: your notify service
+                data:
+                  title: Zero Hero Complete
+                  message: >
+                    {% set start_exp  = states('input_number.zero_hero_export_start') | float(0) %}
+                    {% set end_exp    = states('sensor.goodwe_total_energy_export') | float(0) %}
+                    {% set kwh_sold   = [(end_exp - start_exp), 0] | max | round(2) %}
+
+                    {% set rate_super = states('input_number.zero_hero_rate_super') | float(0.15) %}
+                    {% set rate_base  = states('input_number.zero_hero_rate_base')  | float(0.06) %}
+                    {% set credit     = states('input_number.zero_hero_rate_credit') | float(1.00) %}
+                    {% set super_cap  = states('input_number.zero_hero_super_cap')   | float(10) %}
+
+                    {% set super_kwh  = [kwh_sold, super_cap] | min %}
+                    {% set base_kwh   = [kwh_sold - super_cap, 0] | max %}
+                    {% set profit     = ((super_kwh * rate_super) + (base_kwh * rate_base)) | round(2) %}
+                    {% set total      = (profit + credit) | round(2) %}
+
+                    Exported {{ kwh_sold }} kWh. Revenue: ${{ '%.2f' | format(profit) }}
+                    + ${{ '%.2f' | format(credit) }} daily credit
+                    = ${{ '%.2f' | format(total) }}. Goodnight.
+              - action: input_number.set_value
+                target:
+                  entity_id: input_number.zero_hero_export_start
+                data:
+                  value: 0
+
+      # ==========================================================
+      # WATCHDOG - runs every 5 minutes
+      # Returns the inverter to Auto if it's stuck in a forced mode outside
+      # an active window (HA crashed mid-export, or similar). Also acts
+      # immediately when force_safe is flipped on as a panic switch.
+      # Active windows: 10:58-14:02 (charge buffer), 17:58-21:02 (peak buffer).
+      # If the inverter is already Auto, this does nothing.
+      # ==========================================================
+      - conditions:
+          - condition: trigger
+            id: watchdog
+          - condition: not
+            conditions:
+              - condition: state
+                entity_id: select.goodwe_ems_mode
+                state: "Auto"   # EDIT: verify this matches your entity's "Auto" option
+          - condition: or
+            conditions:
+              # Panic switch - always overrides
+              - condition: state
+                entity_id: input_boolean.zero_hero_force_safe
+                state: "on"
+              # Or: outside both active windows
+              - and:
+                  - condition: not
+                    conditions:
+                      - condition: time
+                        after: "10:58:00"
+                        before: "14:02:00"
+                  - condition: not
+                    conditions:
+                      - condition: time
+                        after: "17:58:00"
+                        before: "21:02:00"   # EDIT: change to 20:02 if peak_end is 20:00
+        sequence:
+          - variables:
+              stuck_mode: "{{ states('select.goodwe_ems_mode') }}"
+          - action: select.select_option
+            target:
+              entity_id: select.goodwe_ems_mode
+            data:
+              option: "Auto"   # EDIT: verify this matches your entity's options
+          - action: notify.mobile_app_your_device_name   # EDIT: your notify service
+            data:
+              title: Zero Hero Watchdog
+              message: >-
+                Inverter was in {{ stuck_mode }} mode outside an active window.
+                Returned to Auto.

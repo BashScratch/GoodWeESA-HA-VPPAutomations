@@ -14,4 +14,4 @@ conditions: []
 actions:
   - action: button.press
     target:
-      entity_id: button.goodwe_synchronize_inverter_clock # EDIT: Replace with your GoodWe Sync Clock button
+      entity_id: button.goodwe_synchronize_inverter_clock # EDIT: your GoodWe Sync Clock button
