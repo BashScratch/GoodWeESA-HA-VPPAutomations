@@ -22,7 +22,9 @@ Power from the grid is free. The automation force-charges the battery to 100% fr
 
 **Charging LFP to 100% - generally fine, especially with the GoodWe ESA's built-in buffer.** GoodWe ESA batteries use LFP (Lithium Iron Phosphate) chemistry, which tolerates high state-of-charge significantly better than older NMC or Li-ion packs. Peer-reviewed cycling data shows LFP cells achieving roughly 2,500 to 9,000 equivalent full cycles at 100% depth of discharge, where comparable NMC cells managed 200 to 2,500 ([Sandia / J. Electrochem. Soc.](https://iopscience.iop.org/article/10.1149/1945-7111/abae37)). LFP also benefits from periodic full charges because its flat discharge curve makes voltage-based SOC estimates drift; a full charge resets the BMS coulomb counter.
 
-Worth knowing: GoodWe ESA batteries ship with a built-in buffer. The "48kWh usable" rating sits inside roughly 49kWh of physical cell capacity, so the 100% you see in SolarGo or HA isn't actually 100% on the cells. GoodWe's warranty operates on the same usable-range scale (typical figures: 6,000 cycles or 10 years to 70% capacity, recommended 10% to 90% operation - check your warranty document for your specific terms). The Zero Hero pattern (charge to 100% during the free window, discharge during peak) lives at the top of that recommended range, not outside it. The chemistry is well within its comfort zone.
+Worth being honest about the warranty range though: GoodWe's warranty assumes operation between roughly 10% and 90% SOC (typical figures: 6,000 cycles or 10 years to 70% capacity - check your specific warranty document). The Zero Hero pattern as described here charges to 100%, which is **above** GoodWe's recommended top end. There's some buffer in your favour because GoodWe ESA batteries ship with a built-in headroom layer (the "48kWh usable" rating sits inside roughly 49kWh of physical cell capacity, so the 100% you see in SEMS+ or HA isn't actually 100% on the cells), but the warranty document doesn't promise that buffer compensates for charging to 100% daily.
+
+In practice the LFP cycle data above suggests the wear difference between 90% and 100% top-of-charge is small at the timescales an ESA actually operates over - but if you want to stay strictly within GoodWe's recommendation, **set your TOU charge target to 90% instead of 100%**. Easy in Method 3 (one number in your SEMS+ TOU slot). You'll cap the daily charge a bit lower, miss out on some Super Export headroom in the peak window, and stay neatly inside warranty terms.
 
 ### Peak window (6:00 PM - 8:00 or 9:00 PM)
 
@@ -36,7 +38,7 @@ Grid import is expensive. GloBird offers a high "Super Export" rate for the firs
 
 To pick a method, you need to know two things about how the inverter actually responds when HA sends commands.
 
-**1. HA can only command the AC side.** The GoodWe ESA's 10kW model (GW9.999K-EHA-G20) can charge the battery at up to **13.5kW** when the firmware combines grid AC and solar DC simultaneously. This is published spec - see GoodWe's official ESA Series datasheet, "Max. Charging Power" row ([GoodWe ESA Series datasheet PDF, V2.1 April 2026](https://admin.goodwe.com/Api/downloadFile?id=3448&mid=60&type=2)). The inverter's nominal AC power is 9.999kW; the extra ~3.5kW comes from solar DC bypassing the AC stage and going directly to the battery via the MPPTs. The HA-facing API only exposes AC-side controls (Eco Mode, fast-charging switch, EMS power limit), so a HA-driven charge tops out around 10kW. A SolarGo TOU schedule, by contrast, lets the firmware orchestrate both inputs and gives you the full 13.5kW. Community confirmation of the same effect: Whirlpool thread "Goodwe ESA maximum charge rate?", explanation by user **nutttr** with confirmation from **Zerosignal** ([thread link](https://forums.whirlpool.net.au/thread/9kppp8k2)); also discussed at [mletenay #362](https://github.com/mletenay/home-assistant-goodwe-inverter/discussions/362).
+**1. HA can only command the AC side.** The GoodWe ESA's 10kW model (GW9.999K-EHA-G20) can charge the battery at up to **13.5kW** when the firmware combines grid AC and solar DC simultaneously. This is published spec - see GoodWe's official ESA Series datasheet, "Max. Charging Power" row ([GoodWe ESA Series datasheet PDF, V2.1 April 2026](https://admin.goodwe.com/Api/downloadFile?id=3448&mid=60&type=2)). The inverter's nominal AC power is 9.999kW; the extra ~3.5kW comes from solar DC bypassing the AC stage and going directly to the battery via the MPPTs. The HA-facing API only exposes AC-side controls (Eco Mode, fast-charging switch, EMS power limit), so a HA-driven charge tops out around 10kW. A SEMS+ TOU schedule, by contrast, lets the firmware orchestrate both inputs and gives you the full 13.5kW. Community confirmation of the same effect: Whirlpool thread "Goodwe ESA maximum charge rate?", explanation by user **nutttr** with confirmation from **Zerosignal** ([thread link](https://forums.whirlpool.net.au/thread/9kppp8k2)); also discussed at [mletenay #362](https://github.com/mletenay/home-assistant-goodwe-inverter/discussions/362).
 
 The throughput gap (10kW vs 13.5kW) matters most if you have a large battery (around 48kWh and up) where 30kWh in 3 hours doesn't fill it, or if you're charging an EV during the free window. With concurrent EV charging the architecture detail matters: the battery prefers DC (solar), so AC capacity can be redirected to the EV while the battery still gets full charge from PV. On a smaller battery (say 13.5kWh) with no EV, you'll be at 100% well before 14:00 either way, so the gap is largely academic.
 
@@ -44,7 +46,7 @@ The throughput gap (10kW vs 13.5kW) matters most if you have a large battery (ar
 
 There's also a hypothetical wear concern with frequent operation-mode writes. Whether the inverter stores these in EEPROM or flash (community discussion uses both terms - the underlying chip type isn't documented publicly), the typical write-cycle rating is 100,000+ cycles. At the rate HA fires mode changes (a handful per day at most), that's likely more than the inverter's service life. No bricked-inverter cases have surfaced in the community. Treat it as "no upside to writing persistent storage when you don't have to" rather than a concrete risk.
 
-These facts shape the three methods below. Method 1 accepts both consequences for the sake of simplicity. Method 2 dodges the schedule-deletion issue by using EMS RAM registers (a separate entity, never touches operation mode), but is still capped at the 10kW AC ceiling because HA still can't ask for DC blending. Only Method 3 dodges both, by leaving operation mode alone *and* delegating the charge to a SolarGo TOU schedule that the inverter firmware can run at the full 13.5kW.
+These facts shape the three methods below. Method 1 accepts both consequences for the sake of simplicity. Method 2 dodges the schedule-deletion issue by using EMS RAM registers (a separate entity, never touches operation mode), but is still capped at the 10kW AC ceiling because HA still can't ask for DC blending. Only Method 3 dodges both, by leaving operation mode alone *and* delegating the charge to a SEMS+ TOU schedule that the inverter firmware can run at the full 13.5kW.
 
 ---
 
@@ -85,19 +87,19 @@ From the official [ESA Series three-phase datasheet, V2.1 April 2026](https://ad
 | GW25K-ETA-G20 (25kW) | 25.0kW | 25.0kW |
 | GW29.999K-ETA-G20 (30kW) | 29.999kW | 30.0kW |
 
-**Three-phase ESAs don't have the AC+DC blending headroom.** Max charging equals nominal AC across the entire range. So if you're on a three-phase ESA, **the throughput advantage Method 3 has on single-phase doesn't apply to you** - HA-driven charging and SolarGo-TOU charging both top out at the same number.
+**Three-phase ESAs don't have the AC+DC blending headroom.** Max charging equals nominal AC across the entire range. So if you're on a three-phase ESA, **the throughput advantage Method 3 has on single-phase doesn't apply to you** - HA-driven charging and TOU-scheduled charging both top out at the same number.
 
 Method 3 is still the recommended approach on three-phase, just for different reasons. You still get:
 
 - Precise grid-export control via `number.goodwe_grid_export_limit` (Methods 1 and 2 set total discharge, which is imprecise).
-- Your SolarGo TOU schedule isn't deleted by HA mode changes.
+- Your SEMS+ TOU schedule isn't deleted by HA mode changes.
 - The HA smart layer (SOC guard, profit notifications, helper-tunable rates) is unchanged.
 
 Just don't expect a 35% throughput bump from switching from Method 1 to Method 3 on a three-phase setup.
 
 ### Naming tip
 
-You can spot single-phase vs three-phase by the model number: single-phase ESAs end in **EHA-G20** (e.g. GW9.999K-**EHA**-G20), three-phase end in **ETA-G20** (e.g. GW9.999K-**ETA**-G20). The H is for "Home" and the T is for "Three-phase".
+You can spot single-phase vs three-phase by the **middle letter** of the suffix: single-phase ESAs are `E**H**A-G20` (e.g. GW9.999K-EHA-G20), three-phase are `E**T**A-G20` (e.g. GW9.999K-ETA-G20). Same length, same `A-G20` ending - it's the H vs T that tells you which you're looking at. The H is for "Home" (single-phase residential) and the T is for "Three-phase".
 
 ### Modbus TCP
 
@@ -109,21 +111,21 @@ Off by default on every GoodWe ESA we've seen. You'll need to enable it before a
 
 ### Baseline: SEMS+ only (no HA automation)
 
-Not recommended, but worth mentioning. You can skip the automations entirely, set a charge/discharge schedule in the GoodWe SEMS+ app (or SolarGo - GoodWe is migrating features from SolarGo to SEMS+, so we recommend SEMS+ for new setups), and just use HA to monitor. Simple. Safe.
+Not recommended for the dynamic-pricing case, but worth understanding because it's the foundation everything else builds on. You can skip the automations entirely, set charge and discharge TOU schedules in the GoodWe SEMS+ app (or SolarGo if that's where you're already set up), and just use HA to monitor.
 
-**Downsides:** SolarGo's TOU schedule controls total inverter discharge power, not grid export specifically - so it's imprecise.
+**Downsides:** the TOU discharge power setting controls total inverter output, not grid export specifically - so it's imprecise.
 
-> Worked example: you set SolarGo to "discharge at 5kW" during peak. Your house is drawing 2kW. The inverter discharges 5kW total - so 2kW covers the house and 3kW goes to the grid. If your house load drops to 0.5kW, the same 5kW discharge command sends 4.5kW to the grid instead. SolarGo can't pin grid export specifically; it pins total inverter output. HA's `number.goodwe_grid_export_limit` pins grid export to a number you choose regardless of house load, which is what you actually want during a peak window.
+> Worked example: you set SEMS+ to "discharge at 5kW" during peak. Your house is drawing 2kW. The inverter discharges up to 5kW total - 2kW covers the house and 3kW goes to the grid. If your house load spikes to 5kW (e.g. someone runs the dryer and the kettle), all 5kW goes to the house and nothing to the grid. The total figure is the inverter's output ceiling, not a guaranteed grid export. HA's `number.goodwe_grid_export_limit` pins grid export to a specific number regardless of house load (provided the inverter has the headroom to cover both), which is what you actually want during a peak window.
 
-It's also a static schedule: it won't react to your battery being low, or household load spiking, or anything else. If your battery is at 25% going into peak, SolarGo will happily try to discharge it anyway and you'll end up buying grid power at peak rates to fill the gap. Not ideal.
+It's also a static schedule. It won't react to your battery being low, or household load spiking, or anything else. If your battery is going into peak with limited charge, SEMS+ will discharge down to whatever SOC floor you set in the TOU slot and then buy grid power at peak rates to cover any remaining demand. A smarter system would block discharge to the grid in that scenario rather than burning peak-rate import. That's the gap HA fills.
 
 ### What HA brings to all three methods
 
-Before the per-method differences, here's what you get from putting HA in front of any of these versus just running SolarGo on its own:
+Before the per-method differences, here's what you get from putting HA in front of any of these versus just running SEMS+ on its own:
 
-- **Pre-peak SOC guard.** HA checks battery SOC at 17:56 and either arms or blocks peak export. SolarGo can't do this conditionally; it would happily try to discharge an empty battery and buy grid power at peak rates to compensate.
+- **Pre-peak SOC guard.** HA checks battery SOC at 17:56 and either arms or blocks peak export entirely based on whether you have enough headroom. SEMS+ TOU can set an SOC floor for the discharge slot, but it can't decide "don't discharge at all today, save what's there for overnight load" - it'll discharge to the floor and then start buying grid power at peak rates to cover the rest of demand. HA's all-or-nothing arming logic avoids that.
 - **Conditional notifications.** "Zero Hero Armed" / "Aborted" / "Complete" messages so you know what happened each day without having to check the app.
-- **Profit calculation.** Nightly notification with kWh sold, super-vs-base split, daily credit, and total. SolarGo doesn't compute this against your tariff structure.
+- **Profit calculation.** Nightly notification with kWh sold, super-vs-base split, daily credit, and total. Neither SEMS+ nor SolarGo computes this against your tariff structure.
 - **Helper-tunable rates.** Tariff changes are a number edit in the HA UI, not a schedule rebuild in the app.
 - **Master enable/disable toggle.** One switch pauses peak behaviour without deleting anything (handy when away or when you want to keep the battery full for a known heavy load).
 
@@ -135,46 +137,46 @@ The straightforward approach. Switch the inverter to Eco Mode at 11:00 AM (to fo
 
 - Pro: Straightforward logic - one automation, one entity to control.
 - Pro: Inherits the HA smart-layer benefits above (SOC guard, notifications, profit calc, tunable rates).
-- Con: **Requires the experimental HACS integration** because `number.goodwe_eco_mode_power` is only exposed there. Not actually a "no HACS" method, despite earlier framing.
+- Con: **Requires the experimental HACS integration** because `number.goodwe_eco_mode_power` is only exposed there.
 - Con: Charges at ~10kW max (no DC blending - see "what HA can tell the inverter" above).
-- Con: **Overwrites your SolarGo TOU schedule** every time it changes mode.
-- Con: The 5kW peak target is *total inverter discharge*, not grid-export specifically - same imprecision as the SolarGo baseline. If house load drops mid-peak, more goes to the grid; if house load spikes, less does.
+- Con: **Overwrites your SEMS+ TOU schedule** every time it changes mode.
+- Con: The 5kW peak target is *total inverter discharge*, not grid-export specifically - same imprecision as the app-only baseline. If house load drops mid-peak, more goes to the grid; if house load spikes, less does (or nothing does, if house load exceeds the target).
 
-**Pick this if:** you don't use SolarGo for scheduling, you're happy for HA to own the timing entirely, you're comfortable with HACS, and the ~30% throughput hit during the free window is acceptable.
+**Pick this if:** you don't use SEMS+ or SolarGo for scheduling, you're happy for HA to own the timing entirely, you're comfortable with HACS, and the ~30% throughput hit during the free window is acceptable.
 
 ### [Method 2: EMS RAM Commands](./method2_ems/) - experimental
 
 Use the community-maintained GoodWe Experimental integration (HACS) to send Energy Management System commands directly to the inverter's RAM. Sets mode to `Charge` at 11:00, back to `Auto` at 14:00, to `Discharge` (or `Export AC` depending on firmware) at 18:00, back to `Auto` at the end of peak.
 
-- Pro: Never touches operation mode - preserves any SolarGo TOU schedule you've set.
+- Pro: Never touches operation mode - preserves any SEMS+ TOU schedule you've set.
 - Pro: `Discharge` / `Export AC` mode covers house load first, then exports exactly the target Watts.
 - Pro: Watchdog automation included (returns inverter to Auto if HA crashed mid-export).
 - Pro: Inherits the HA smart-layer benefits (SOC guard, notifications, profit calc, tunable rates).
-- Pro: **Comes into its own on dynamic wholesale plans** (Amber Electric, OVO Charge Anytime forecast tiers, etc.) where you want HA to drive mode changes every few minutes based on live price signals. The EMS register is the right primitive for that pattern. For a fixed-window plan like Zero Hero, this advantage doesn't really land.
+- Pro: **Comes into its own on dynamic wholesale plans** (Amber Electric, OVO Charge Anytime forecast tiers, etc.) where you want HA to drive mode changes every few minutes based on live price signals. The EMS register is the right tool for that pattern. For a fixed-window plan like Zero Hero, this advantage doesn't really land.
 - Con: Requires the experimental HACS integration ([mletenay/home-assistant-goodwe-inverter](https://github.com/mletenay/home-assistant-goodwe-inverter)).
 - Con: EMS option strings vary by firmware - needs verification before it works.
 - Con: A future GoodWe firmware update could change EMS registers and silently break it.
 - Con: Still subject to the 10kW AC charging ceiling (same limitation as Method 1).
-- Con (uncertain): If you've also got a SolarGo TOU schedule active, the precedence between TOU and EMS during a real conflict isn't fully documented. Working hypothesis: EMS RAM commands win while in effect (until inverter restart or until the EMS state is cleared). If confirmed, this is fine. If not, the two could fight at boundaries. Worth verifying on your install before relying on it.
+- Con (uncertain): If you've also got a SEMS+ TOU schedule active, the precedence between TOU and EMS during a real conflict isn't fully documented. Working hypothesis: EMS RAM commands win while in effect (until inverter restart or until the EMS state is cleared). If confirmed, this is fine. If not, the two could fight at boundaries. Worth verifying on your install before relying on it.
 
-**Pick this if:** you're on a dynamic-pricing VPP that needs frequent mode changes, OR you want a setup where your SolarGo schedule survives and you accept that the integration could break without notice.
+**Pick this if:** you're on a dynamic-pricing VPP that needs frequent mode changes, OR you want a setup where your TOU schedule survives in the app and you accept that the integration could break without notice.
 
 ### [Method 3: Hybrid General Mode (recommended)](./method3_hybrid/)
 
-The free charging window is handled natively by a GoodWe **TOU** schedule set directly in the SolarGo app (11:00-14:00, target 100% SOC, grid priority). The firmware blends grid AC and solar DC to charge at up to 13.5kW and holds at 100% once the target is hit - no HA intervention in the free window.
+The free charging window is handled natively by a GoodWe **TOU** schedule set directly in the SEMS+ app (11:00-14:00, target 100% SOC, grid priority). The firmware blends grid AC and solar DC to charge at up to 13.5kW and holds at 100% once the target is hit - no HA intervention in the free window.
 
 HA handles the smart layer: at 17:56 it evaluates SOC, arms or blocks the 5kW peak export limit, and sends a nightly profit notification.
 
-> **Terminology note:** What the SolarGo app calls "TOU" or "Economic Mode" is the same thing the HA integration exposes as "Eco mode" in `select.goodwe_inverter_operation_mode`. Despite sharing the "Eco" name, the HA integration's `fast_charging_switch` is a *different* mechanism - it force-charges via a dedicated register, not via the TOU schedule slot, and only runs the AC side. See [GLOSSARY.md](../../GLOSSARY.md) for the full breakdown.
+> **Terminology note:** What the SEMS+ app calls "TOU" or "Economic Mode" is the same thing the HA integration exposes as "Eco mode" in `select.goodwe_inverter_operation_mode`. Despite sharing the "Eco" name, the HA integration's `fast_charging_switch` is a *different* mechanism - it force-charges via a dedicated register, not via the TOU schedule slot, and only runs the AC side. See [GLOSSARY.md](../../GLOSSARY.md) for the full breakdown.
 
 - Pro: Charges at the full 13.5kW (10 AC + 3.5 DC blended) during the free window, where the inverter and battery support it.
 - Pro: Native firmware handles the "charge then hold" behaviour correctly.
 - Pro: Never touches operation mode from HA - your TOU schedule is safe.
 - Pro: Inherits the HA smart-layer benefits (SOC guard, dynamic export limit, notifications, profit calc, tunable rates).
-- Pro: `number.goodwe_grid_export_limit` is precise grid-export control (not "total discharge" like Methods 1 and 2). If house load varies, your grid-export number stays the same.
-- Pro: **Mostly insulated from firmware changes.** Uses the native HA integration's documented entities plus the SolarGo app's own TOU feature, both of which GoodWe maintains. Less exposed to breakage than Method 2's experimental-register approach.
-- Pro/Con: One small experimental-only dependency. The midnight reset turns off `switch.goodwe_fast_charging_switch` as a safety net. That entity only exists with the HACS integration; on a native-only install the action errors silently and the rest of the automation continues (the YAML uses `continue_on_error: true`). So Method 3 *will* run native-only, you just lose one belt-and-braces line of safety. If you want that line working, install the HACS integration too - it's strictly additive, not required.
-- Con: Requires one schedule in the SolarGo app + one HA automation instead of just one of either.
+- Pro: `number.goodwe_grid_export_limit` is precise grid-export control (not "total discharge" like Methods 1 and 2). If house load varies, your grid-export number stays the same (provided the inverter has the headroom to cover both house and grid simultaneously).
+- Pro: **Mostly insulated from firmware changes.** Uses the native HA integration's documented entities plus the GoodWe app's own TOU feature, both of which GoodWe maintains. Less exposed to breakage than Method 2's experimental-register approach.
+- Pro/Con: One small experimental-only dependency. The midnight reset turns off `switch.goodwe_fast_charging_switch` as a safety net (legacy from when an earlier version of this automation used the fast-charge switch as the primary charging mechanism; now that the charge is owned by TOU, this line just catches the case where someone manually flipped the switch on and forgot). That entity only exists with the HACS integration; on a native-only install the action errors silently and the rest of the automation continues (the YAML uses `continue_on_error: true`). So Method 3 *will* run native-only, you just lose one belt-and-braces line of safety.
+- Con: Requires one schedule in the SEMS+ app + one HA automation instead of just one of either.
 
 **Pick this if:** you want the thing that works well and keeps working. This is the default recommendation.
 
@@ -186,16 +188,16 @@ HA handles the smart layer: at 17:56 it evaluates SOC, arms or blocks the 5kW pe
 Default answer: Method 3. The 13.5kW vs 10kW charging difference is the
                 headline (where it matters - large batteries and EV
                 charging during the free window). The precise grid-export
-                control is the sleeper benefit: SolarGo and Methods 1/2
+                control is the sleeper benefit: app-only and Methods 1/2
                 pin total discharge, only Method 3 pins grid export
                 specifically.
 
-If you don't want a SolarGo TOU schedule:
+If you don't want a SEMS+ TOU schedule:
   Method 1 - straightforward, fully HA-driven, ~10kW charge ceiling,
-             same imprecise discharge as the SolarGo baseline. Needs
+             same imprecise discharge as the app-only baseline. Needs
              HACS for the eco_mode_power entity.
-  Method 2 - preserves SolarGo but needs HACS and depends on an
-             experimental integration. Same 10kW ceiling. Best fit if
+  Method 2 - preserves any SEMS+ schedule but needs HACS and depends
+             on an experimental integration. Same 10kW ceiling. Best fit if
              you're on a dynamic-pricing plan that needs frequent mode
              changes (Amber etc), not really for fixed-window plans
              like Zero Hero.

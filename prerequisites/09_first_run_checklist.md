@@ -36,8 +36,8 @@ Tick each line before enabling. If any of these are "uh, not sure", go back to t
 
 ### Method 3 only
 
-- [ ] SolarGo TOU schedule is set up (11:00-14:00, charge, 100%, grid priority).
-- [ ] Inverter is in Economic Mode (the working mode dropdown in SolarGo).
+- [ ] SEMS+ TOU schedule is set up (11:00-14:00, charge, 100%, grid priority).
+- [ ] Inverter is in Economic Mode (the working mode dropdown in SEMS+).
 - [ ] **No automations** touching `select.goodwe_inverter_operation_mode`.
 
 ## First-day plan
@@ -47,7 +47,7 @@ Don't enable `input_boolean.zero_hero_enabled` on day one. Watch first.
 ### 11:00 - free window starts
 
 - **Method 1 or 2:** the automation will trigger but will see `zero_hero_enabled` is off and exit on the condition check (or it'll force-charge anyway because Method 1's free-window block doesn't gate on the toggle - check the YAML before deciding). Watch the trace: Settings > Automations > click the automation > "Traces" tab. You'll see the trigger fired and what condition path it took.
-- **Method 3:** SolarGo's TOU schedule fires. The HA automation isn't involved in the free window. Watch the battery SOC climb in the GoodWe integration sensors or the SolarGo app. Should hit 100% before 14:00; if it doesn't, your inverter's charging slower than expected - usually because solar is producing very little (cloudy day) and the inverter is grid-only at the 10kW AC ceiling.
+- **Method 3:** The SEMS+ TOU schedule fires. The HA automation isn't involved in the free window. Watch the battery SOC climb in the GoodWe integration sensors or the SEMS+ app. Should hit 100% before 14:00; if it doesn't, your inverter's charging slower than expected - usually because solar is producing very little (cloudy day) and the inverter is grid-only at the 10kW AC ceiling.
 
 ### 14:00 - free window ends
 

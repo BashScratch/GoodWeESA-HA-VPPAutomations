@@ -117,4 +117,4 @@ The whole point. Add the sensors to a dashboard card:
 - HA config validates clean.
 - Both `sensor.zero_hero_session_export` and `sensor.zero_hero_session_profit` visible in Dev Tools > States.
 
-Next: [SolarGo TOU schedule (Method 3 only)](./08_sems_tou_schedule.md) or skip to [First-run checklist](./09_first_run_checklist.md).
+Next: [SEMS+ TOU schedule (Method 3 only)](./08_sems_tou_schedule.md) or skip to [First-run checklist](./09_first_run_checklist.md).

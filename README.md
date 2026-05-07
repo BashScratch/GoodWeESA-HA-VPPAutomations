@@ -16,9 +16,9 @@ So there isn't one automation here. There are three. They trade off differently 
 
 ## Why use HA at all? (acknowledging GoodWe's apps)
 
-A fair question. GoodWe is actively shipping firmware and app updates - the 13.5kW combined AC+DC charging capability landed via firmware around April 2026, and their Level 2 support is responsive when contacted directly. They've also been gradually migrating consumer features from the older **SolarGo** app into the newer **SEMS+** app, so we recommend SEMS+ for new setups (SolarGo still works for everything covered in this guide if you're already comfortable there). Most of what HA adds here (precise grid-export control during peak, conditional SOC guards, profit notifications keyed to your tariff structure) is reasonably likely to land in SEMS+ itself eventually. This repo is filling a gap that exists today, not staking out a permanent moat. If GoodWe ships those features in the app, by all means use them - the goal is the energy-bill outcome, not the HA setup.
+A fair question. GoodWe is actively shipping firmware and app updates - the 13.5kW combined AC+DC charging capability has been rolling out via firmware from around April 2026, although availability is uneven (some users have it on the standard OTA, others have had to ask Level 2 support for a standalone firmware push, and some recent firmware releases have shipped without it - it's a mishmash). Their L2 support is responsive when contacted directly. They've also been gradually migrating consumer features from the older **SolarGo** app into the newer **SEMS+** app, so we recommend SEMS+ for new setups (SolarGo still works for everything covered in this guide if you're already comfortable there). A lot of what HA adds here (precise grid-export control during peak, conditional SOC guards, profit notifications keyed to your tariff structure) is reasonably likely to land in SEMS+ itself eventually. This repo is filling a gap that exists today, not staking out a permanent moat. If GoodWe ships those features in the app, by all means use them - the goal is the energy-bill outcome plus the niceties (notifications, profit reporting, dashboards), not the HA setup as an end in itself.
 
-Until then, the smart layer this repo provides (read live SOC, decide whether to arm peak export, set a precise grid-export wattage, calculate nightly profit, fire notifications you can act on) is genuinely additive to what SolarGo can do on its own. That's the case for HA in this specific project.
+Until then, the smart layer this repo provides (read live SOC, decide whether to arm peak export, set a precise grid-export wattage, calculate nightly profit, fire notifications you can act on) is genuinely additive to what SolarGo and SEMS+ can do on their own. That's the case for HA in this specific project.
 
 ---
 
@@ -56,7 +56,7 @@ Full explanation of each, and why Method 3's throughput advantage settles the re
 
 ### General automations (recommended regardless of which method you pick)
 - **[EV Free Window Reminder](./automations/ev_free_window_reminder.yaml)** - pings you at 10:45 if the EV isn't plugged in yet, so you don't miss the free window.
-- **[GoodWe Time Sync](./automations/goodwe_time_sync.yaml)** - syncs the inverter clock to HA once a day. Drift is the quiet killer of TOU schedules.
+- **[GoodWe Time Sync](./automations/goodwe_time_sync.yaml)** - syncs the inverter clock to HA once a day. If the inverter's clock drifts away from HA's (and the rest of the world's), TOU schedules start firing at the wrong times and HA's triggers stop matching the inverter's behaviour. Drift is the quiet killer of TOU schedules.
 - **[GoodWe Battery Fault Alert](./automations/goodwe_battery_fault_alert.yaml)** - fires a critical notification if the BMS reports an error or warning. Your battery failing quietly is not the vibe.
 
 ### Provider-specific
@@ -80,17 +80,19 @@ Full explanation of each, and why Method 3's throughput advantage settles the re
 
 ## About entity naming
 
-The GoodWe integration landscape is a bit of a tip. The standard integration (built into Home Assistant) and the experimental one (by mletenay, via HACS) expose overlapping but not identical entity sets. Your actual entities may also be suffixed with `_2` (or `_3`, `_4`...) if you've installed and removed the integration before - HA reserves the original entity ID for the deleted instance and appends a number to the fresh one. So if the YAML examples reference `sensor.goodwe_battery_state_of_charge` and your install shows `sensor.goodwe_battery_state_of_charge_2`, that's the cause.
+There are two GoodWe integrations for Home Assistant: the **native** one bundled with HA (read sensors, basic mode control), and the **experimental HACS** one by [mletenay](https://github.com/mletenay/home-assistant-goodwe-inverter), which adds the active-control entities the native one doesn't expose. The mletenay integration is well-maintained and ships fast updates when GoodWe firmware shifts; treat it as production-quality with the standard "experimental" caveat that it pokes registers GoodWe doesn't officially document.
+
+Your actual entities may also be suffixed with `_2` (or `_3`, `_4`...) if you've installed and removed an integration before. HA reserves the original entity ID for the deleted instance and appends a number to the fresh one. So if the YAML examples reference `sensor.goodwe_battery_state_of_charge` and your install shows `sensor.goodwe_battery_state_of_charge_2`, that's the cause.
 
 Every `# EDIT:` marker in the YAML is a place where you should double-check the entity exists in your setup before trusting it. Go to **Developer Tools > States** in HA and search for `goodwe` to see what you actually have.
 
-A few entities are experimental-only:
+**The active-control entities live in the HACS integration, not the native one.** Specifically:
 
-- `number.goodwe_eco_mode_power` - **Method 1 needs this**. Method 1 is therefore HACS-required.
-- `switch.goodwe_fast_charging_switch` - **Method 3's midnight reset uses this** as a safety net. The YAML wraps it in `continue_on_error: true` so native-only installs no-op gracefully; Method 3 itself runs fine native-only.
-- `select.goodwe_ems_mode` and `number.goodwe_ems_power_limit` - **Method 2 needs both**.
+- `number.goodwe_eco_mode_power` - the magnitude for forced charge/discharge in Eco Mode. **Method 1 needs this.**
+- `switch.goodwe_fast_charging_switch` - force-charge from grid right now. **Method 3's midnight reset uses this** as a safety net (wrapped in `continue_on_error: true`, so Method 3 itself runs fine native-only - the line just no-ops if the entity isn't there).
+- `select.goodwe_ems_mode` and `number.goodwe_ems_power_limit` - direct RAM-level mode and power. **Method 2 needs both.**
 
-If you're using Method 2, you definitely need the experimental integration. If you're using Method 1, same. Method 3 is fine native-only with one belt-and-braces line missing.
+So Methods 1 and 2 require HACS. Method 3 will run on the native integration alone, but installing HACS too is recommended (no harm, and you get the safety-net line working).
 
 ## A concept worth understanding before you start: "discharge power" vs "grid export"
 

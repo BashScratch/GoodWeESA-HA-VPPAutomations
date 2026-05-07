@@ -68,7 +68,13 @@ actions:
       # ==========================================================
       # MIDNIGHT RESET
       # Resets the export tracker and turns off the fast charging
-      # switch as a safety net (in case it was left on manually).
+      # switch as a safety net. The fast_charging_switch line is
+      # legacy from when an earlier version of this automation used
+      # fast-charge as the primary charging mechanism. The charge is
+      # now owned by the SEMS+ TOU schedule, so this line just
+      # catches the case where someone manually flipped the switch
+      # on during the day and forgot to turn it back off.
+      #
       # The switch.turn_off uses continue_on_error so installs without
       # the experimental HACS integration (where this entity does not
       # exist) silently no-op rather than failing the whole sequence.

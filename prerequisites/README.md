@@ -15,7 +15,7 @@ The guides are numbered. If you do them in order you won't get stuck. If you ski
 5. [Find your actual entity IDs in Developer Tools](./05_find_your_entities.md) - every `# EDIT:` comment in the YAML needs you to substitute a real entity ID from your specific install. This is where you find them.
 6. [How to paste a YAML automation into Home Assistant](./06_paste_yaml_automation.md) - the bit nobody warns you about. The HA UI hides the YAML editor by default and you have to actively unhide it.
 7. [How to add template sensors to configuration.yaml](./07_add_template_sensors.md) - needed for the optional dashboard sensors. Different from automations; can't be done from the UI.
-8. [Set up the SolarGo TOU schedule (Method 3 only)](./08_sems_tou_schedule.md) - the half of Method 3 that lives on the inverter side, not the HA side.
+8. [Set up the SEMS+ TOU schedule (Method 3 only)](./08_sems_tou_schedule.md) - the half of Method 3 that lives on the inverter side, not the HA side.
 9. [First-run checklist](./09_first_run_checklist.md) - what to watch on day one and how to bail out cleanly if something's wrong.
 
 ## What we don't cover
@@ -36,4 +36,4 @@ Notable threads:
 
 ## A note on inverter firmware
 
-GoodWe ships firmware updates from time to time and the menu wording inside the SolarGo app shifts between versions. Where we describe a menu path that might have moved, we say so. If a screen we describe has been renamed, look around for similar wording - the underlying setting almost always still exists, it's just been moved to a different sub-menu.
+GoodWe ships firmware updates from time to time and the menu wording inside the SEMS+ and SolarGo apps shifts between versions. Where we describe a menu path that might have moved, we say so. If a screen we describe has been renamed, look around for similar wording - the underlying setting almost always still exists, it's just been moved to a different sub-menu.
