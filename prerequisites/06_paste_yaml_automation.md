@@ -69,6 +69,8 @@ Use **Ctrl+F (or Cmd+F)** to search inside the editor. Search for `EDIT`.
 
 Every match is a line where you need to replace a placeholder with a real value from your install. The most common ones:
 
+> **Tip:** open a second browser window or tab pointed at **Developer Tools > States** while you do this. Search for `goodwe` in that tab. As you work through each `# EDIT:` line in the YAML editor, flick over and copy-paste the real entity ID rather than retyping it. Typos in entity IDs are the most common reason an automation appears to save fine but does nothing at runtime.
+
 | Placeholder | Replace with |
 |---|---|
 | `select.goodwe_inverter_operation_mode` | Your real operation mode select entity (might have `_2` suffix) |

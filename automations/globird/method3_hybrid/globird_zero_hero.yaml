@@ -69,6 +69,9 @@ actions:
       # MIDNIGHT RESET
       # Resets the export tracker and turns off the fast charging
       # switch as a safety net (in case it was left on manually).
+      # The switch.turn_off uses continue_on_error so installs without
+      # the experimental HACS integration (where this entity does not
+      # exist) silently no-op rather than failing the whole sequence.
       # ==========================================================
       - conditions:
           - condition: trigger
@@ -76,7 +79,8 @@ actions:
         sequence:
           - action: switch.turn_off
             target:
-              entity_id: switch.goodwe_fast_charging_switch   # EDIT: your GoodWe Fast Charging Switch
+              entity_id: switch.goodwe_fast_charging_switch   # EDIT: your GoodWe Fast Charging Switch (experimental HACS only - safe to leave as-is on native installs)
+            continue_on_error: true
           - action: input_number.set_value
             target:
               entity_id: input_number.zero_hero_export_start

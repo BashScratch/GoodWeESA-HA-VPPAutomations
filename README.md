@@ -10,9 +10,15 @@ This is a work in progress. Things will change. Read the disclaimer at the botto
 
 ## Why this exists
 
-Automating a GoodWe ESA is not as simple as flicking a switch. How you send commands to the inverter matters - the wrong approach can silently overwrite the TOU schedule you painstakingly set up in the GoodWe SEMS+ app, or quietly cap your free-window charging at 10kW when the inverter could be doing 13.5kW.
+Automating a GoodWe ESA is not as simple as flicking a switch. How you send commands to the inverter matters - the wrong approach can silently overwrite the TOU schedule you painstakingly set up in the GoodWe SolarGo app, or quietly cap your free-window charging at 10kW when the inverter could be doing 13.5kW (per GoodWe's own [ESA Series datasheet, V2.1 April 2026](https://admin.goodwe.com/Api/downloadFile?id=3448&mid=60&type=2) - "Max. Charging Power" of 13.5kW for the 10kW model).
 
 So there isn't one automation here. There are three. They trade off differently on charge throughput, simplicity, and how much you trust an experimental HACS integration not to break on the next firmware update. Pick the one that matches your tolerance for fiddling and risk.
+
+## Why use HA at all? (acknowledging GoodWe's app)
+
+A fair question. GoodWe is actively shipping firmware and SolarGo updates - the 13.5kW combined AC+DC charging capability landed via firmware around April 2026, and their Level 2 support is responsive when contacted directly. Most of what HA adds here (precise grid-export control during peak, conditional SOC guards, profit notifications keyed to your tariff structure) is reasonably likely to land in the SolarGo app itself eventually. This repo is filling a gap that exists today, not staking out a permanent moat. If GoodWe ships those features in the app, by all means use them - the goal is the energy-bill outcome, not the HA setup.
+
+Until then, the smart layer this repo provides (read live SOC, decide whether to arm peak export, set a precise grid-export wattage, calculate nightly profit, fire notifications you can act on) is genuinely additive to what SolarGo can do on its own. That's the case for HA in this specific project.
 
 ---
 
@@ -74,11 +80,23 @@ Full explanation of each, and why Method 3's throughput advantage settles the re
 
 ## About entity naming
 
-The GoodWe integration landscape is a bit of a tip. The standard integration (built into Home Assistant) and the experimental one (by mletenay, via HACS) use slightly different default entity names. Your actual entities may also be suffixed with `_2` or similar if the integration has been reinstalled.
+The GoodWe integration landscape is a bit of a tip. The standard integration (built into Home Assistant) and the experimental one (by mletenay, via HACS) expose overlapping but not identical entity sets. Your actual entities may also be suffixed with `_2` (or `_3`, `_4`...) if you've installed and removed the integration before - HA reserves the original entity ID for the deleted instance and appends a number to the fresh one. So if the YAML examples reference `sensor.goodwe_battery_state_of_charge` and your install shows `sensor.goodwe_battery_state_of_charge_2`, that's the cause.
 
 Every `# EDIT:` marker in the YAML is a place where you should double-check the entity exists in your setup before trusting it. Go to **Developer Tools > States** in HA and search for `goodwe` to see what you actually have.
 
-If you're using Method 2, you specifically need the experimental integration - the standard one doesn't expose the EMS entities.
+A few entities are experimental-only:
+
+- `number.goodwe_eco_mode_power` - **Method 1 needs this**. Method 1 is therefore HACS-required.
+- `switch.goodwe_fast_charging_switch` - **Method 3's midnight reset uses this** as a safety net. The YAML wraps it in `continue_on_error: true` so native-only installs no-op gracefully; Method 3 itself runs fine native-only.
+- `select.goodwe_ems_mode` and `number.goodwe_ems_power_limit` - **Method 2 needs both**.
+
+If you're using Method 2, you definitely need the experimental integration. If you're using Method 1, same. Method 3 is fine native-only with one belt-and-braces line missing.
+
+## A concept worth understanding before you start: "discharge power" vs "grid export"
+
+In SolarGo's TOU settings, **"discharge power" is total inverter output**, not grid-export specifically. A 10% setting on a 10kW inverter means 1kW total (house load + grid combined), not 1kW to the grid. This trips up a lot of people setting up VPP automations.
+
+This is why Method 3 splits responsibility the way it does: the SolarGo TOU discharge slot is set to 100% (give the inverter full headroom), and HA's `number.goodwe_grid_export_limit` is the precise lever that actually controls grid export. Methods 1 and 2 use SolarGo-style "total discharge" semantics and inherit the imprecision.
 
 ---
 

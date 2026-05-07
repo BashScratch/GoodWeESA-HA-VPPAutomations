@@ -8,14 +8,22 @@ One of the most confusing things about setting up a GoodWe ESA with Home Assista
 
 ## Inverter operating modes
 
-| What it does | GoodWe hardware docs | SolarGo / SEMS+ app | HA native integration (`select.goodwe_inverter_operation_mode`) | HA experimental integration |
+| What it does | GoodWe hardware docs | SolarGo / SEMS+ app | HA native integration | HA experimental integration (mletenay HACS) |
 |---|---|---|---|---|
-| Normal self-consumption - use solar first, battery fills gaps, export surplus | Self-use Mode | Self-consumption / Self-use | `General mode` | `General mode` |
-| Schedule-based charge or discharge using time windows (e.g. free window 11-2, peak window 6-8pm) | Economic Mode | Economic Mode / TOU schedule | `Eco mode` | `Eco mode` |
-| Hold battery fully charged, pass grid to loads during outage | Backup Mode | Backup Mode | `Backup mode` | `Backup mode` |
-| Force-charge battery right now, as fast as possible | Fast Charge / Forced Charge | Charge Now | `switch.goodwe_fast_charging_switch` + `number.goodwe_fast_charging_soc` | Same |
+| Normal self-consumption - use solar first, battery fills gaps, export surplus | Self-use Mode | Self-consumption / Self-use | `select.goodwe_inverter_operation_mode` = `General mode` | Same |
+| Schedule-based charge or discharge using time windows | Economic Mode | TOU (current) / Economic Mode (older app) | `select.goodwe_inverter_operation_mode` = `Eco mode` | Same |
+| Hold battery fully charged, pass grid to loads during outage | Backup Mode | Backup Mode | `select.goodwe_inverter_operation_mode` = `Backup mode` | Same |
+| Set Eco Mode charge/discharge magnitude | Eco Power | (configured per TOU slot) | **Not exposed** | `number.goodwe_eco_mode_power` |
+| Force-charge battery right now, as fast as possible | Fast Charge / Forced Charge | Charge Now | **Not exposed** | `switch.goodwe_fast_charging_switch` + `number.goodwe_fast_charging_soc` |
 | Allow export up to a specific wattage limit | Export Power Limit / Feed-in Limit | Power Limit / Feed-in Limit | `number.goodwe_grid_export_limit` | `number.goodwe_grid_export_limit` |
-| EMS - direct battery charge/discharge via RAM register command | EMS (Energy Management System) | Not exposed in app | Not available in native integration | `select.goodwe_ems_mode` + `number.goodwe_ems_power_limit` |
+| EMS - direct battery charge/discharge via RAM register command | EMS (Energy Management System) | Not exposed in app | **Not exposed** | `select.goodwe_ems_mode` + `number.goodwe_ems_power_limit` |
+| Synchronise inverter clock to HA | (button) | (manual) | `button.goodwe_synchronize_inverter_clock` | Same |
+
+### Implications for the three methods
+
+- **Method 1** uses `number.goodwe_eco_mode_power` for the charge/discharge magnitude, which is experimental-only. Method 1 therefore requires HACS, despite earlier framing in this repo that said it didn't.
+- **Method 3** mostly runs on the native integration (operation mode + grid export limit + standard sensors). The midnight reset uses `switch.goodwe_fast_charging_switch` as a safety net, which is experimental-only. The YAML wraps that one action in `continue_on_error: true`, so on a native-only install the action errors silently and the rest of the automation keeps running. Method 3 still works fully native; you just lose the one belt-and-braces line.
+- **Method 2** is fully experimental-dependent (uses the EMS entities).
 
 ### The "Eco Mode" / "Economic Mode" / "TOU" naming tangle
 
@@ -82,7 +90,7 @@ GloBird structures the super rate internally as: **base rate + bonus = total sup
 
 | Term | Meaning |
 |---|---|
-| EEPROM / flash | Non-volatile memory on the inverter. Survives power cycles. The HA native integration writes operation mode changes here. Has a limited number of write cycles (~100,000) - community wisdom flags this as a concern but no documented bricked-inverter cases exist, so treat it as a soft consideration rather than a hard limit. The bigger reason to avoid HA-driven mode writes is that they overwrite the SEMS+ TOU schedule slot. |
+| EEPROM / flash | Non-volatile memory on the inverter. Survives power cycles. Operation mode changes from HA are written here. The exact chip type isn't publicly documented and community discussion uses "EEPROM" and "flash" interchangeably - we use "persistent storage" in the docs where the distinction doesn't matter. Typical write-cycle ratings for either type are 100,000+, which at HA's mode-change rate is likely more than the inverter's service life. The bigger reason to avoid HA-driven mode writes is that they overwrite the SolarGo TOU schedule slot, not the wear concern itself. |
 | RAM register | Volatile memory on the inverter. Lost on power cycle or inverter restart. The experimental integration's EMS commands target RAM, which means no flash wear, but the inverter reverts to its last saved state if power is lost. |
 | BMS | Battery Management System - the controller inside the battery pack that monitors cell voltages, temperatures, and SOC |
 | SOC | State of Charge - battery level as a percentage (0-100%) |

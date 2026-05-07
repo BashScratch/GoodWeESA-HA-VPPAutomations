@@ -6,15 +6,17 @@ This is the recommended method. The GoodWe app handles the free-window charge vi
 
 ## Why this beats Method 1 - the throughput point
 
-GoodWe ESA inverters can charge the battery at up to **13.5kW** when the firmware orchestrates 10kW of grid AC + 3.5kW of solar DC simultaneously. Home Assistant can only command the AC side via Eco Mode or the fast-charging switch, so a HA-driven charge tops out at the inverter's AC ceiling - about **10kW**.
+The GoodWe ESA 10kW model (GW9.999K-EHA-G20) can charge the battery at up to **13.5kW** when the firmware combines grid AC and solar DC simultaneously. This is the published spec - see GoodWe's official ESA Series datasheet ([V2.1 April 2026 PDF](https://admin.goodwe.com/Api/downloadFile?id=3448&mid=60&type=2)), "Max. Charging Power" row. Home Assistant can only command the AC side via Eco Mode or the fast-charging switch, so a HA-driven charge tops out at the inverter's nominal AC ceiling - about **10kW**.
 
-That sounds small until you do the maths against a three-hour free window: 10kW x 3h = 30kWh vs 13.5kW x 3h = 40.5kWh. About a third more energy banked for free, every day. Over a year, that's nontrivial.
+That sounds small until you do the maths against a three-hour free window: 10kW for 3 hours equals 30kWh, vs 13.5kW for 3 hours equals 40.5kWh. About a third more energy banked for free, every day. Over a year, that's nontrivial.
 
-The mechanism: a SolarGo/SEMS+ TOU schedule tells the inverter firmware "charge to 100% between 11:00 and 14:00, grid priority". The firmware then blends grid AC + solar DC internally and the battery sees the combined input. HA can't replicate this because the API surface for "use both inputs at once" simply isn't exposed. References: [Whirlpool 9kppp8k2 - GoodWe ESA maximum charge rate](https://forums.whirlpool.net.au/thread/9kppp8k2), [mletenay #362](https://github.com/mletenay/home-assistant-goodwe-inverter/discussions/362).
+**Caveat on when this matters in practice:** if you've got a large battery (around 48kWh and up) where 30kWh in 3 hours doesn't fill it, or you're charging an EV during the free window, this throughput gap is real money. The architecture detail that makes the EV case work: the battery prefers DC (solar), so AC capacity can be redirected to the EV charger while the battery still gets full charge from PV. On a smaller battery (say 13.5kWh) with no EV, you'll be at 100% well before 14:00 either way and the gap is largely academic. **The 13.5kW figure is also model-specific** - the 5kW ESA tops out at 7.5kW battery charging, the 8kW ESA at 12kW. See the [model compatibility table](../#model-and-firmware-compatibility) in the strategy guide.
+
+The mechanism: a SolarGo TOU schedule tells the inverter firmware "charge to 100% between 11:00 and 14:00, grid priority". The firmware then orchestrates grid AC + solar DC together and the battery sees the combined input. HA can't replicate this because the API surface for "use both inputs at once" simply isn't exposed. Community confirmation of the same effect: Whirlpool thread "Goodwe ESA maximum charge rate?" - explanation by user **nutttr** with confirmation from **Zerosignal** ([thread link](https://forums.whirlpool.net.au/thread/9kppp8k2)); also discussed at [mletenay #362](https://github.com/mletenay/home-assistant-goodwe-inverter/discussions/362).
 
 There's also a behavioural reason: HA's `fast_charging_switch` exits forced-charge mode the moment SOC hits the target, after which the inverter reverts to self-consumption and starts draining the battery during the rest of the free window. The native TOU schedule charges to 100% and *holds* - no drain.
 
-(And as a softer third reason: nothing here writes to the inverter's flash, so it's gentler on the EEPROM than Method 1. The flash-wear risk is community folklore - no documented bricked units - but there's no upside to writing flash when you don't have to.)
+(And as a softer third reason: nothing here writes to the inverter's persistent storage, so it's gentler on the inverter than Method 1. Whether that storage is EEPROM or flash isn't publicly documented - community discussion uses both terms - but the typical write-cycle rating is 100,000+ cycles, which at the rate HA fires mode changes is likely more than the inverter's service life. No bricked-inverter cases have surfaced in the community. So this is "no upside to writing persistent storage when you don't have to" rather than a concrete risk.)
 
 ## How it works in practice
 
@@ -26,24 +28,35 @@ The GoodWe inverter is in General Mode (self-consumption) the entire time from H
 
 ## What you need
 
-- Working native GoodWe integration (HACS not required).
-- The entity `number.goodwe_grid_export_limit` (may be `_2` suffixed - check your entities) and `sensor.goodwe_battery_state_of_charge`.
+- Working native GoodWe integration. **HACS is optional but recommended.** The core of Method 3 runs on entities the native integration exposes (`number.goodwe_grid_export_limit`, `sensor.goodwe_battery_state_of_charge`). The midnight-reset has one belt-and-braces line that turns off `switch.goodwe_fast_charging_switch` as a safety net; that switch only exists with the experimental HACS integration ([mletenay/home-assistant-goodwe-inverter](https://github.com/mletenay/home-assistant-goodwe-inverter)). On a native-only install the action errors silently (the YAML uses `continue_on_error: true`) and the rest of the automation continues. Method 3 *will* run native-only, you just lose that one safety line. Install HACS too if you want it working.
+- The entity `number.goodwe_grid_export_limit` (may be `_2` suffixed if you've installed and removed the integration before - check your entities) and `sensor.goodwe_battery_state_of_charge`.
 - The seven helpers listed in the [strategy guide](../#required-home-assistant-helpers) - six shared plus `input_number.zero_hero_min_export_soc`.
 - A notification device set up in HA.
-- **A GoodWe app Economic Mode / TOU schedule** for the free window - see setup instructions below.
+- **A SolarGo TOU charge schedule** for the free window, plus optionally a discharge slot for peak. See setup instructions below and the dedicated [TOU setup prerequisite guide](../../../prerequisites/08_sems_tou_schedule.md).
 
 ## GoodWe app setup (do this first)
 
-In **SolarGo** or **SEMS+**, navigate to your inverter's settings and find the Economic Mode / TOU schedule section. Create a schedule slot:
+In **SolarGo**, navigate to your inverter's settings and find the **TOU** section. Create two schedule slots: a **Charge** slot for the free window and a **Discharge** slot for the peak window.
 
-- **Time:** 11:00 - 14:00
-- **Mode:** Charge (not discharge)
+**Charge slot (free window):**
+
+- **Time:** 11:00 to 14:00
+- **Mode:** Charge
 - **SOC target:** 100%
 - **Power source:** Grid (high priority)
 
-This is the only thing you need to configure in the app. Do not add a separate discharge schedule - the inverter's self-consumption mode will naturally discharge the battery during the peak window because demand exceeds solar by that time of day, and the HA export limit controls exactly how much goes to the grid.
+**Discharge slot (peak window):**
 
-> **Note:** The app may call this "Economic Mode", "TOU Mode", or "Charge Schedule" depending on your app version and inverter model. It is the same thing. See the [Glossary](../../../GLOSSARY.md) for the full terminology breakdown.
+- **Time:** 18:00 to 21:00 (or 18:00 to 20:00 if you're on the older GloBird plan)
+- **Mode:** Discharge
+- **Power:** 100% of inverter output
+- **SOC target:** whatever you want as your discharge floor (a low number like 10% lets HA's SOC guard be the actual floor)
+
+Why both slots? The discharge slot at 100% gives the inverter headroom to push 5kW to the grid *plus* whatever the house is drawing, simultaneously. Without it, the inverter is in self-consumption during peak - which works, but caps the inverter's output at house demand. With the discharge slot at 100%, HA's `number.goodwe_grid_export_limit` is the actual control: it caps grid export at 5kW, and the inverter covers house load on top of that.
+
+**Critical concept: "discharge power" in SolarGo means *total inverter output*, not grid-export specifically.** A 10% setting on a 10kW inverter means 1kW total (house + grid combined), not 1kW to the grid. This is why we set discharge power to 100% in SolarGo and use HA's grid-export-limit as the precise lever.
+
+The full step-by-step including SolarGo menu navigation lives at [prerequisites/08_sems_tou_schedule.md](../../../prerequisites/08_sems_tou_schedule.md). The summary above is what to enter in the app.
 
 ## Install
 
@@ -59,5 +72,5 @@ This is the only thing you need to configure in the app. Do not add a separate d
 - **Peak end time.** The YAML defaults to 21:01 (newer GloBird plans). If your plan ends at 20:00, change the `peak_end` trigger time to 20:01.
 - **Super export cap.** Set the `input_number.zero_hero_super_cap` helper to `10` (older GloBird plan) or `15` (newer plan). The profit notification reads from this helper - do not leave it at the default without checking your plan.
 - **Export limit entity name.** This is most likely `number.goodwe_grid_export_limit_2` (with `_2` suffix) on systems where the integration has been re-added. Check Developer Tools > States and use whichever has a live value.
-- **App schedule conflicts.** Only have *one* Economic Mode schedule (the 11-14 charge). Do not also add an evening discharge schedule in the app - leave that to self-consumption.
-- **Don't run Methods 1 or 2 alongside this.** Both Method 1 and any operation-mode change in Method 2 will delete your SEMS+ TOU schedule and silently break the free-window charge.
+- **App schedule layout.** Two TOU slots is correct for Method 3: a charge slot (11:00-14:00) and a discharge slot (18:00-21:00 at 100% inverter output). Don't add other slots in the app - they'll fight HA's logic at peak.
+- **Don't run Methods 1 or 2 alongside this.** Both Method 1 and any operation-mode change in Method 2 will delete your SolarGo TOU schedule and silently break the free-window charge.

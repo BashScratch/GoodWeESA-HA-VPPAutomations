@@ -6,7 +6,7 @@ Every YAML file in this repo has `# EDIT:` comments next to entity IDs. Those en
 
 The GoodWe HA integration auto-generates entity IDs based on the inverter's reported model and serial number. Things that can shift the IDs:
 
-- **You re-added the integration.** If the original integration is still half-attached when you re-add it, the new entities get `_2` suffixes - `sensor.goodwe_battery_state_of_charge_2`. The unsuffixed version may or may not still have data.
+- **You re-added the integration.** If you've ever installed and removed the GoodWe integration (or had it crash and re-set itself up), HA holds onto the original entity IDs for the deleted instance and appends `_2` to the fresh ones. So you end up with `sensor.goodwe_battery_state_of_charge_2` as the live entity and `sensor.goodwe_battery_state_of_charge` as a dead leftover. Repeated install/remove cycles can produce `_3`, `_4` and so on. The fix is to remove the dead instance properly via Settings > Devices & services and rename the live entity (cog icon > Entity ID) to drop the suffix - or just live with the suffix and use whichever entity ID is actually receiving data.
 - **You're running both the native and experimental integrations.** They mostly produce non-overlapping entities, but a few (like SOC sensor) appear in both, and one of them gets the `_2`.
 - **Your inverter model name affects entity naming.** ESA inverters generally produce sensors named with the `goodwe_` prefix, but in older firmware some names included the model number (e.g. `sensor.goodwe_etn_battery_soc`).
 

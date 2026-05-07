@@ -6,12 +6,17 @@
 
 This method sidesteps flash entirely by writing to the Energy Management System registers in RAM. The operation mode is never touched, so any SolarGo/SEMS+ TOU schedules you've set are preserved. The EMS discharge mode is genuinely clever - it covers your house load first and then targets the specified export wattage.
 
+## When Method 2 is the right choice
+
+Method 2 looks like an experimental version of Method 3 if you read it next to a fixed-window plan like Zero Hero, but its real strength is dynamic-pricing VPPs (Amber Electric, OVO Charge Anytime forecast tiers, and similar) where prices change every 5 to 30 minutes and HA needs to issue mode changes much more frequently than once at peak start. EMS RAM commands are designed for that frequency. Operation-mode writes and TOU schedule rewrites are not. If you're on a wholesale-spot plan, Method 2 is the natural fit. If you're on Zero Hero, Method 3 gets you the same peak result without the experimental-integration risk.
+
 ## Known limitations
 
 - **EMS mode option strings vary by firmware.** The YAML uses `"Charge"`, `"Discharge"`, and `"Auto"`, but your inverter may report `"Export AC"`, `"Self-use"`, or other variants. **Check Developer Tools > States > `select.goodwe_ems_mode` and update the YAML to match your actual options before saving.** This is the most common reason Method 2 silently does nothing.
 - **HA crash recovery is handled by a watchdog**, but verify it works on your install. The automation includes a `time_pattern` watchdog (every 5 minutes) that returns the inverter to `"Auto"` if it's stuck in a forced mode outside the active windows. Test it: during a peak window, flip `input_boolean.zero_hero_force_safe` ON and confirm the inverter returns to Auto within ~5 minutes.
-- **Do not run Method 2 alongside Method 3.** Method 2 itself is safe (it never changes operation mode), but if you ever experimentally enable Method 1 *or* manually switch to Eco/General mode while testing, **the inverter deletes your SEMS+ TOU schedule** - the schedule that Method 3 relies on for the free-window charge ([Whirlpool 9n111qlk](https://forums.whirlpool.net.au/thread/9n111qlk)). Pick one method per inverter and stick with it.
-- **Modbus TCP must be enabled on the inverter.** It's off by default on the GoodWe ESA. If you can't see EMS entities at all (or the integration won't connect), this is the most likely cause. The SolarGo app's communication settings is where you turn it on; [Whirlpool 9xv6wp84](https://forums.whirlpool.net.au/thread/9xv6wp84) has community walkthroughs for the various app versions.
+- **EMS-vs-TOU precedence is not fully documented.** If you have both a SolarGo TOU schedule active *and* Method 2 issuing EMS commands, the working hypothesis is EMS RAM commands win while in effect (until inverter restart or until the EMS state is cleared). This appears to be how the firmware behaves in practice but we don't have an authoritative reference. If you're running both, watch the first few cycles carefully and don't rely on it for anything critical until you've seen it work.
+- **Do not run Method 2 alongside Method 3 carelessly.** Method 2 itself is safe (it never changes operation mode), but if you ever experimentally enable Method 1 *or* manually switch to Eco/General mode while testing, **the inverter deletes your SolarGo TOU schedule** - the schedule that Method 3 relies on for the free-window charge ([Whirlpool thread "GoodWe ESA - Setting export TOU with SOC limit"](https://forums.whirlpool.net.au/thread/9n111qlk)). Pick one method per inverter and stick with it.
+- **Modbus TCP must be enabled on the inverter.** It's off by default on the GoodWe ESA. If you can't see EMS entities at all (or the integration won't connect), this is the most likely cause. The SolarGo app's communication settings is where you turn it on; [Whirlpool thread "Home Assistant setup with GoodWe inverter"](https://forums.whirlpool.net.au/thread/9xv6wp84) has community walkthroughs for the various app versions.
 
 ## What you need
 
@@ -36,6 +41,6 @@ This method sidesteps flash entirely by writing to the Energy Management System 
 ## Watch out for
 
 - **EMS mode option strings.** Most common failure point - see "Known limitations" above.
-- **RAM vs EEPROM.** EMS commands target RAM. If the inverter loses power or restarts during the peak window, it reverts to its last EEPROM-saved state. Usually fine (it'll go back to General/self-consumption mode), but the automation won't know this happened.
+- **RAM vs persistent storage on restart.** EMS commands live in volatile memory and are lost on power cycle. On cold boot the firmware reads the operation mode and any TOU schedule from persistent storage and resumes those. So if HA dies mid-export and the inverter restarts, the inverter falls back to whatever your SolarGo schedule says (Method 3-style behaviour) or to plain self-consumption if no TOU slot is active. Not a danger - the worst case is "your peak export silently stops" rather than "your inverter is stuck in some weird state". The exact firmware boot sequence isn't publicly documented; this is the observed outcome.
 - **Peak end time.** Default is 21:00. If your plan ends at 20:00, change both the `peak_export_end` trigger and the watchdog's `21:02:00` time check.
 - **Super export cap.** The YAML profit calculation reads from `input_number.zero_hero_super_cap`. Set this helper to `10` (older plan) or `15` (newer plan).
