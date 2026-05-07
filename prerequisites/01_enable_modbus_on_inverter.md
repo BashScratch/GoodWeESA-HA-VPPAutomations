@@ -44,17 +44,15 @@ If you get `Connection refused` or `timeout` (the expected outcome for most peop
 
 ## Step 4 - Turn Modbus TCP on (if it isn't)
 
-This is the bit where the official documentation goes quiet, and the Whirlpool community fills in the gap.
+You can do this in either **SEMS+** (recommended - it's the app GoodWe is moving most consumer features into) or the older **SolarGo** app. Both expose the Modbus TCP toggle.
 
-> **Heads up on app choice.** GoodWe is migrating consumer features from the older **SolarGo** app to the newer **SEMS+** app. For most day-to-day stuff (TOU schedules, dashboards) we now recommend SEMS+. **The Modbus TCP toggle, however, is in SolarGo** as of when this guide was written - or at least, that's where Mitch had to enable it. It may have moved to SEMS+ since. Check SEMS+ first if you're more comfortable there; if you can't find it, fall back to SolarGo.
-
-Open the **SolarGo** app on your phone, log in, select your inverter, and look in the **settings / advanced settings / communication settings** menu for a Modbus TCP toggle. Wording varies between app versions:
+In whichever app you're using: log in, select your inverter, and look in the **settings / advanced settings / communication settings** menu for a Modbus TCP toggle. Wording varies between app versions:
 
 - Some versions list it as **"Modbus TCP"** under Communication Settings.
 - Some require entering a special code or installer password to access the menu.
-- On some inverter firmware revisions the toggle isn't exposed in SolarGo at all and you need the **SEMS+ Pro** installer portal, or to ask your installer to enable it remotely.
+- On really old firmware revisions the toggle may not be exposed in either app and you'll need to ask your installer to enable it remotely, or update the inverter firmware via the app first.
 
-If the option isn't where this guide says it is, [Whirlpool 9xv6wp84](https://forums.whirlpool.net.au/thread/9xv6wp84) has the most current community walkthrough including screenshots for several SolarGo versions and workarounds for installer-locked inverters. Search the thread for "Modbus" - it's been discussed at length.
+If the option isn't where this guide says it is, [Whirlpool 9xv6wp84](https://forums.whirlpool.net.au/thread/9xv6wp84) has the most current community walkthrough including screenshots for several app versions and workarounds for installer-locked inverters. Search the thread for "Modbus" - it's been discussed at length.
 
 > **If you're stuck behind an installer lock:** GoodWe-accredited installers can enable this remotely on your behalf. Most will do it on request - contact your installer with your inverter serial number and ask them to "enable Modbus TCP on port 502". They won't usually charge for it.
 
