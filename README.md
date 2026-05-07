@@ -10,7 +10,7 @@ This is a work in progress. Things will change. Read the disclaimer at the botto
 
 ## Why this exists
 
-Automating a GoodWe ESA is not as simple as flicking a switch. How you send commands to the inverter matters - the wrong approach can silently overwrite the TOU schedule you painstakingly set up in the GoodWe SolarGo app, or quietly cap your free-window charging at 10kW when the inverter could be doing 13.5kW (per GoodWe's own [ESA Series datasheet, V2.1 April 2026](https://admin.goodwe.com/Api/downloadFile?id=3448&mid=60&type=2) - "Max. Charging Power" of 13.5kW for the 10kW model).
+Automating a GoodWe ESA is not as simple as flicking a switch. How you send commands to the inverter matters - the wrong approach can silently overwrite the TOU schedule you painstakingly set up in the GoodWe SolarGo app, or quietly cap your free-window charging at 10kW when a single-phase 10kW ESA could be doing 13.5kW (per GoodWe's own [ESA Series single-phase datasheet, V2.1 April 2026](https://admin.goodwe.com/Api/downloadFile?id=3448&mid=60&type=2) - "Max. Charging Power" of 13.5kW for the GW9.999K-EHA-G20). Note that this throughput advantage is single-phase only; three-phase ESAs (model ending in ETA-G20) cap max charging at nominal AC and don't get the AC+DC blending bump - see the strategy guide's [model compatibility section](./automations/globird/#model-and-firmware-compatibility).
 
 So there isn't one automation here. There are three. They trade off differently on charge throughput, simplicity, and how much you trust an experimental HACS integration not to break on the next firmware update. Pick the one that matches your tolerance for fiddling and risk.
 
@@ -28,7 +28,7 @@ Until then, the smart layer this repo provides (read live SOC, decide whether to
 |---|---|---|---|---|---|
 | **Method 1: Standard Eco Mode** | Native HA integration toggles Eco Mode on/off | ~10kW (AC only) | **Overwrites them** | Stable, but limited | People who want the simplest setup and don't use SEMS+ schedules |
 | **Method 2: EMS RAM Commands** | Experimental HACS integration pokes RAM registers | ~10kW (AC only) | Preserved | Depends on community integration | Power users comfortable with unofficial integrations |
-| **Method 3: Hybrid General Mode** | SEMS+ handles timing, HA enforces limits | **~13.5kW (AC + DC blended)** | Preserved | Rock solid | **Most people. This is what we recommend.** |
+| **Method 3: Hybrid General Mode** | SolarGo handles timing, HA enforces limits | **~13.5kW (AC + DC blended, single-phase 10kW model)** | Preserved | Rock solid | **Most people. This is what we recommend.** |
 
 Full explanation of each, and why Method 3's throughput advantage settles the recommendation: see **[automations/globird/](./automations/globird/)**.
 

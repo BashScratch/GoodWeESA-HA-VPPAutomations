@@ -50,9 +50,11 @@ These facts shape the three methods below. Method 1 accepts both consequences fo
 
 ## Model and firmware compatibility
 
-The 13.5kW combined AC+DC battery charging capability is published in the official ESA Series datasheet ([V2.1 April 2026 PDF](https://admin.goodwe.com/Api/downloadFile?id=3448&mid=60&type=2)) for the **10kW single-phase model (GW9.999K-EHA-G20)**. A few practical notes:
+GoodWe publishes two ESA datasheets - one for single-phase, one for three-phase. The two product lines have different architecture, and the throughput rationale for Method 3 lands very differently on each.
 
-- **Charge-rate ceiling varies by model.** From the same datasheet:
+### Single-phase ESA - charge rates by model
+
+From the official [ESA Series single-phase datasheet, V2.1 April 2026](https://admin.goodwe.com/Api/downloadFile?id=3448&mid=60&type=2):
 
 | ESA model | Nominal AC | Max battery charging power |
 |---|---|---|
@@ -63,13 +65,43 @@ The 13.5kW combined AC+DC battery charging capability is published in the offici
 | GW8K-EHA-G20 (8kW) | 8.0kW | 12.0kW |
 | **GW9.999K-EHA-G20 (10kW)** | **9.999kW** | **13.5kW** |
 
-The throughput delta this guide leans on (HA-driven 10kW vs SolarGo-TOU 13.5kW) is largest on the 10kW model. On a 5kW ESA, for example, the equivalent gap is 5kW (HA-driven) vs 7.5kW (TOU-blended) - still real, just smaller in absolute terms.
+Note the 1.35x multiplier between nominal AC and max charging power. That gap is the AC+DC blending headroom: the firmware can charge from grid (limited by AC) AND from PV (over the DC bus) simultaneously to reach the higher number. **This is the throughput advantage Method 3 unlocks.** HA-driven charging only commands the AC side and tops out at the nominal AC figure.
 
-- **Firmware on older inverters may need pushing.** A few community reports describe the 13.5kW capability not being live on inverters with older firmware. The April 2026 V2.1 datasheet is now the published spec, but if you're on older firmware and don't see combined grid+solar charging during a TOU charge slot, contact GoodWe support and ask for the latest firmware to be pushed. Their Level 2 support has been responsive on this.
+Firmware on older inverters may need pushing. A few community reports describe the 13.5kW capability not being live on inverters with older firmware. The April 2026 V2.1 datasheet is now the published spec, but if you're on older firmware and don't see combined grid+solar charging during a TOU charge slot, contact GoodWe support and ask for the latest firmware to be pushed. Their Level 2 support has been responsive on this.
 
-- **Three-phase ESA variants are not covered by this datasheet.** Three-phase has a separate spec sheet on GoodWe's site. The Method 3 approach in this repo will probably still apply to three-phase ESA, but the specific charge-rate numbers won't.
+### Three-phase ESA - charge rates by model
 
-- **Modbus TCP is off by default** on every GoodWe ESA we've seen. You'll need to enable it before any of the HA integration will work. See [prerequisites/01_enable_modbus_on_inverter.md](../../prerequisites/01_enable_modbus_on_inverter.md).
+From the official [ESA Series three-phase datasheet, V2.1 April 2026](https://admin.goodwe.com/Api/downloadFile?id=4072&mid=60&type=2):
+
+| ESA model | Nominal AC | Max battery charging power |
+|---|---|---|
+| GW5K-ETA-G20 (5kW) | 5.0kW | 5.0kW |
+| GW6K-ETA-G20 (6kW) | 6.0kW | 6.0kW |
+| GW8K-ETA-G20 (8kW) | 8.0kW | 8.0kW |
+| GW9.999K-ETA-G20 (10kW) | 9.999kW | 10.0kW |
+| GW12K-ETA-G20 (12kW) | 12.0kW | 12.0kW |
+| GW15K-ETA-G20 (15kW) | 15.0kW | 15.0kW |
+| GW20K-ETA-G20 (20kW) | 20.0kW | 20.0kW |
+| GW25K-ETA-G20 (25kW) | 25.0kW | 25.0kW |
+| GW29.999K-ETA-G20 (30kW) | 29.999kW | 30.0kW |
+
+**Three-phase ESAs don't have the AC+DC blending headroom.** Max charging equals nominal AC across the entire range. So if you're on a three-phase ESA, **the throughput advantage Method 3 has on single-phase doesn't apply to you** - HA-driven charging and SolarGo-TOU charging both top out at the same number.
+
+Method 3 is still the recommended approach on three-phase, just for different reasons. You still get:
+
+- Precise grid-export control via `number.goodwe_grid_export_limit` (Methods 1 and 2 set total discharge, which is imprecise).
+- Your SolarGo TOU schedule isn't deleted by HA mode changes.
+- The HA smart layer (SOC guard, profit notifications, helper-tunable rates) is unchanged.
+
+Just don't expect a 35% throughput bump from switching from Method 1 to Method 3 on a three-phase setup.
+
+### Naming tip
+
+You can spot single-phase vs three-phase by the model number: single-phase ESAs end in **EHA-G20** (e.g. GW9.999K-**EHA**-G20), three-phase end in **ETA-G20** (e.g. GW9.999K-**ETA**-G20). The H is for "Home" and the T is for "Three-phase".
+
+### Modbus TCP
+
+Off by default on every GoodWe ESA we've seen. You'll need to enable it before any of the HA integration will work. See [prerequisites/01_enable_modbus_on_inverter.md](../../prerequisites/01_enable_modbus_on_inverter.md).
 
 ---
 
