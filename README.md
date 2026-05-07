@@ -14,9 +14,9 @@ Automating a GoodWe ESA is not as simple as flicking a switch. How you send comm
 
 So there isn't one automation here. There are three. They trade off differently on charge throughput, simplicity, and how much you trust an experimental HACS integration not to break on the next firmware update. Pick the one that matches your tolerance for fiddling and risk.
 
-## Why use HA at all? (acknowledging GoodWe's app)
+## Why use HA at all? (acknowledging GoodWe's apps)
 
-A fair question. GoodWe is actively shipping firmware and SolarGo updates - the 13.5kW combined AC+DC charging capability landed via firmware around April 2026, and their Level 2 support is responsive when contacted directly. Most of what HA adds here (precise grid-export control during peak, conditional SOC guards, profit notifications keyed to your tariff structure) is reasonably likely to land in the SolarGo app itself eventually. This repo is filling a gap that exists today, not staking out a permanent moat. If GoodWe ships those features in the app, by all means use them - the goal is the energy-bill outcome, not the HA setup.
+A fair question. GoodWe is actively shipping firmware and app updates - the 13.5kW combined AC+DC charging capability landed via firmware around April 2026, and their Level 2 support is responsive when contacted directly. They've also been gradually migrating consumer features from the older **SolarGo** app into the newer **SEMS+** app (we recommend SEMS+ for most user-facing tasks now; SolarGo is still where some low-level functions like the Modbus TCP toggle currently live). Most of what HA adds here (precise grid-export control during peak, conditional SOC guards, profit notifications keyed to your tariff structure) is reasonably likely to land in SEMS+ itself eventually. This repo is filling a gap that exists today, not staking out a permanent moat. If GoodWe ships those features in the app, by all means use them - the goal is the energy-bill outcome, not the HA setup.
 
 Until then, the smart layer this repo provides (read live SOC, decide whether to arm peak export, set a precise grid-export wattage, calculate nightly profit, fire notifications you can act on) is genuinely additive to what SolarGo can do on its own. That's the case for HA in this specific project.
 

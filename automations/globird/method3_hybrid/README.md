@@ -38,7 +38,9 @@ The GoodWe inverter is in General Mode (self-consumption) the entire time from H
 
 ## GoodWe app setup (do this first)
 
-In **SolarGo**, navigate to your inverter's settings and find the **TOU** section. Create two schedule slots: a **Charge** slot for the free window and a **Discharge** slot for the peak window.
+In **SEMS+** (recommended) or SolarGo, navigate to your inverter's settings and find the **TOU** section. Create two schedule slots: a **Charge** slot for the free window and a **Discharge** slot for the peak window.
+
+> **Why SEMS+ over SolarGo?** GoodWe is migrating consumer features into SEMS+ over time, and TOU controls have the most polish there. If your SEMS+ install doesn't show TOU yet (older app version), update it; if it still doesn't appear, fall back to SolarGo. Be aware that the two apps don't share installer-level passwords - if SEMS+ asks for one and your SolarGo password gets rejected, that's expected. See [prereq 08](../../../prerequisites/08_sems_tou_schedule.md) for the detail.
 
 **Charge slot (free window):**
 

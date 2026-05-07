@@ -12,22 +12,24 @@ If you're using **Method 1 or Method 2**, skip this guide. You don't need TOU sc
 
 GoodWe has two apps:
 
-- **SolarGo** - the consumer app. Most settings end users need are in here.
-- **SEMS+ Pro** - the installer/dealer portal. More advanced settings, but locked behind an installer login.
+- **SolarGo** - the older consumer app. Still where some low-level functions live (notably, where Mitch had to enable Modbus TCP - see [prereq 01](./01_enable_modbus_on_inverter.md)).
+- **SEMS+** - the newer end-user app and installer portal. GoodWe is migrating consumer features into SEMS+ from SolarGo, so this is where TOU setup now lives for most current installs.
 
-For TOU setup, **SolarGo is what you want**. Some older guides reference SEMS+ for this, but on current SolarGo versions it's all in the consumer app.
+**Use SEMS+ for TOU setup.** If you've previously set up TOU in SolarGo, the schedule may still be visible there but SEMS+ is where new features land and where TOU controls have the most polish. If you're on a really old version of SEMS+ that doesn't show TOU, update the app first; if it still doesn't appear, fall back to SolarGo.
 
-## Step 1 - Open SolarGo and navigate to your inverter
+> **Installer password gotcha:** if you've set a custom installer password in SolarGo, **that password doesn't work in SEMS+**. The two apps don't share installer credentials. Some TOU options may be behind the SEMS+ installer-level login; if your SolarGo password gets rejected, you need a separate one for SEMS+. Contact your installer or set one up directly in SEMS+ if your account permits.
 
-Open the SolarGo app, log in, and tap your plant / inverter. You should land on a dashboard showing live PV, battery, grid, and load.
+## Step 1 - Open SEMS+ and navigate to your inverter
+
+Open the SEMS+ app, log in, and tap your plant / inverter. You should land on a dashboard showing live PV, battery, grid, and load.
 
 Tap the settings cog / gear icon to enter the inverter's settings.
 
 ## Step 2 - Find the TOU section
 
-In current SolarGo versions, look for **"TOU"** or **"Time of Use"** under the inverter settings menu. Older app versions and some firmware revisions used the label "Economic Mode" for the same thing - if your app shows that instead of "TOU", it's the same feature. The Glossary covers the naming history if you're curious.
+In SEMS+, look for **"TOU"** or **"Time of Use"** under the inverter settings menu. Older app versions and some firmware revisions used the label "Economic Mode" for the same thing - if your app shows that instead of "TOU", it's the same feature. The Glossary covers the naming history if you're curious.
 
-If you can't find it: the menu may be under "Advanced" or require an installer password. The Whirlpool threads ["Home Assistant setup with GoodWe inverter"](https://forums.whirlpool.net.au/thread/9xv6wp84) and ["GoodWe ESA - Setting export TOU with SOC limit"](https://forums.whirlpool.net.au/thread/9n111qlk) are the best places to ask if you're stuck.
+If you can't find it: the menu may be under "Advanced" or require an installer password (see the gotcha above about installer passwords differing between SolarGo and SEMS+). If TOU genuinely isn't there in SEMS+, fall back to SolarGo - some app version combinations still surface TOU there. The Whirlpool threads ["Home Assistant setup with GoodWe inverter"](https://forums.whirlpool.net.au/thread/9xv6wp84) and ["GoodWe ESA - Setting export TOU with SOC limit"](https://forums.whirlpool.net.au/thread/9n111qlk) are the best places to ask if you're stuck.
 
 ## Step 3 - Make sure the inverter is in TOU mode
 

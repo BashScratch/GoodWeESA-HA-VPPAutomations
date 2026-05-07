@@ -109,7 +109,7 @@ Off by default on every GoodWe ESA we've seen. You'll need to enable it before a
 
 ### Baseline: SEMS+ only (no HA automation)
 
-Not recommended, but worth mentioning. You can skip the automations entirely, set a charge/discharge schedule in the GoodWe SolarGo app, and just use HA to monitor. Simple. Safe.
+Not recommended, but worth mentioning. You can skip the automations entirely, set a charge/discharge schedule in the GoodWe SEMS+ app (or SolarGo - GoodWe is migrating features from SolarGo to SEMS+, so we recommend SEMS+ for new setups), and just use HA to monitor. Simple. Safe.
 
 **Downsides:** SolarGo's TOU schedule controls total inverter discharge power, not grid export specifically - so it's imprecise.
 

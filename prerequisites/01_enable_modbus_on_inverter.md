@@ -46,6 +46,8 @@ If you get `Connection refused` or `timeout` (the expected outcome for most peop
 
 This is the bit where the official documentation goes quiet, and the Whirlpool community fills in the gap.
 
+> **Heads up on app choice.** GoodWe is migrating consumer features from the older **SolarGo** app to the newer **SEMS+** app. For most day-to-day stuff (TOU schedules, dashboards) we now recommend SEMS+. **The Modbus TCP toggle, however, is in SolarGo** as of when this guide was written - or at least, that's where Mitch had to enable it. It may have moved to SEMS+ since. Check SEMS+ first if you're more comfortable there; if you can't find it, fall back to SolarGo.
+
 Open the **SolarGo** app on your phone, log in, select your inverter, and look in the **settings / advanced settings / communication settings** menu for a Modbus TCP toggle. Wording varies between app versions:
 
 - Some versions list it as **"Modbus TCP"** under Communication Settings.
@@ -55,6 +57,8 @@ Open the **SolarGo** app on your phone, log in, select your inverter, and look i
 If the option isn't where this guide says it is, [Whirlpool 9xv6wp84](https://forums.whirlpool.net.au/thread/9xv6wp84) has the most current community walkthrough including screenshots for several SolarGo versions and workarounds for installer-locked inverters. Search the thread for "Modbus" - it's been discussed at length.
 
 > **If you're stuck behind an installer lock:** GoodWe-accredited installers can enable this remotely on your behalf. Most will do it on request - contact your installer with your inverter serial number and ask them to "enable Modbus TCP on port 502". They won't usually charge for it.
+
+> **Installer password gotcha (SolarGo vs SEMS+):** if you have an installer-level login set up in SolarGo (either the default installer code or a custom password your installer or you set), **that password does not work in SEMS+**. The two apps don't share installer credentials. If you've recently switched to SEMS+ for installer-level access and your SolarGo password is being rejected, you need a separate installer password for SEMS+ - contact your installer for it, or set one up via SEMS+ directly if your account has the right level of access.
 
 ## Step 5 - Test again
 
