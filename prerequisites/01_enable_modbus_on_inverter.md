@@ -6,6 +6,8 @@ Home Assistant talks to the GoodWe ESA over your home network using a protocol c
 
 The good news: it's a one-off setup. Once it's on, it stays on.
 
+> **Use a hardwired ethernet connection, not Wi-Fi, if you can.** GoodWe's Wi-Fi dongles work fine for the SEMS+ portal and the app, where polling is gentle and intermittent. They struggle with the sustained Modbus polling HA does (every 15 seconds or so, every minute of every day). What you'll see: dropped packets, occasional "unavailable" sensors in HA, and the SEMS+ portal randomly losing its connection to the inverter. None of these are fatal, but they're annoying. A wired LAN connection makes them go away. If you can run an ethernet cable to the inverter, do it. If you can't (e.g. the inverter is in a remote shed), Wi-Fi will *probably* work but expect occasional flakiness. Wi-Fi is fine if you're using Method 1 (app-only) - the polling is much gentler.
+
 ## Step 1 - Find the inverter's IP address
 
 Your inverter is on your home Wi-Fi (or LAN, if you've cabled it). You need its IP address to talk to it.

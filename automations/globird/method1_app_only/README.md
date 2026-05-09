@@ -79,9 +79,60 @@ That's it. The inverter handles the rest day after day.
 
 In SEMS+'s TOU discharge slot, **"discharge power" means total inverter output, not grid export specifically**.
 
+The simple equation: **battery output = grid export + house load**.
+
 Worked example: you set discharge power to 5kW. Your house is drawing 2kW. The inverter discharges up to 5kW total - 2kW covers the house, 3kW goes to the grid. If your house load spikes to 5kW (someone runs the dryer and the kettle), all 5kW goes to the house and nothing reaches the grid. The total figure is the inverter's output ceiling, not a guaranteed grid export.
 
-This is the imprecision that the HA methods (especially Method 4) fix. With HA you can pin grid export to a specific number regardless of house load. Without HA, your grid export drifts with whatever's plugged in.
+This is the imprecision the HA methods address by working with grid-export entities directly. **But there's a better way to do it within Method 1 too** - see the next section.
+
+## Going further: precise grid export with the Soft Power Limit (Andrew Palmer's approach)
+
+Method 1 *can* pin grid export to a specific number without HA. The trick is the **Soft Power Limit** setting in SolarGo's installer-level menu, combined with TOU discharge at 100%.
+
+This approach was documented by **Andrew Palmer** on the GoodWe ESA Facebook group ([original post](https://www.facebook.com/groups/1639058747083230/posts/1725207231801714/)). Crediting him because the configuration combination isn't obvious from GoodWe's own docs.
+
+### How it works
+
+- **Soft Power Limit** caps the inverter's grid-export rate (different from total inverter output - this one's specifically about what goes to the grid).
+- TOU discharge at 100% gives the inverter full headroom to discharge.
+- The inverter then outputs `(Soft Power Limit) + (current house load)` total. Grid export sits at the Soft Power Limit, house load is covered on top.
+
+Worked example with Soft Power Limit = 2kW:
+
+- House load 1kW, battery output = 3kW (1kW house + 2kW grid). Grid export 2kW.
+- House load 5kW, battery output = 7kW (5kW house + 2kW grid). Grid export still 2kW.
+- House load drops to 0.5kW, battery output = 2.5kW. Grid export still 2kW.
+
+That's the precise grid export the discharge-power gotcha above said wasn't achievable in app-only mode. The Soft Power Limit makes it achievable.
+
+### Setup (requires installer password)
+
+1. Open SolarGo (this setting may not be in SEMS+ yet; if it is, look for the same path in SEMS+ first).
+2. Log in with the **installer password**. The default is `1234` unless your installer set a custom one. SEMS+ uses a different installer password to SolarGo (see [prereq 01](../../../prerequisites/01_enable_modbus_on_inverter.md) for the gotcha).
+3. Navigate to **Settings > Advanced Settings > Power Limit**.
+4. Set **Soft Power Limit** to your desired grid-export rate. For Zero Hero with the 10kWh super cap, **2000W** over 3 hours gives you 6kWh exported - well under the 10kWh super cap, with comfortable margin. Tune higher if you have a larger battery and want to hit the cap exactly; lower if you want a smaller daily target.
+5. Set **Grid Import Power Limit Offset** to **0**. This is critical - leaving it at the default can cause the inverter to pull around 300W from the grid during the peak window, defeating the Zero-Grid daily credit. Setting to 0 fixes the bug.
+6. Save and exit.
+
+### What this gives you, and what it doesn't
+
+Method 1 with the Soft Power Limit gets you:
+
+- Precise grid export at your chosen rate.
+- House load fully covered from the battery (no grid imports during peak, so the daily Zero-Grid credit is preserved).
+- All without HA.
+
+What you still don't get without HA:
+
+- **Pre-peak SOC guard.** If the battery is short on charge, the inverter still discharges to its TOU SOC floor and you start importing from the grid at peak rates. Method 4 blocks discharge entirely on low-SOC days; this method can't.
+- **Notifications and profit reporting.** No nightly summary of what you exported and earned.
+- **Helper-tunable rates.** If GloBird changes the super rate, you don't have a one-tap UI for adjusting calculations.
+
+If those gaps don't bother you, Method 1 with Soft Power Limit is a really clean setup. If they do, Method 4 layers them on top.
+
+### Modbus alternative (skip the installer password)
+
+If you've enabled Modbus TCP on the inverter (see [prereq 01](../../../prerequisites/01_enable_modbus_on_inverter.md)), you can adjust Soft Power Limit via Home Assistant's `number.goodwe_grid_export_limit` entity without needing the installer password. This is what Method 4's automation does dynamically. If you're going to use HA anyway, you might as well use Method 4 - the Soft Power Limit approach is for users who want to avoid HA entirely.
 
 ## What you're missing without HA
 
