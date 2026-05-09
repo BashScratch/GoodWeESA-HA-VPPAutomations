@@ -1,8 +1,10 @@
 # GloBird Zero Hero - Strategy Guide & Automations
 
-This folder contains three different automations for managing a GoodWe ESA hybrid inverter on the **GloBird Zero Hero** plan. Each method takes a different approach to the same problem, with different tradeoffs.
+This folder contains four methods for managing a GoodWe ESA hybrid inverter on the **GloBird Zero Hero** plan. Method 1 is app-only (no Home Assistant required). Methods 2, 3, and 4 add HA on top in different ways.
 
 Start here before copying any YAML. The wrong method for your setup will either break your SEMS+ schedules or, in the worst case, miss the peak window entirely and quietly cost you money.
+
+> **Folder names note (interim):** the file system folders below are still named `method1_standard`, `method2_ems`, and `method3_hybrid` from when this guide had three methods. They map to **Method 2**, **Method 3**, and **Method 4** in the new numbering respectively. A folder rename is queued for a follow-up commit; in the meantime, the URLs below resolve correctly even though the folder names look one-off from the method numbers.
 
 ---
 
@@ -46,7 +48,7 @@ The throughput gap (10kW vs 13.5kW) matters most if you have a large battery (ar
 
 There's also a hypothetical wear concern with frequent operation-mode writes. Whether the inverter stores these in EEPROM or flash (community discussion uses both terms - the underlying chip type isn't documented publicly), the typical write-cycle rating is 100,000+ cycles. At the rate HA fires mode changes (a handful per day at most), that's likely more than the inverter's service life. No bricked-inverter cases have surfaced in the community. Treat it as "no upside to writing persistent storage when you don't have to" rather than a concrete risk.
 
-These facts shape the three methods below. Method 1 accepts both consequences for the sake of simplicity. Method 2 dodges the schedule-deletion issue by using EMS RAM registers (a separate entity, never touches operation mode), but is still capped at the 10kW AC ceiling because HA still can't ask for DC blending. Only Method 3 dodges both, by leaving operation mode alone *and* delegating the charge to a SEMS+ TOU schedule that the inverter firmware can run at the full 13.5kW.
+These facts shape Methods 2-4 below. **Method 1** sidesteps both by not using HA at all - the inverter's TOU schedule does everything, no HA mode writes, no HACS. **Method 2** accepts both consequences for the sake of HA simplicity. **Method 3** dodges the schedule-deletion issue by using EMS RAM registers (a separate entity, never touches operation mode), but is still capped at the 10kW AC ceiling because HA still can't ask for DC blending. Only **Method 4** dodges all of it, by leaving operation mode alone *and* delegating the charge to a SEMS+ TOU schedule that the inverter firmware can run at the full 13.5kW.
 
 ---
 
@@ -107,21 +109,11 @@ Off by default on every GoodWe ESA we've seen. You'll need to enable it before a
 
 ---
 
-## The three methods
+## The four methods
 
-### Baseline: SEMS+ only (no HA automation)
+### What HA brings to Methods 2-4
 
-Not recommended for the dynamic-pricing case, but worth understanding because it's the foundation everything else builds on. You can skip the automations entirely, set charge and discharge TOU schedules in the GoodWe SEMS+ app (or SolarGo if that's where you're already set up), and just use HA to monitor.
-
-**Downsides:** the TOU discharge power setting controls total inverter output, not grid export specifically - so it's imprecise.
-
-> Worked example: you set SEMS+ to "discharge at 5kW" during peak. Your house is drawing 2kW. The inverter discharges up to 5kW total - 2kW covers the house and 3kW goes to the grid. If your house load spikes to 5kW (e.g. someone runs the dryer and the kettle), all 5kW goes to the house and nothing to the grid. The total figure is the inverter's output ceiling, not a guaranteed grid export. HA's `number.goodwe_grid_export_limit` pins grid export to a specific number regardless of house load (provided the inverter has the headroom to cover both), which is what you actually want during a peak window.
-
-It's also a static schedule. It won't react to your battery being low, or household load spiking, or anything else. If your battery is going into peak with limited charge, SEMS+ will discharge down to whatever SOC floor you set in the TOU slot and then buy grid power at peak rates to cover any remaining demand. A smarter system would block discharge to the grid in that scenario rather than burning peak-rate import. That's the gap HA fills.
-
-### What HA brings to all three methods
-
-Before the per-method differences, here's what you get from putting HA in front of any of these versus just running SEMS+ on its own:
+Method 1 is app-only. The other three methods all add HA on top, so before the per-method differences, here's what you get from putting HA in front of any of them versus running SEMS+ alone:
 
 - **Pre-peak SOC guard.** HA checks battery SOC at 17:56 and either arms or blocks peak export entirely based on whether you have enough headroom. SEMS+ TOU can set an SOC floor for the discharge slot, but it can't decide "don't discharge at all today, save what's there for overnight load" - it'll discharge to the floor and then start buying grid power at peak rates to cover the rest of demand. HA's all-or-nothing arming logic avoids that.
 - **Conditional notifications.** "Zero Hero Armed" / "Aborted" / "Complete" messages so you know what happened each day without having to check the app.
@@ -129,9 +121,23 @@ Before the per-method differences, here's what you get from putting HA in front 
 - **Helper-tunable rates.** Tariff changes are a number edit in the HA UI, not a schedule rebuild in the app.
 - **Master enable/disable toggle.** One switch pauses peak behaviour without deleting anything (handy when away or when you want to keep the battery full for a known heavy load).
 
-All three methods inherit this. The differences below are about how each method talks to the inverter, not about whether you get the smart layer.
+Methods 2-4 inherit this. The differences below are about how each method talks to the inverter, not about whether you get the smart layer.
 
-### [Method 1: Standard Eco Mode](./method1_standard/)
+### [Method 1: App-only (no HA)](./method1_app_only/)
+
+The simplest possible setup. Two TOU schedule slots in SEMS+ (charge during free window, discharge during peak), no Home Assistant.
+
+- Pro: Zero software dependencies. Works as soon as the inverter is online.
+- Pro: The inverter's firmware does the orchestration. Charge can hit the full 13.5kW (single-phase 10kW model, AC+DC blended) since it's a native TOU schedule.
+- Pro: Nothing to break, nothing to maintain.
+- Con: Discharge "power" is total inverter output, not grid-export specifically. Your grid export drifts with house load.
+- Con: No dynamic SOC guard. If your battery is short on charge going into peak, the inverter still discharges to its SOC floor and you start buying grid power at peak rates to cover the rest.
+- Con: No notifications, no profit reporting.
+- Con: Static schedule - doesn't react to anything.
+
+**Pick this if:** you want the simplest possible Zero Hero setup, you don't have HA (or don't want it for this), or you want to learn how TOU works at the inverter level before adding HA on top.
+
+### [Method 2: Standard Eco Mode (HA-driven)](./method1_standard/)
 
 The straightforward approach. Switch the inverter to Eco Mode at 11:00 AM (to force charge), back to General at 14:00, back to Eco at 18:00 (to force discharge), and back to General at the end of peak.
 
@@ -144,7 +150,7 @@ The straightforward approach. Switch the inverter to Eco Mode at 11:00 AM (to fo
 
 **Pick this if:** you don't use SEMS+ or SolarGo for scheduling, you're happy for HA to own the timing entirely, you're comfortable with HACS, and the ~30% throughput hit during the free window is acceptable.
 
-### [Method 2: EMS RAM Commands](./method2_ems/) - experimental
+### [Method 3: EMS RAM Commands](./method2_ems/) - experimental
 
 Use the community-maintained GoodWe Experimental integration (HACS) to send Energy Management System commands directly to the inverter's RAM. Sets mode to `Charge` at 11:00, back to `Auto` at 14:00, to `Discharge` (or `Export AC` depending on firmware) at 18:00, back to `Auto` at the end of peak.
 
@@ -156,12 +162,12 @@ Use the community-maintained GoodWe Experimental integration (HACS) to send Ener
 - Con: Requires the experimental HACS integration ([mletenay/home-assistant-goodwe-inverter](https://github.com/mletenay/home-assistant-goodwe-inverter)).
 - Con: EMS option strings vary by firmware - needs verification before it works.
 - Con: A future GoodWe firmware update could change EMS registers and silently break it.
-- Con: Still subject to the 10kW AC charging ceiling (same limitation as Method 1).
+- Con: Still subject to the 10kW AC charging ceiling (same limitation as Method 2).
 - Con (uncertain): If you've also got a SEMS+ TOU schedule active, the precedence between TOU and EMS during a real conflict isn't fully documented. Working hypothesis: EMS RAM commands win while in effect (until inverter restart or until the EMS state is cleared). If confirmed, this is fine. If not, the two could fight at boundaries. Worth verifying on your install before relying on it.
 
 **Pick this if:** you're on a dynamic-pricing VPP that needs frequent mode changes, OR you want a setup where your TOU schedule survives in the app and you accept that the integration could break without notice.
 
-### [Method 3: Hybrid General Mode (recommended)](./method3_hybrid/)
+### [Method 4: Hybrid General Mode (recommended)](./method3_hybrid/)
 
 The free charging window is handled natively by a GoodWe **TOU** schedule set directly in the SEMS+ app (11:00-14:00, target 100% SOC, grid priority). The firmware blends grid AC and solar DC to charge at up to 13.5kW and holds at 100% once the target is hit - no HA intervention in the free window.
 
@@ -173,8 +179,9 @@ HA handles the smart layer: at 17:56 it evaluates SOC, arms or blocks the 5kW pe
 - Pro: Native firmware handles the "charge then hold" behaviour correctly.
 - Pro: Never touches operation mode from HA - your TOU schedule is safe.
 - Pro: Inherits the HA smart-layer benefits (SOC guard, dynamic export limit, notifications, profit calc, tunable rates).
-- Pro: `number.goodwe_grid_export_limit` is precise grid-export control (not "total discharge" like Methods 1 and 2). If house load varies, your grid-export number stays the same (provided the inverter has the headroom to cover both house and grid simultaneously).
-- Pro: **Mostly insulated from firmware changes.** Uses the native HA integration's documented entities plus the GoodWe app's own TOU feature, both of which GoodWe maintains. Less exposed to breakage than Method 2's experimental-register approach.
+- Pro: `number.goodwe_grid_export_limit` is precise grid-export control (not "total discharge" like Methods 1, 2, and 3). If house load varies, your grid-export number stays the same (provided the inverter has the headroom to cover both house and grid simultaneously).
+- Pro: **Mostly insulated from firmware changes.** Uses the native HA integration's documented entities plus the GoodWe app's own TOU feature, both of which GoodWe maintains. Less exposed to breakage than Method 3's experimental-register approach.
+- Caveat (corrected from earlier framing): Method 4 still writes to the inverter's persistent storage twice daily via `number.goodwe_grid_export_limit`. Less flash exposure than Method 2 (4 writes/day), but more than Method 3 (zero, since EMS targets RAM). If you specifically want zero flash writes, Method 3 is the right pick. For most users the throughput advantage of Method 4 outweighs this; see Method 4's README for the honest write-cycle math.
 - Pro/Con: One small experimental-only dependency. The midnight reset turns off `switch.goodwe_fast_charging_switch` as a safety net (legacy from when an earlier version of this automation used the fast-charge switch as the primary charging mechanism; now that the charge is owned by TOU, this line just catches the case where someone manually flipped the switch on and forgot). That entity only exists with the HACS integration; on a native-only install the action errors silently and the rest of the automation continues (the YAML uses `continue_on_error: true`). So Method 3 *will* run native-only, you just lose one belt-and-braces line of safety.
 - Con: Requires one schedule in the SEMS+ app + one HA automation instead of just one of either.
 
@@ -185,27 +192,34 @@ HA handles the smart layer: at 17:56 it evaluates SOC, arms or blocks the 5kW pe
 ## Which method should I pick?
 
 ```
-Default answer: Method 3. The 13.5kW vs 10kW charging difference is the
-                headline (where it matters - large batteries and EV
-                charging during the free window). The precise grid-export
-                control is the sleeper benefit: app-only and Methods 1/2
-                pin total discharge, only Method 3 pins grid export
-                specifically.
+Default answer for most people: Method 4. The 13.5kW vs 10kW charging
+                difference is the headline (single-phase only, where
+                it matters - large batteries and EV charging during
+                the free window). The precise grid-export control is
+                the sleeper benefit: only Method 4 pins grid export
+                specifically; Method 1 (app-only) and Methods 2/3
+                pin total discharge.
 
-If you don't want a SEMS+ TOU schedule:
-  Method 1 - straightforward, fully HA-driven, ~10kW charge ceiling,
+If you don't want HA at all:
+  Method 1 - app-only, simplest possible setup. Imprecise discharge
+             (total inverter output, not grid export), no dynamic
+             SOC guard, no notifications. But it works, and there's
+             nothing to maintain.
+
+If you want HA but not a SEMS+ TOU schedule:
+  Method 2 - straightforward, fully HA-driven, ~10kW charge ceiling,
              same imprecise discharge as the app-only baseline. Needs
              HACS for the eco_mode_power entity.
-  Method 2 - preserves any SEMS+ schedule but needs HACS and depends
-             on an experimental integration. Same 10kW ceiling. Best fit if
-             you're on a dynamic-pricing plan that needs frequent mode
-             changes (Amber etc), not really for fixed-window plans
-             like Zero Hero.
+  Method 3 - preserves any SEMS+ schedule but needs HACS and depends
+             on an experimental integration. Same 10kW ceiling. Best
+             fit if you're on a dynamic-pricing plan that needs
+             frequent mode changes (Amber etc), not really for
+             fixed-window plans like Zero Hero.
 ```
 
 ## Don't mix methods
 
-Pick one method per inverter. Method 1 changes operation mode, which **deletes the SEMS+ TOU schedule** that Method 3 relies on ([Whirlpool 9n111qlk](https://forums.whirlpool.net.au/thread/9n111qlk)). Method 2 itself is safe alongside Method 3 (it never touches operation mode), but if you mix-and-match while testing it's easy to lose your schedule by accident. Disable old automations before enabling a new method.
+Pick one method per inverter. Method 2 changes operation mode, which **deletes the SEMS+ TOU schedule** that Methods 1 and 4 rely on ([Whirlpool 9n111qlk](https://forums.whirlpool.net.au/thread/9n111qlk)). Method 3 itself is safe alongside Methods 1 and 4 (it never touches operation mode), but if you mix-and-match while testing it's easy to lose your schedule by accident. Disable old automations before enabling a new method.
 
 ---
 
@@ -287,21 +301,24 @@ If GloBird changes any of these rates, you change the helper value in the HA UI.
 
 ### Method-specific extras
 
-In addition to the six shared helpers above, create these depending on which method you picked:
+Method 1 (app-only) doesn't need any HA helpers - the inverter's TOU schedule does the work.
 
-**Method 1 (Standard Eco Mode):**
+Methods 2-4 use the six shared helpers above plus a few extras depending on which one you pick:
+
+**Method 2 (Standard Eco Mode):**
 
 - `input_number.zero_hero_eco_power` - magnitude for Eco Mode Power. Read the **UNIT-TRAP** comment block at the top of the YAML before setting this; the value depends on whether your integration version uses percentages or watts. Min `0`, max `5000`, step `1`. Initial value: `100` (percentage) or `5000` (watts) once you've verified which.
 - `input_number.zero_hero_min_export_soc` - SOC% floor below which peak export is blocked. Min `0`, max `100`, step `1`, unit `%`, initial value `65`.
 
-**Method 2 (EMS RAM Commands):**
+**Method 3 (EMS RAM Commands):**
 
 - `input_boolean.zero_hero_force_safe` - panic switch. Flip ON to force the watchdog to return the inverter to Auto on the next 5-minute tick. Default off.
-- `input_number.zero_hero_min_export_soc` - same as Method 1 above.
+- `input_number.zero_hero_min_export_soc` - same as Method 2 above.
 
-**Method 3 (Hybrid):**
+**Method 4 (Hybrid):**
 
 - `input_number.zero_hero_min_export_soc` - same as above. (Tune to suit your battery size and overnight load. Start at `65`. If you consistently wake up with battery to spare - meaning you didn't use as much overnight as the threshold protected for - drop it a few percent so peak export arms more aggressively. If you wake up at 0%, raise it.)
+- `input_number.zero_hero_max_export` - inverter's nominal AC export ceiling in Watts. **Set this to your specific inverter's nameplate maximum.** Method 4 restores the export limit to this value at peak end (21:01). Examples: `10000` for the 10kW ESA, `8000` for the 8kW, `5000` for the 5kW. Sending `10000` to a smaller inverter's export limit could throw an out-of-bounds error. Min `0`, max `30000`, step `100`, unit `W`. Initial value: whatever your inverter is rated for.
 
 ---
 

@@ -171,14 +171,14 @@ actions:
                     data:
                       title: Zero Hero Armed
                       message: >-
-                        Peak export armed. SOC {{ states('sensor.goodwe_battery_state_of_charge') }} percent.
+                        Peak export armed. SOC {{ states('sensor.goodwe_battery_state_of_charge') }}%.
                         Awaiting 6:00 PM trigger.
             default:
               - action: notify.mobile_app_your_device_name   # EDIT: your notify service
                 data:
                   title: Zero Hero Alert
                   message: >-
-                    Peak export blocked. SOC {{ states('sensor.goodwe_battery_state_of_charge') }} percent is too low.
+                    Peak export blocked. SOC {{ states('sensor.goodwe_battery_state_of_charge') }}% is too low.
 
       # ==========================================================
       # 6:00 PM - FORCE EXPORT (ECO / ECONOMIC MODE)

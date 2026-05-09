@@ -256,18 +256,23 @@ actions:
               - condition: state
                 entity_id: input_boolean.zero_hero_force_safe
                 state: "on"
-              # Or: outside both active windows
+              # Or: outside both active windows.
+              # The exclusion windows match the primary triggers exactly so the
+              # watchdog doesn't race the peak_export_start trigger at 18:00.
+              # (Earlier versions used 17:58-21:02 which left a 2-minute gap
+              # where the watchdog could reset the inverter to Auto right before
+              # the peak trigger fires.)
               - and:
                   - condition: not
                     conditions:
                       - condition: time
-                        after: "10:58:00"
-                        before: "14:02:00"
+                        after: "11:00:00"
+                        before: "14:00:00"
                   - condition: not
                     conditions:
                       - condition: time
-                        after: "17:58:00"
-                        before: "21:02:00"   # EDIT: change to 20:02 if peak_end is 20:00
+                        after: "18:00:00"
+                        before: "21:00:00"   # EDIT: change to 20:00 if peak_end is 20:00
         sequence:
           - variables:
               stuck_mode: "{{ states('select.goodwe_ems_mode') }}"

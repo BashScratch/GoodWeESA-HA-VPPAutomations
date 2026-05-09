@@ -88,7 +88,7 @@ You should have your entity IDs written down from [Guide 05](./05_find_your_enti
 
 You can leave the `# EDIT: ...` comment text in place after replacing - it's just a comment, HA ignores it. We leave them so future-you knows which lines you customised.
 
-For Method 2 only: also check the option strings (`"Auto"`, `"Charge"`, `"Discharge"`) match what your `select.goodwe_ems_mode` actually exposes. If your inverter reports `"Export AC"` instead of `"Discharge"`, change the YAML to match.
+For Method 3 only: also check the option strings (`"Auto"`, `"Charge"`, `"Discharge"`) match what your `select.goodwe_ems_mode` actually exposes. If your inverter reports `"Export AC"` instead of `"Discharge"`, change the YAML to match.
 
 ## Step 6 - Save
 
@@ -110,7 +110,7 @@ For the Zero Hero automations, **we recommend disabling `input_boolean.zero_hero
 
 You'll typically install 3 or 4 automations:
 
-- The method-specific one (Method 1 / 2 / 3 from `automations/globird/`)
+- The method-specific one (Method 2 / 2 / 3 from `automations/globird/`)
 - `goodwe_battery_fault_alert.yaml` (recommended)
 - `goodwe_time_sync.yaml` (recommended)
 - `ev_free_window_reminder.yaml` (only if you've got an EV)
@@ -136,4 +136,4 @@ For an emergency stop on Zero Hero specifically, flipping `input_boolean.zero_he
 - A successful test save (no red error bar) for each.
 - Optionally: `input_boolean.zero_hero_enabled` disabled while you watch the first day's triggers fire harmlessly.
 
-Next: [How to add template sensors to configuration.yaml](./07_add_template_sensors.md). Or, if you're skipping the dashboard sensors, jump to [Guide 08 (Method 3 only)](./08_sems_tou_schedule.md) or [Guide 09: First-run checklist](./09_first_run_checklist.md).
+Next: [How to add template sensors to configuration.yaml](./07_add_template_sensors.md). Or, if you're skipping the dashboard sensors, jump to [Guide 08 (Method 4 only)](./08_sems_tou_schedule.md) or [Guide 09: First-run checklist](./09_first_run_checklist.md).

@@ -36,7 +36,7 @@ For each method, here's the entity checklist. Find each one in your list, click 
 | Total energy exported (lifetime kWh) | `sensor.goodwe_total_energy_export` | Counter that only increases |
 | Synchronise inverter clock | `button.goodwe_synchronize_inverter_clock` | A button entity, used by the time sync automation |
 
-### Method 1 (Standard Eco Mode) extras
+### Method 2 (Standard Eco Mode) extras
 
 | Purpose | Likely entity ID |
 |---|---|
@@ -48,9 +48,9 @@ When you find `number.goodwe_eco_mode_power`, **click it** and look at its **Att
 - If `min` is `-100` and `max` is `100`, the integration uses **percentage**.
 - If `min` is `-5000` and `max` is `5000` (or larger), the integration uses **watts**.
 
-This tells you what to set `input_number.zero_hero_eco_power` to. The Method 1 YAML has a UNIT-TRAP comment block at the top with detailed instructions.
+This tells you what to set `input_number.zero_hero_eco_power` to. The Method 2 YAML has a UNIT-TRAP comment block at the top with detailed instructions.
 
-### Method 2 (EMS RAM Commands) extras
+### Method 3 (EMS RAM Commands) extras
 
 | Purpose | Likely entity ID |
 |---|---|
@@ -67,9 +67,9 @@ options:
   - "Export AC"
 ```
 
-Note exactly what your install reports. The Method 2 YAML uses `"Auto"`, `"Charge"`, and `"Discharge"`. If your inverter shows `"Export AC"` instead of `"Discharge"`, edit the YAML to match before saving.
+Note exactly what your install reports. The Method 3 YAML uses `"Auto"`, `"Charge"`, and `"Discharge"`. If your inverter shows `"Export AC"` instead of `"Discharge"`, edit the YAML to match before saving.
 
-### Method 3 (Hybrid) extras
+### Method 4 (Hybrid) extras
 
 | Purpose | Likely entity ID |
 |---|---|
@@ -97,8 +97,8 @@ A simple text file or sticky note works. The exact IDs you need depend on which 
 ## What you should have at the end of this guide
 
 - A confirmed, written list of the entity IDs your install actually uses for each thing the YAML references.
-- A note of whether your `goodwe_eco_mode_power` is in **percentage** or **watts** (Method 1 only).
-- A note of the exact `select.goodwe_ems_mode` option strings your inverter exposes (Method 2 only).
+- A note of whether your `goodwe_eco_mode_power` is in **percentage** or **watts** (Method 2 only).
+- A note of the exact `select.goodwe_ems_mode` option strings your inverter exposes (Method 3 only).
 - No `_2` confusion left over - you know which copy of each entity is live.
 
 Next: [How to paste a YAML automation into Home Assistant](./06_paste_yaml_automation.md).

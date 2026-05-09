@@ -4,11 +4,11 @@ There are two GoodWe integrations for Home Assistant. You need one or both depen
 
 | You're using... | You need |
 |---|---|
-| Method 1 (Standard Eco Mode) | Native GoodWe integration only |
-| Method 2 (EMS RAM Commands) | **Both** native + mletenay experimental (HACS) |
-| Method 3 (Hybrid) - recommended | Native GoodWe integration only |
+| Method 2 (Standard Eco Mode) | Native GoodWe integration only |
+| Method 3 (EMS RAM Commands) | **Both** native + mletenay experimental (HACS) |
+| Method 4 (Hybrid) - recommended | Native GoodWe integration only |
 
-The native one is built into Home Assistant - no extras to install, just enable it. The experimental one comes from HACS and adds the EMS entities Method 2 needs.
+The native one is built into Home Assistant - no extras to install, just enable it. The experimental one comes from HACS and adds the EMS entities Method 3 needs.
 
 ## Part A - Native GoodWe integration (everyone needs this)
 
@@ -25,9 +25,11 @@ If it works, HA will discover the inverter and offer to add it to an Area. Pick 
 
 After adding, click into the integration and you should see a long list of sensors - battery SOC, PV power, grid import/export, mode, and so on. Don't worry about reading every one yet; we'll come back to specific entities in [Guide 05](./05_find_your_entities.md).
 
-## Part B - HACS (only needed for Method 2)
+> **Important: set the polling interval to 15 seconds or longer.** The GoodWe ESA's local Modbus implementation can't handle aggressive polling. If HA polls faster than the inverter is comfortable with (the default in some integration versions is 10s or less), you'll see the green COM LED on the inverter blink to indicate a server error and the **SEMS+ portal will stop updating** because the inverter can't talk to both HA and GoodWe's cloud at the same time. Fix it by clicking the integration's three-dots menu > **Configure** and setting the **Scan interval** (or **Polling interval**) to **15 seconds** or longer. 15s is plenty for everything in this guide; the automations work on minute-or-greater timing.
 
-If you're going with **Method 3** (recommended) or **Method 1**, you can skip the rest of this guide.
+## Part B - HACS (only needed for Method 3)
+
+If you're going with **Method 4** (recommended) or **Method 2**, you can skip the rest of this guide.
 
 HACS is the Home Assistant Community Store - a way to install integrations and frontend cards that aren't bundled with HA itself. It's safe and widely used, but it's a manual install.
 
@@ -44,11 +46,11 @@ The short version of what's involved:
 
 When HACS is installed, you'll have a new "HACS" item in the HA sidebar.
 
-## Part C - mletenay experimental GoodWe integration (only needed for Method 2)
+## Part C - mletenay experimental GoodWe integration (only needed for Method 3)
 
-This is the integration that adds EMS-mode and EMS-power-limit entities - the RAM-level controls Method 2 uses.
+This is the integration that adds EMS-mode and EMS-power-limit entities - the RAM-level controls Method 3 uses.
 
-> **Heads up:** This integration is community-maintained and pokes registers the official integration doesn't expose. It can break with a future inverter firmware update. We recommend Method 3 partly to avoid this dependency. If you're picking Method 2 deliberately, proceed.
+> **Heads up:** This integration is community-maintained and pokes registers the official integration doesn't expose. It can break with a future inverter firmware update. We recommend Method 4 partly to avoid this dependency. If you're picking Method 3 deliberately, proceed.
 
 1. Open **HACS** in the HA sidebar.
 2. Click the three-dots menu (top right) > **Custom repositories**.
@@ -76,7 +78,7 @@ If you don't see anything: the integration didn't connect. Common causes are wro
 ## What you should have at the end of this guide
 
 - Native GoodWe integration installed and showing sensors.
-- For Method 2 only: HACS installed, mletenay experimental GoodWe integration installed, EMS entities visible.
+- For Method 3 only: HACS installed, mletenay experimental GoodWe integration installed, EMS entities visible.
 
 If both ticked, the next guide is [Companion app for notifications](./03_install_companion_app.md).
 

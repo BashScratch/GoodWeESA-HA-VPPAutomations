@@ -29,6 +29,10 @@ actions:
           Battery WARNING: {{ states('sensor.goodwe_battery_warning') }} 
         {% endif %}  Temp: {{ states('sensor.goodwe_battery_temperature') }}°C |
         SOH: {{ states('sensor.goodwe_battery_state_of_health') }}%
+      # The nested data > push > sound block looks like a YAML mistake but it's
+      # required by the HA Companion app's critical-alert API. Don't flatten it.
+      # iOS uses interruption-level: critical (Apple's Critical Alerts API).
+      # Both iOS and Android honour critical: 1 + volume: 1 to bypass DND.
       data:
         push:
           interruption-level: critical

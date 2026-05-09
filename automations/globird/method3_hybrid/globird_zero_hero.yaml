@@ -25,6 +25,9 @@ max: 5
 #   input_number.zero_hero_rate_credit       - daily zero-grid credit $ (e.g. 1.00)
 #   input_number.zero_hero_super_cap         - kWh cap for super rate   (10 or 15)
 #   input_number.zero_hero_min_export_soc    - SOC % below which peak export is blocked (e.g. 65)
+#   input_number.zero_hero_max_export        - inverter's nominal AC export ceiling in W
+#                                              (10000 for the 10kW ESA, 5000 for the 5kW, etc.
+#                                              this is what HA restores the export limit to at peak end)
 #
 # GOODWE APP SETUP REQUIRED:
 #   In SolarGo / SEMS+, create an Economic Mode / TOU charge schedule:
@@ -181,13 +184,13 @@ actions:
           - if:
               - condition: numeric_state
                 entity_id: number.goodwe_grid_export_limit   # EDIT: your Grid Export Limit entity
-                below: 10000
+                below: input_number.zero_hero_max_export
             then:
               - action: number.set_value
                 target:
                   entity_id: number.goodwe_grid_export_limit
                 data:
-                  value: 10000
+                  value: "{{ states('input_number.zero_hero_max_export') | float(10000) }}"
 
           - condition: numeric_state
             entity_id: input_number.zero_hero_export_start

@@ -21,9 +21,9 @@ One of the most confusing things about setting up a GoodWe ESA with Home Assista
 
 ### Implications for the three methods
 
-- **Method 1** uses `number.goodwe_eco_mode_power` for the charge/discharge magnitude, which is experimental-only. Method 1 therefore requires HACS, despite earlier framing in this repo that said it didn't.
-- **Method 3** mostly runs on the native integration (operation mode + grid export limit + standard sensors). The midnight reset uses `switch.goodwe_fast_charging_switch` as a safety net, which is experimental-only. The YAML wraps that one action in `continue_on_error: true`, so on a native-only install the action errors silently and the rest of the automation keeps running. Method 3 still works fully native; you just lose the one belt-and-braces line.
-- **Method 2** is fully experimental-dependent (uses the EMS entities).
+- **Method 2** uses `number.goodwe_eco_mode_power` for the charge/discharge magnitude, which is experimental-only. Method 2 therefore requires HACS, despite earlier framing in this repo that said it didn't.
+- **Method 4** mostly runs on the native integration (operation mode + grid export limit + standard sensors). The midnight reset uses `switch.goodwe_fast_charging_switch` as a safety net, which is experimental-only. The YAML wraps that one action in `continue_on_error: true`, so on a native-only install the action errors silently and the rest of the automation keeps running. Method 4 still works fully native; you just lose the one belt-and-braces line.
+- **Method 3** is fully experimental-dependent (uses the EMS entities).
 
 ### The "Eco Mode" / "Economic Mode" / "TOU" naming tangle
 
@@ -37,7 +37,7 @@ This is the most common point of confusion, and it comes from GoodWe using the s
 
 So: **HA "Eco mode" = app "Economic Mode"** - and both use TOU-style time scheduling. They are the same thing under two names.
 
-**Critical gotcha:** When HA writes an Eco Mode command, it writes directly into EEPROM slot 1, overwriting whatever Economic Mode schedule you previously set in the app. The app and HA are not aware of each other's schedule data - HA simply replaces it. This is why Method 3 avoids touching the operation mode from HA entirely.
+**Critical gotcha:** When HA writes an Eco Mode command, it writes directly into EEPROM slot 1, overwriting whatever Economic Mode schedule you previously set in the app. The app and HA are not aware of each other's schedule data - HA simply replaces it. This is why Method 4 avoids touching the operation mode from HA entirely.
 
 ### EMS modes (experimental integration only)
 
@@ -51,7 +51,7 @@ The experimental integration exposes `select.goodwe_ems_mode` with several optio
 | Export grid (sell to grid) | Targets a specific export wattage; PV preferred, battery fills gap |
 | Charge from grid | Force charge from grid (high priority); PV used if available |
 
-The Method 2 automation in this guide uses `"Charge"`, `"Discharge"`, and `"Auto"`. **If these option strings don't match your entity, check Developer Tools > States > `select.goodwe_ems_mode` for the actual available options and adjust the YAML accordingly.** Common alternative names for the discharge-with-export scenario include `"Export AC"` and `"Export grid"`.
+The Method 3 automation in this guide uses `"Charge"`, `"Discharge"`, and `"Auto"`. **If these option strings don't match your entity, check Developer Tools > States > `select.goodwe_ems_mode` for the actual available options and adjust the YAML accordingly.** Common alternative names for the discharge-with-export scenario include `"Export AC"` and `"Export grid"`.
 
 ---
 
@@ -107,9 +107,9 @@ GloBird structures the super rate internally as: **base rate + bonus = total sup
 
 ---
 
-## Method 3 - what does what
+## Method 4 - what does what
 
-Since Method 3 splits responsibility between the GoodWe app and HA, here is an explicit breakdown of which system owns each job:
+Since Method 4 splits responsibility between the GoodWe app and HA, here is an explicit breakdown of which system owns each job:
 
 | Job | Owned by | Why |
 |---|---|---|

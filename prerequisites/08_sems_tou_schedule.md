@@ -1,12 +1,12 @@
-# 8. Set up the SolarGo TOU schedule (Method 3 only)
+# 8. Set up the SolarGo TOU schedule (Method 4 only)
 
-If you're going with **Method 3 (Hybrid)** - which we recommend - the free-window charging is handled by the inverter's firmware, not by Home Assistant. You set up two schedule slots once in the SolarGo app (one for the free-window charge, one for the peak-window discharge) and the inverter handles both windows every day without HA needing to lift a finger for the inverter side. HA's only job is the smart layer at peak time: SOC guard, grid-export limit, profit notifications.
+If you're going with **Method 4 (Hybrid)** - which we recommend - the free-window charging is handled by the inverter's firmware, not by Home Assistant. You set up two schedule slots once in the SolarGo app (one for the free-window charge, one for the peak-window discharge) and the inverter handles both windows every day without HA needing to lift a finger for the inverter side. HA's only job is the smart layer at peak time: SOC guard, grid-export limit, profit notifications.
 
-This is the bit of Method 3 that makes the throughput case work on **single-phase ESAs** (model number ending in EHA-G20). The inverter combines grid AC and solar DC together to charge at up to 13.5kW on the 10kW model, which HA can't ask for. The 13.5kW number is from GoodWe's own [ESA Series single-phase datasheet, V2.1 April 2026](https://admin.goodwe.com/Api/downloadFile?id=3448&mid=60&type=2) - "Max. Charging Power" row for the GW9.999K-EHA-G20. Smaller single-phase models have proportionally lower ceilings (5kW model = 7.5kW, 8kW model = 12kW). Community confirmation: Whirlpool thread "Goodwe ESA maximum charge rate?" by user nutttr with confirmation from Zerosignal (<https://forums.whirlpool.net.au/thread/9kppp8k2>).
+This is the bit of Method 4 that makes the throughput case work on **single-phase ESAs** (model number ending in EHA-G20). The inverter combines grid AC and solar DC together to charge at up to 13.5kW on the 10kW model, which HA can't ask for. The 13.5kW number is from GoodWe's own [ESA Series single-phase datasheet, V2.1 April 2026](https://admin.goodwe.com/Api/downloadFile?id=3448&mid=60&type=2) - "Max. Charging Power" row for the GW9.999K-EHA-G20. Smaller single-phase models have proportionally lower ceilings (5kW model = 7.5kW, 8kW model = 12kW). Community confirmation: Whirlpool thread "Goodwe ESA maximum charge rate?" by user nutttr with confirmation from Zerosignal (<https://forums.whirlpool.net.au/thread/9kppp8k2>).
 
-**Three-phase ESAs (model number ending in ETA-G20) don't get the throughput boost.** Per the [three-phase datasheet, V2.1 April 2026](https://admin.goodwe.com/Api/downloadFile?id=4072&mid=60&type=2), max charging power equals nominal AC across the whole range. You should still set up the TOU schedules below for the other Method 3 benefits (precise grid-export control, your TOU survives, the HA smart-layer at peak), just don't expect a 35% charge-rate bump.
+**Three-phase ESAs (model number ending in ETA-G20) don't get the throughput boost.** Per the [three-phase datasheet, V2.1 April 2026](https://admin.goodwe.com/Api/downloadFile?id=4072&mid=60&type=2), max charging power equals nominal AC across the whole range. You should still set up the TOU schedules below for the other Method 4 benefits (precise grid-export control, your TOU survives, the HA smart-layer at peak), just don't expect a 35% charge-rate bump.
 
-If you're using **Method 1 or Method 2**, skip this guide. You don't need TOU schedules because HA's controlling the inverter directly.
+If you're using **Method 2 or Method 3**, skip this guide. You don't need TOU schedules because HA's controlling the inverter directly.
 
 ## SolarGo vs SEMS+
 
@@ -80,7 +80,7 @@ Save the slot.
 
 ## Step 6 - Confirm timing doesn't collide with HA triggers
 
-Method 3's HA automation has its own time triggers. Here's the full picture across one Zero Hero day:
+Method 4's HA automation has its own time triggers. Here's the full picture across one Zero Hero day:
 
 | Time | What fires | Who runs it |
 |---|---|---|
@@ -118,9 +118,9 @@ If the charge slot didn't fire - battery isn't charging during the window - chec
 
 ## Critical: do not run Methods 1 or 2 alongside this
 
-We say this in the strategy README and we'll say it again here. Method 1 (and any operation-mode change in Method 2) **deletes both your TOU slots** ([Whirlpool thread "GoodWe ESA - Setting export TOU with SOC limit"](https://forums.whirlpool.net.au/thread/9n111qlk)). The first time HA writes "Eco mode" or "General mode" to `select.goodwe_inverter_operation_mode`, your carefully-set TOU configuration is gone.
+We say this in the strategy README and we'll say it again here. Method 2 (and any operation-mode change in Method 3) **deletes both your TOU slots** ([Whirlpool thread "GoodWe ESA - Setting export TOU with SOC limit"](https://forums.whirlpool.net.au/thread/9n111qlk)). The first time HA writes "Eco mode" or "General mode" to `select.goodwe_inverter_operation_mode`, your carefully-set TOU configuration is gone.
 
-If you're running Method 3, your YAML in HA should never touch the operation mode - and the [Method 3 automation in this repo](../../automations/globird/method3_hybrid/globird_zero_hero.yaml) is designed exactly that way. Don't add additional automations that change `select.goodwe_inverter_operation_mode` while you're on Method 3.
+If you're running Method 4, your YAML in HA should never touch the operation mode - and the [Method 4 automation in this repo](../../automations/globird/method3_hybrid/globird_zero_hero.yaml) is designed exactly that way. Don't add additional automations that change `select.goodwe_inverter_operation_mode` while you're on Method 4.
 
 ## What you should have at the end of this guide
 

@@ -9,13 +9,13 @@ We assume you've got a Home Assistant install running somewhere (a Green, a Yell
 The guides are numbered. If you do them in order you won't get stuck. If you skip ahead you probably will, because each step assumes the previous one is done.
 
 1. [Enable Modbus TCP on the inverter](./01_enable_modbus_on_inverter.md) - turns on the network port HA needs to talk to your GoodWe.
-2. [Install the GoodWe integrations in Home Assistant](./02_install_ha_integrations.md) - the native one (built in) for Methods 1 and 3, plus the experimental HACS one if you're going with Method 2.
+2. [Install the GoodWe integrations in Home Assistant](./02_install_ha_integrations.md) - the native one (built in) for Methods 1 and 3, plus the experimental HACS one if you're going with Method 3.
 3. [Install the HA Companion app for notifications](./03_install_companion_app.md) - this is what fires the "Zero Hero Armed" / "Complete" alerts to your phone.
 4. [Create the required helpers](./04_create_helpers.md) - the toggles and number inputs the automations read from. The full helper list lives in the strategy guide; this guide just shows you the click path.
 5. [Find your actual entity IDs in Developer Tools](./05_find_your_entities.md) - every `# EDIT:` comment in the YAML needs you to substitute a real entity ID from your specific install. This is where you find them.
 6. [How to paste a YAML automation into Home Assistant](./06_paste_yaml_automation.md) - the bit nobody warns you about. The HA UI hides the YAML editor by default and you have to actively unhide it.
 7. [How to add template sensors to configuration.yaml](./07_add_template_sensors.md) - needed for the optional dashboard sensors. Different from automations; can't be done from the UI.
-8. [Set up the SEMS+ TOU schedule (Method 3 only)](./08_sems_tou_schedule.md) - the half of Method 3 that lives on the inverter side, not the HA side.
+8. [Set up the SEMS+ TOU schedule (Method 4 only)](./08_sems_tou_schedule.md) - the half of Method 4 that lives on the inverter side, not the HA side.
 9. [First-run checklist](./09_first_run_checklist.md) - what to watch on day one and how to bail out cleanly if something's wrong.
 
 ## What we don't cover

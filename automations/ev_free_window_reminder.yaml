@@ -35,8 +35,11 @@ actions:
       - conditions:
           - condition: trigger
             id: car_connected_during_window
+          # 11:00:00 minus a 1-minute buffer to catch plug-ins right at the boundary.
+          # Without the buffer, plugging in at 11:00:30 would be ignored if HA's
+          # clock has any drift relative to the EV charger's.
           - condition: time
-            after: "11:01:00"
+            after: "10:59:00"
             before: "14:00:00"
         sequence:
           - action: notify.mobile_app_your_device_name # EDIT: your notify service
