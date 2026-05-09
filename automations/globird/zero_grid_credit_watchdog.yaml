@@ -1,0 +1,76 @@
+alias: "GoodWe ESA: Zero Hero Daily Credit Watchdog"
+description: >
+  GloBird's Zero-Grid daily credit (~$1) is forfeit at any nonzero peak-window
+  grid import. Even a brief import (the kettle plus the dryer plus the oven all
+  on at once, blowing past your inverter's discharge cap) can cost the credit.
+  This automation watches grid import during the peak window and fires an
+  actionable notification before you cross the threshold, giving you a chance
+  to turn off heavy loads.
+
+  REQUIRES a utility_meter helper that resets daily at 18:00 and tracks grid
+  imports during the peak window. See the helpers block below.
+
+mode: single
+
+# =============================================================================
+# REQUIRED HELPERS / CONFIG (create these before enabling):
+#
+#   1. utility_meter.zero_hero_peak_grid_import   (config-level - see notes below)
+#      - Source sensor: sensor.goodwe_total_energy_import (or your equivalent)
+#      - Cycle: daily
+#      - Offset: 18:00 (so it resets at the start of the peak window)
+#
+#   2. input_number.zero_hero_credit_alert_threshold
+#      - Min 0, max 1000, step 1, unit Wh
+#      - Initial value: 25 (Wh - alerts you when 25Wh has crossed during peak.
+#        25Wh is intentionally below the threshold where you'd lose the credit
+#        outright - it gives you time to react before the credit is gone.)
+#
+# Note on utility_meter setup: the simplest way is via the HA UI:
+#   Settings > Devices & services > Helpers > Create Helper > Utility Meter
+#     Source: your goodwe_total_energy_import sensor
+#     Reset cycle: daily
+#     Cycle offset: 0:18 (HH:MM in some HA versions, or use 18:00:00 in YAML)
+#
+# If you'd rather configure via YAML, add to configuration.yaml:
+#   utility_meter:
+#     zero_hero_peak_grid_import:
+#       source: sensor.goodwe_total_energy_import   # EDIT: your import sensor
+#       cycle: daily
+#       offset:
+#         hours: 18
+# =============================================================================
+
+triggers:
+  - trigger: numeric_state
+    entity_id: sensor.zero_hero_peak_grid_import   # EDIT: your utility_meter entity (HA names it from the helper)
+    above: input_number.zero_hero_credit_alert_threshold
+
+conditions:
+  # Only act during the peak window. The utility_meter resets at 18:00 so the
+  # number can only climb during peak; this condition is belt-and-braces in
+  # case the meter logic is misconfigured.
+  - condition: time
+    after: "18:00:00"
+    before: "21:00:00"   # EDIT: change to 20:00 if your peak window ends at 20:00
+  - condition: state
+    entity_id: input_boolean.zero_hero_enabled   # don't fire when Zero Hero is disabled
+    state: "on"
+
+actions:
+  - action: notify.mobile_app_your_device_name   # EDIT: your notify service
+    data:
+      title: Zero Hero Daily Credit at Risk
+      message: >-
+        {{ states('sensor.zero_hero_peak_grid_import') | float(0) | round(0) }}Wh
+        of grid import detected during peak. The Zero-Grid daily credit
+        (~$1) is forfeit at any peak-window grid import - turn off heavy
+        loads now to limit the damage.
+      data:
+        # iOS actionable notification - tap to mute the warning for tonight
+        # or escalate. Adjust action identifiers to your dashboard.
+        actions:
+          - action: ZERO_HERO_MUTE_CREDIT_WARNING
+            title: Mute warning tonight
+        push:
+          interruption-level: time-sensitive

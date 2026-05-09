@@ -1,0 +1,74 @@
+alias: "GoodWe ESA: LFP SOC calibration tracker"
+description: >
+  LFP cells have a famously flat voltage curve, which makes voltage-based SOC
+  estimation drift over weeks of partial cycling. Periodic full charges reset
+  the BMS coulomb counter and keep your SOC reading honest. GoodWe's BMS
+  recommends a full charge roughly every 14 days; if you're on Zero Hero this
+  happens daily anyway, but if you're on a different plan or you've been away
+  with the system on hold, a tracker like this catches drift before the SOC
+  reading becomes unreliable.
+
+  This automation has two parts:
+    1. When SOC hits 100%, record the timestamp.
+    2. If 14 days have passed without hitting 100%, fire a notification
+       suggesting a manual top-up (or, optionally, trigger one automatically
+       via a force-charge automation).
+
+mode: single
+
+# =============================================================================
+# REQUIRED HELPERS:
+#
+#   input_datetime.last_full_charge       - when SOC last hit 100%.
+#                                           Has date AND time enabled.
+#                                           Initialise to a recent date so the
+#                                           14-day timer doesn't fire on day one.
+#   input_number.lfp_calibration_days     - threshold in days for the alert.
+#                                           Default 14. Min 7, max 60, step 1.
+# =============================================================================
+
+triggers:
+  # Track full charges
+  - trigger: numeric_state
+    entity_id: sensor.goodwe_battery_state_of_charge   # EDIT: your SOC sensor
+    above: 99.5   # call 100% anything 99.5% or above to handle BMS rounding
+    id: hit_full
+
+  # Daily drift check at 09:00
+  - trigger: time
+    at: "09:00:00"
+    id: daily_check
+
+actions:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: hit_full
+        sequence:
+          - action: input_datetime.set_datetime
+            target:
+              entity_id: input_datetime.last_full_charge
+            data:
+              datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+
+      - conditions:
+          - condition: trigger
+            id: daily_check
+          - condition: template
+            value_template: >
+              {% set last = states('input_datetime.last_full_charge') %}
+              {% set threshold = states('input_number.lfp_calibration_days') | float(14) %}
+              {% if last in ['unknown', 'unavailable', ''] %}
+                false
+              {% else %}
+                {{ ((now() - as_datetime(last)).total_seconds() / 86400) > threshold }}
+              {% endif %}
+        sequence:
+          - action: notify.mobile_app_your_device_name   # EDIT: your notify service
+            data:
+              title: LFP calibration suggested
+              message: >-
+                {% set last = states('input_datetime.last_full_charge') %}
+                {% set days = ((now() - as_datetime(last)).total_seconds() / 86400) | round(0) %}
+                Battery hasn't hit 100% in {{ days }} days. Consider a manual
+                full-charge tonight to keep SOC readings accurate.

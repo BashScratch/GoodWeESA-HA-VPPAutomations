@@ -1,0 +1,76 @@
+alias: "GoodWe ESA: Inverter thermal management (external cooling fan)"
+description: >
+  GoodWe ESA inverters use passive (fanless) cooling, which works fine for
+  normal operation but can hit thermal limits during sustained 10kW VPP
+  exports on hot days. When the inverter derates due to heat, you lose
+  export power right when you need it most.
+
+  This automation triggers a smart plug running an external cooling fan
+  (or other airflow source) when the inverter's internal temperature
+  crosses a threshold. Hysteresis prevents rapid cycling.
+
+  Useful if your inverter is in a hot location (north-facing wall, garage,
+  small enclosure) and you've seen derating in summer.
+
+mode: single
+
+# =============================================================================
+# REQUIRED HELPERS:
+#
+#   input_number.inverter_thermal_trigger    - temperature at which to engage
+#                                              cooling. Default: 55 (C).
+#                                              Min 40, max 70, step 1.
+#   input_number.inverter_thermal_release    - temperature at which to disengage.
+#                                              Default: 48 (C). Set lower than
+#                                              trigger for hysteresis.
+#                                              Min 40, max 70, step 1.
+#   input_boolean.inverter_thermal_enabled   - master toggle. Default off
+#                                              until you've tested it.
+#
+# REQUIRED CONFIG:
+#   - The cooling fan smart-plug entity. Replace switch.inverter_cooling_fan
+#     below with your actual entity.
+# =============================================================================
+
+triggers:
+  - trigger: numeric_state
+    entity_id: sensor.goodwe_inverter_temperature   # EDIT: your inverter temp sensor
+    above: input_number.inverter_thermal_trigger
+    for:
+      minutes: 2   # require sustained warmth, not transients
+    id: getting_hot
+  - trigger: numeric_state
+    entity_id: sensor.goodwe_inverter_temperature
+    below: input_number.inverter_thermal_release
+    for:
+      minutes: 5   # require sustained drop before turning fan off
+    id: cooled_down
+
+conditions:
+  - condition: state
+    entity_id: input_boolean.inverter_thermal_enabled
+    state: "on"
+
+actions:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: getting_hot
+        sequence:
+          - action: switch.turn_on
+            target:
+              entity_id: switch.inverter_cooling_fan   # EDIT: your fan switch entity
+          - action: notify.mobile_app_your_device_name   # EDIT: your notify service
+            data:
+              title: Inverter thermal management engaged
+              message: >-
+                Inverter at {{ states('sensor.goodwe_inverter_temperature') }}C.
+                Turned on external cooling.
+
+      - conditions:
+          - condition: trigger
+            id: cooled_down
+        sequence:
+          - action: switch.turn_off
+            target:
+              entity_id: switch.inverter_cooling_fan

@@ -64,6 +64,9 @@ Full explanation of each, and why Method 4's throughput advantage settles the re
 ### Provider-specific
 - **[GloBird Zero Hero strategy + automations](./automations/globird/)** - the four methods (one app-only, three HA-driven) and when to use which.
 
+### Optional advanced automations
+- **[Advanced automations](./automations/advanced/)** - protective and quality-of-life additions (grid-voltage soaking, inverter thermal management, LFP calibration tracker, polarity-fix template sensor). Optional layer on top of any of the four methods.
+
 ### Dashboard sensors
 - **[Zero Hero live sensors](./sensors/)** - template sensors for "how much have I exported in the current peak window" and "how much have I made tonight".
 

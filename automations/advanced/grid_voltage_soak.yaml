@@ -1,0 +1,75 @@
+alias: "GoodWe ESA: Grid voltage soak (turn on dump load if voltage is high)"
+description: >
+  AS/NZS 4777 inverters trip off the grid at 253V. On hot afternoons with
+  high local solar penetration, grid voltage can climb to 250V+ and your
+  inverter starts curtailing or tripping. If you have a heat pump hot water
+  system, EV charger, or other significant resistive load you can switch on,
+  this automation turns it on automatically when grid voltage gets high,
+  soaking up the local surplus and pulling voltage back down before the
+  inverter trips.
+
+  This is a protection automation. You probably won't see it fire often,
+  but when it does it's saving you a forced shutdown.
+
+mode: single
+
+# =============================================================================
+# REQUIRED HELPERS:
+#
+#   input_number.voltage_soak_trigger     - voltage at which to turn on the load
+#                                           Default: 252 (V). Min 240, max 255, step 0.5.
+#   input_number.voltage_soak_release     - voltage at which to turn it off again
+#                                           Default: 247 (V). Set lower than trigger
+#                                           to avoid rapid cycling (hysteresis).
+#                                           Min 240, max 255, step 0.5.
+#   input_boolean.voltage_soak_enabled    - master toggle (default off until you've
+#                                           tested it)
+#
+# REQUIRED CONFIG:
+#   - The "load to dump to" entity. Replace switch.dump_load_smart_plug below
+#     with whatever switch entity drives your hot water system, EV charger,
+#     pool pump, or similar.
+# =============================================================================
+
+triggers:
+  - trigger: numeric_state
+    entity_id: sensor.goodwe_grid_voltage   # EDIT: your grid voltage sensor (may be _2 suffixed)
+    above: input_number.voltage_soak_trigger
+    for:
+      minutes: 1   # don't fire on transient spikes
+    id: voltage_high
+  - trigger: numeric_state
+    entity_id: sensor.goodwe_grid_voltage   # EDIT: same sensor
+    below: input_number.voltage_soak_release
+    for:
+      minutes: 5   # require sustained drop before turning off
+    id: voltage_normal
+
+conditions:
+  - condition: state
+    entity_id: input_boolean.voltage_soak_enabled
+    state: "on"
+
+actions:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: voltage_high
+        sequence:
+          - action: switch.turn_on
+            target:
+              entity_id: switch.dump_load_smart_plug   # EDIT: your dump-load switch entity
+          - action: notify.mobile_app_your_device_name   # EDIT: your notify service
+            data:
+              title: Grid voltage high - dump load engaged
+              message: >-
+                Grid voltage hit {{ states('sensor.goodwe_grid_voltage') }}V.
+                Turned on dump load to soak it up.
+
+      - conditions:
+          - condition: trigger
+            id: voltage_normal
+        sequence:
+          - action: switch.turn_off
+            target:
+              entity_id: switch.dump_load_smart_plug

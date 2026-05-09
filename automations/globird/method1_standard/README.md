@@ -12,6 +12,8 @@ The straightforward, single-automation approach. HA toggles the inverter between
 
 **This overwrites any TOU schedule you've set in the SEMS+ or SolarGo app** every time it changes mode. If you use SEMS+ or SolarGo for scheduling anything, use Method 4 instead.
 
+**Method 2 has the heaviest flash-write footprint of any method in this guide.** It writes the inverter's operation mode register four times a day (free start, free end, peak start, peak end) - twice as many writes as Method 4 and infinitely more than Method 3 (RAM only). Whether the underlying chip is true EEPROM or flash isn't publicly documented (community discussion uses both terms), but typical write-cycle ratings are 100,000+. Four daily writes for ten years is ~14,600 cycles, well inside the rating. **No bricked-inverter cases from this pattern have surfaced in the community.** That said: if the goal is a multi-year set-and-forget setup, Methods 3 or 4 are the wiser pick. Method 2 is fine for a proof-of-concept, for testing automation logic, or for a year or two of use; we'd push you to one of the alternatives for permanent operation.
+
 ## What you need
 
 - **The experimental GoodWe Inverter integration by mletenay**, installed via HACS: <https://github.com/mletenay/home-assistant-goodwe-inverter>. Method 2 uses `number.goodwe_eco_mode_power` to set the charge/discharge magnitude, and that entity is only exposed by the experimental integration (not the native one).

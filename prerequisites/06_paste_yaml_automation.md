@@ -71,6 +71,8 @@ Every match is a line where you need to replace a placeholder with a real value 
 
 > **Tip:** open a second browser window or tab pointed at **Developer Tools > States** while you do this. Search for `goodwe` in that tab. As you work through each `# EDIT:` line in the YAML editor, flick over and copy-paste the real entity ID rather than retyping it. Typos in entity IDs are the most common reason an automation appears to save fine but does nothing at runtime.
 
+> **A note on the `| float(0)` pattern.** You'll see things like `{{ states('sensor.goodwe_battery_state_of_charge') | float(0) }}` scattered throughout the YAML in this repo. The `| float(0)` filter converts the sensor's value to a number; the `(0)` argument is the fallback if the value can't be converted (sensor unavailable, returning `unknown`, etc.). Without it, the template crashes the whole automation when the inverter blips offline for a poll cycle. **If you write your own additions or modifications, keep this pattern - it's defensive code that costs nothing and prevents silent failures.** Same logic applies to `| int(0)` for integers.
+
 | Placeholder | Replace with |
 |---|---|
 | `select.goodwe_inverter_operation_mode` | Your real operation mode select entity (might have `_2` suffix) |

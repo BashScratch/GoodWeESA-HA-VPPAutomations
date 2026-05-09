@@ -1,0 +1,42 @@
+# GoodWe Active Power Polarity Fix (template sensor)
+#
+# Some GoodWe ARM firmware revisions report active power with an inverted sign
+# (positive when the inverter is consuming, negative when exporting). If your
+# energy dashboard shows imports as exports and vice versa, or if this guide's
+# profit calculations come out negative on a normal export day, this fix may
+# be why.
+#
+# This is a correctness fix, not a feature - it's listed in our advanced
+# section because most installs don't need it. To find out whether yours does:
+#
+#   1. Open Developer Tools > States, find sensor.goodwe_active_power.
+#   2. With the sun shining and the battery exporting, the value should be
+#      NEGATIVE (export, leaving the system).
+#   3. With the house drawing from the grid (e.g. early morning, no PV), the
+#      value should be POSITIVE.
+#   4. If your inverter shows the opposite signs, you have the polarity bug.
+#      Set the input_boolean.goodwe_polarity_inverted helper to ON, and use
+#      sensor.goodwe_active_power_corrected wherever you'd otherwise use
+#      sensor.goodwe_active_power.
+#
+# REQUIRED HELPERS:
+#   input_boolean.goodwe_polarity_inverted   - on/off toggle for the fix
+#
+# Place this under the `template:` integration in configuration.yaml or in
+# templates.yaml if you've split your config (same as the Zero Hero session
+# sensors).
+
+- sensor:
+    - name: "GoodWe Active Power Corrected"
+      unique_id: goodwe_active_power_corrected
+      unit_of_measurement: "W"
+      device_class: power
+      state_class: measurement
+      icon: mdi:flash
+      state: >
+        {% set raw = states('sensor.goodwe_active_power') | float(0) %}
+        {% if states('input_boolean.goodwe_polarity_inverted') == 'on' %}
+          {{ (raw * -1) | round(0) }}
+        {% else %}
+          {{ raw | round(0) }}
+        {% endif %}
