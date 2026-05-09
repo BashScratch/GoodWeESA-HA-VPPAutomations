@@ -19,7 +19,13 @@ One of the most confusing things about setting up a GoodWe ESA with Home Assista
 | EMS - direct battery charge/discharge via RAM register command | EMS (Energy Management System) | Not exposed in app | **Not exposed** | `select.goodwe_ems_mode` + `number.goodwe_ems_power_limit` |
 | Synchronise inverter clock to HA | (button) | (manual) | `button.goodwe_synchronize_inverter_clock` | Same |
 
-### Implications for the three methods
+### Architecture: HACS is a layer over native, not a replacement
+
+The mletenay HACS integration is built as an **addition** to the native one. When both are installed (the standard setup for Methods 2-4), the native integration handles the read sensors and basic mode controls, and the HACS integration adds the active-control entities listed above. They don't conflict.
+
+Per mletenay's repo: if you ever uninstall HACS, the native integration takes over seamlessly and existing entity IDs, history, and statistics are preserved. Migration in either direction is supported.
+
+### Implications for the four methods
 
 - **Method 2** uses `number.goodwe_eco_mode_power` for the charge/discharge magnitude, which is experimental-only. Method 2 therefore requires HACS, despite earlier framing in this repo that said it didn't.
 - **Method 4** mostly runs on the native integration (operation mode + grid export limit + standard sensors). The midnight reset uses `switch.goodwe_fast_charging_switch` as a safety net, which is experimental-only. The YAML wraps that one action in `continue_on_error: true`, so on a native-only install the action errors silently and the rest of the automation keeps running. Method 4 still works fully native; you just lose the one belt-and-braces line.

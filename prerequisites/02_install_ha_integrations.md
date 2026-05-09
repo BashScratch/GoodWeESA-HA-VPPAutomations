@@ -64,7 +64,7 @@ This is the integration that adds EMS-mode and EMS-power-limit entities - the RA
 7. After restart, go to **Settings > Devices & services > Add integration**, search for **GoodWe Inverter** (note: this is *different* from the built-in "GoodWe" - look for the one with "Inverter" in the name).
 8. Add the integration with the same IP address you used for the native one.
 
-You'll now have two GoodWe integrations running side by side. That's fine - they expose different entities. The native one gives you the standard sensors and the basic mode control; the experimental one adds EMS entities (`select.goodwe_ems_mode`, `number.goodwe_ems_power_limit`).
+You'll now have two GoodWe integrations running side by side, which is the supported configuration. The HACS one is built as a **layer over the native one** rather than a replacement: the native integration keeps providing the standard sensors and basic mode controls, and the HACS integration adds the entities the native one doesn't expose (Eco Mode power, EMS mode, fast-charging switch). Per mletenay's repo, if you ever uninstall HACS, the native integration takes over seamlessly and your existing entity history is preserved.
 
 ## Verify both integrations are working
 
