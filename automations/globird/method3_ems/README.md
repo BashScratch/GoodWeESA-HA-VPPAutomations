@@ -1,6 +1,6 @@
 # Method 3: EMS RAM Commands (experimental / advanced)
 
-> **Experimental.** Method 3 depends on a community-maintained HACS integration that pokes registers the official integration doesn't expose. A future GoodWe firmware update could change those registers and silently break this method. If you want a quiet life, use [Method 4](../method3_hybrid/) instead.
+> **Experimental.** Method 3 depends on a community-maintained HACS integration that pokes registers the official integration doesn't expose. A future GoodWe firmware update could change those registers and silently break this method. If you want a quiet life, use [Method 4](../method4_hybrid/) instead.
 
 > Before you copy anything: read the [strategy guide](../) to understand the tradeoffs and create the required helpers. For a breakdown of EMS mode options, see the [Glossary](../../../GLOSSARY.md).
 

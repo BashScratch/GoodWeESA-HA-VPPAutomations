@@ -28,7 +28,7 @@ How worried should you be? Probably not very, but worth knowing:
 - No bricked-inverter cases from this pattern have surfaced in the community that we're aware of.
 - The chip type (true EEPROM with limited writes vs flash with much higher endurance) isn't publicly documented.
 
-If you specifically want **zero flash writes**, use **[Method 3 (EMS RAM Commands)](../method2_ems/)** instead. EMS commands target volatile RAM and never touch flash. The tradeoff is the experimental HACS dependency and the mandatory watchdog (covered in Method 3's README).
+If you specifically want **zero flash writes**, use **[Method 3 (EMS RAM Commands)](../method3_ems/)** instead. EMS commands target volatile RAM and never touch flash. The tradeoff is the experimental HACS dependency and the mandatory watchdog (covered in Method 3's README).
 
 For most users on a single-phase 10kW ESA who care about charging throughput, Method 4 is still the right pick. The flash exposure is real but moderate, and the 30% throughput advantage during the free window is the bigger lever.
 

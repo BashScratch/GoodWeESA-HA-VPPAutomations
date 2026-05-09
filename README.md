@@ -41,19 +41,30 @@ Full explanation of each, and why Method 4's throughput advantage settles the re
 .
 ├── README.md                                 <- you are here
 ├── LICENSE                                   <- MIT
+├── GLOSSARY.md                               <- terminology mapping (GoodWe/SolarGo/HA/GloBird)
 ├── automations/
 │   ├── ev_free_window_reminder.yaml          <- nudge yourself to plug in the EV
 │   ├── goodwe_battery_fault_alert.yaml       <- critical BMS alerts on your phone
 │   ├── goodwe_time_sync.yaml                 <- keeps the inverter clock honest
-│   └── globird/
-│       ├── README.md                         <- strategy guide + helpers setup
-│       ├── method1_app_only/        <- Method 1 (app-only baseline)
-│       ├── method1_standard/        <- Method 2 (folder rename pending)
-│       ├── method2_ems/             <- Method 3 (folder rename pending)
-│       └── method3_hybrid/          <- Method 4 (folder rename pending)
+│   ├── globird/                              <- GloBird Zero Hero strategy + automations
+│   │   ├── README.md                         <- strategy guide + helpers setup
+│   │   ├── method1_app_only/                 <- Method 1 (app-only baseline)
+│   │   ├── method2_standard/                 <- Method 2 (HA, standard Eco Mode)
+│   │   ├── method3_ems/                      <- Method 3 (HA, EMS RAM commands)
+│   │   ├── method4_hybrid/                   <- Method 4 (Hybrid, recommended)
+│   │   └── zero_grid_credit_watchdog.yaml    <- daily-credit protection automation
+│   └── advanced/                             <- optional advanced layer
+│       ├── README.md
+│       ├── grid_voltage_soak.yaml
+│       ├── inverter_thermal_management.yaml
+│       └── lfp_calibration_charge.yaml
+├── prerequisites/                            <- start-here guides for first-time setup
+│   ├── README.md
+│   └── 01-09 numbered guides
 └── sensors/
     ├── README.md
-    └── globird_zero_hero_sensors.yaml        <- live profit tracking on your dashboard
+    ├── globird_zero_hero_sensors.yaml        <- live profit tracking on your dashboard
+    └── goodwe_polarity_fix.yaml              <- corrects sign convention on affected firmware
 ```
 
 ### General automations (recommended regardless of which method you pick)

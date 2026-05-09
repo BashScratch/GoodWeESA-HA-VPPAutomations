@@ -11,7 +11,7 @@ This is the right starting point if any of the following apply:
 - You want to understand what the inverter does on its own before deciding whether HA is worth the effort.
 - You want a reference point to compare the HA methods against.
 
-If you already know you want HA, skip this and go to [Method 4 (Hybrid)](../method3_hybrid/) - the recommendation. But come back here if you want a clean explanation of how TOU works at the inverter level, since the HA methods all build on top of it.
+If you already know you want HA, skip this and go to [Method 4 (Hybrid)](../method4_hybrid/) - the recommendation. But come back here if you want a clean explanation of how TOU works at the inverter level, since the HA methods all build on top of it.
 
 ## What this method does
 
@@ -145,9 +145,9 @@ This method gets you the basic charge-during-free / discharge-during-peak cycle,
 
 If those things matter to you, jump to:
 
-- [Method 2 (Standard Eco Mode)](../method1_standard/) - HA-driven, simpler than Method 4 but with tradeoffs.
-- [Method 3 (EMS RAM Commands)](../method2_ems/) - the right tool if you're on a dynamic-pricing VPP like Amber.
-- [Method 4 (Hybrid - recommended)](../method3_hybrid/) - keeps this method's TOU schedule and adds HA on top for the smart layer. The default recommendation for fixed-window plans like Zero Hero.
+- [Method 2 (Standard Eco Mode)](../method2_standard/) - HA-driven, simpler than Method 4 but with tradeoffs.
+- [Method 3 (EMS RAM Commands)](../method3_ems/) - the right tool if you're on a dynamic-pricing VPP like Amber.
+- [Method 4 (Hybrid - recommended)](../method4_hybrid/) - keeps this method's TOU schedule and adds HA on top for the smart layer. The default recommendation for fixed-window plans like Zero Hero.
 
 If they don't, this method is fine. You're getting most of the Zero Hero benefit with none of the complexity.
 
@@ -161,4 +161,4 @@ If they don't, this method is fine. You're getting most of the Zero Hero benefit
 
 ## Going further
 
-If this method works for you, brilliant - you're done. If you want any of the things in the "What you're missing" list above, [Method 4 (Hybrid)](../method3_hybrid/) is the natural next step. It keeps the TOU schedules you've just set up and adds HA's smart layer at peak time.
+If this method works for you, brilliant - you're done. If you want any of the things in the "What you're missing" list above, [Method 4 (Hybrid)](../method4_hybrid/) is the natural next step. It keeps the TOU schedules you've just set up and adds HA's smart layer at peak time.

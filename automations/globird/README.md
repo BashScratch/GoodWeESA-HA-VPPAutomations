@@ -4,8 +4,6 @@ This folder contains four methods for managing a GoodWe ESA hybrid inverter on t
 
 Start here before copying any YAML. The wrong method for your setup will either break your SEMS+ schedules or, in the worst case, miss the peak window entirely and quietly cost you money.
 
-> **Folder names note (interim):** the file system folders below are still named `method1_standard`, `method2_ems`, and `method3_hybrid` from when this guide had three methods. They map to **Method 2**, **Method 3**, and **Method 4** in the new numbering respectively. A folder rename is queued for a follow-up commit; in the meantime, the URLs below resolve correctly even though the folder names look one-off from the method numbers.
-
 ---
 
 ## The plan, in two sentences
@@ -137,7 +135,7 @@ The simplest possible setup. Two TOU schedule slots in SEMS+ (charge during free
 
 **Pick this if:** you want the simplest possible Zero Hero setup, you don't have HA (or don't want it for this), or you want to learn how TOU works at the inverter level before adding HA on top.
 
-### [Method 2: Standard Eco Mode (HA-driven)](./method1_standard/)
+### [Method 2: Standard Eco Mode (HA-driven)](./method2_standard/)
 
 The straightforward approach. Switch the inverter to Eco Mode at 11:00 AM (to force charge), back to General at 14:00, back to Eco at 18:00 (to force discharge), and back to General at the end of peak.
 
@@ -150,7 +148,7 @@ The straightforward approach. Switch the inverter to Eco Mode at 11:00 AM (to fo
 
 **Pick this if:** you don't use SEMS+ or SolarGo for scheduling, you're happy for HA to own the timing entirely, you're comfortable with HACS, and the ~30% throughput hit during the free window is acceptable.
 
-### [Method 3: EMS RAM Commands](./method2_ems/) - experimental
+### [Method 3: EMS RAM Commands](./method3_ems/) - experimental
 
 Use the community-maintained GoodWe Experimental integration (HACS) to send Energy Management System commands directly to the inverter's RAM. Sets mode to `Charge` at 11:00, back to `Auto` at 14:00, to `Discharge` (or `Export AC` depending on firmware) at 18:00, back to `Auto` at the end of peak.
 
@@ -167,7 +165,7 @@ Use the community-maintained GoodWe Experimental integration (HACS) to send Ener
 
 **Pick this if:** you're on a dynamic-pricing VPP that needs frequent mode changes, OR you want a setup where your TOU schedule survives in the app and you accept that the integration could break without notice.
 
-### [Method 4: Hybrid General Mode (recommended)](./method3_hybrid/)
+### [Method 4: Hybrid General Mode (recommended)](./method4_hybrid/)
 
 The free charging window is handled natively by a GoodWe **TOU** schedule set directly in the SEMS+ app (11:00-14:00, target 100% SOC, grid priority). The firmware blends grid AC and solar DC to charge at up to 13.5kW and holds at 100% once the target is hit - no HA intervention in the free window.
 
