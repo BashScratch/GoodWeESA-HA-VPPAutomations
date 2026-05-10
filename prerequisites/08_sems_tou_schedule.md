@@ -29,7 +29,7 @@ Tap the settings cog / gear icon to enter the inverter's settings.
 
 In SEMS+, look for **"TOU"** or **"Time of Use"** under the inverter settings menu. Older app versions and some firmware revisions used the label "Economic Mode" for the same thing - if your app shows that instead of "TOU", it's the same feature. The Glossary covers the naming history if you're curious.
 
-If you can't find it: the menu may be under "Advanced" or require an installer password (see the gotcha above about installer passwords differing between SolarGo and SEMS+). If TOU genuinely isn't there in SEMS+, fall back to SolarGo - some app version combinations still surface TOU there. The Whirlpool threads ["Home Assistant setup with GoodWe inverter"](https://forums.whirlpool.net.au/thread/9xv6wp84) and ["GoodWe ESA - Setting export TOU with SOC limit"](https://forums.whirlpool.net.au/thread/9n111qlk) are the best places to ask if you're stuck.
+If you can't find it: the menu may be under "Advanced" or require an installer password (see the gotcha above about installer passwords differing between SolarGo and SEMS+). If TOU isn't there in SEMS+, fall back to SolarGo - some app version combinations still surface TOU there. The Whirlpool threads ["Home Assistant setup with GoodWe inverter"](https://forums.whirlpool.net.au/thread/9xv6wp84) and ["GoodWe ESA - Setting export TOU with SOC limit"](https://forums.whirlpool.net.au/thread/9n111qlk) are the best places to ask if you're stuck.
 
 ## Step 3 - Make sure the inverter is in TOU mode
 

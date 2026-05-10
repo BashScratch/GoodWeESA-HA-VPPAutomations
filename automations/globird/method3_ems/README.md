@@ -4,7 +4,7 @@
 
 > Before you copy anything: read the [strategy guide](../) to understand the tradeoffs and create the required helpers. For a breakdown of EMS mode options, see the [Glossary](../../../GLOSSARY.md).
 
-This method sidesteps flash entirely by writing to the Energy Management System registers in RAM. The operation mode is never touched, so any SEMS+ TOU schedules you've set are preserved. The EMS discharge mode is genuinely clever - it covers your house load first and then targets the specified export wattage.
+This method sidesteps flash entirely by writing to the Energy Management System registers in RAM. The operation mode is never touched, so any SEMS+ TOU schedules you've set are preserved. The EMS discharge mode is clever - it covers your house load first and then targets the specified export wattage.
 
 ## When Method 3 is the right choice
 

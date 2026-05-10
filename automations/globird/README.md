@@ -191,7 +191,7 @@ HA handles the smart layer: at 17:56 it evaluates SOC, arms or blocks the 5kW pe
 
 Three recommendations cover most cases. Method 2 exists for completeness but isn't really recommended over the other three (it has the heaviest flash-write footprint and Method 4 dominates it on every other axis).
 
-- **[Method 1: App-only](./method1_app_only/)** if you don't want to run Home Assistant at all. With Andrew Palmer's Soft Power Limit setup it gets you precise grid export and Zero-Grid credit preservation without any HA. The simplest path; nothing to maintain beyond two TOU slots in SEMS+. A genuinely good answer if HA isn't already in your life.
+- **[Method 1: App-only](./method1_app_only/)** if you don't want to run Home Assistant at all. With Andrew Palmer's Soft Power Limit setup it gets you precise grid export and Zero-Grid credit preservation without any HA. The simplest path; nothing to maintain beyond two TOU slots in SEMS+. A solid choice if HA isn't already in your life.
 
 - **[Method 4: Hybrid](./method4_hybrid/)** for most people who want the happy middle ground. The things HA is good at (SOC guard, notifications, profit calc, tunable rates) layered on top of the inverter doing the heavy lifting via TOU schedules. Charges at the full 13.5kW (single-phase 10kW model) thanks to firmware-managed AC+DC blending. The default recommendation for most Zero Hero users.
 

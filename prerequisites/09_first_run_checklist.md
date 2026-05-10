@@ -22,7 +22,7 @@ Tick each line before enabling. If any of these are "uh, not sure", go back to t
 
 ### Automations
 
-- [ ] The method-specific automation (Method 2, 2, or 3) is pasted, EDIT-replaced, and saved.
+- [ ] The method-specific automation (Method 2, 3, or 4 - whichever you picked) is pasted, EDIT-replaced, and saved.
 - [ ] `goodwe_battery_fault_alert.yaml` is pasted (highly recommended).
 - [ ] `goodwe_time_sync.yaml` is pasted.
 - [ ] All automations show up in Settings > Automations & Scenes with their toggles **enabled** (the toggle next to the name).
@@ -46,13 +46,13 @@ Don't enable `input_boolean.zero_hero_enabled` on day one. Watch first.
 
 ### 11:00 - free window starts
 
-- **Method 2 or 2:** the automation will trigger but will see `zero_hero_enabled` is off and exit on the condition check (or it'll force-charge anyway because Method 2's free-window block doesn't gate on the toggle - check the YAML before deciding). Watch the trace: Settings > Automations > click the automation > "Traces" tab. You'll see the trigger fired and what condition path it took.
+- **Method 2 or 3:** the automation will trigger but will see `zero_hero_enabled` is off and exit on the condition check (or it'll force-charge anyway because Method 2's free-window block doesn't gate on the toggle - check the YAML before deciding). Watch the trace: Settings > Automations > click the automation > "Traces" tab. You'll see the trigger fired and what condition path it took.
 - **Method 4:** The SEMS+ TOU schedule fires. The HA automation isn't involved in the free window. Watch the battery SOC climb in the GoodWe integration sensors or the SEMS+ app. Should hit 100% before 14:00; if it doesn't, your inverter's charging slower than expected - usually because solar is producing very little (cloudy day) and the inverter is grid-only at the 10kW AC ceiling.
 
 ### 14:00 - free window ends
 
 - Battery should be at or near 100%.
-- **Method 2 or 2:** automation switches inverter back to General / Auto mode.
+- **Method 2 or 3:** automation switches inverter back to General / Auto mode.
 - **Method 4:** inverter naturally exits the TOU charge window because it's past 14:00. SOC stays high.
 
 ### 17:56 - pre-peak guard check
