@@ -1,6 +1,6 @@
 # GoodWe VPP Template Sensors
 
-Template sensors can't be set up via the HA UI - they need to live in your configuration files. This folder has the sensors that make the Zero Hero automations actually useful on a dashboard.
+Template sensors can't be set up via the HA UI - they need to live in your configuration files. This folder has the sensors that make the Zero Hero automations useful on a dashboard.
 
 ## What's here
 

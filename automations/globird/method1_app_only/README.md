@@ -128,7 +128,7 @@ What you still don't get without HA:
 - **Notifications and profit reporting.** No nightly summary of what you exported and earned.
 - **Helper-tunable rates.** If GloBird changes the super rate, you don't have a one-tap UI for adjusting calculations.
 
-If those gaps don't bother you, Method 1 with Soft Power Limit is a really clean setup. If they do, Method 4 layers them on top.
+If those gaps don't bother you, Method 1 with Soft Power Limit is a clean setup. If they do, Method 4 layers them on top.
 
 ### Modbus alternative (skip the installer password)
 

@@ -1,6 +1,6 @@
 # Method 4: Hybrid General Mode (Recommended)
 
-> Before you copy anything: read the [strategy guide](../) to understand why this method exists and to create the required helpers. For terminology - including why "Eco Mode" in HA is called "Economic Mode" in the app, and what "TOU" actually means - see the [Glossary](../../../GLOSSARY.md).
+> Before you copy anything: read the [strategy guide](../) to understand why this method exists and to create the required helpers. For terminology - including why "Eco Mode" in HA is called "Economic Mode" in the app, and what "TOU" means - see the [Glossary](../../../GLOSSARY.md).
 
 This is the recommended method. The GoodWe app handles the free-window charge via a native TOU schedule; HA handles the smart layer at peak time (live SOC check, dynamic export limit, profit reporting). Neither system fights the other. HA never touches the operation mode, so it never overwrites flash and never deletes the SEMS+ schedule.
 
@@ -84,7 +84,7 @@ The full step-by-step including SolarGo menu navigation lives at [prerequisites/
 
 ## Watch out for
 
-- **SOC guard threshold.** Pulled from `input_number.zero_hero_min_export_soc` - set it to whatever SOC you need to keep in reserve for evening household load. 65% is a reasonable starting point for a 13.5kWh battery; tune by watching what SOC you actually end the night on.
+- **SOC guard threshold.** Pulled from `input_number.zero_hero_min_export_soc` - set it to whatever SOC you need to keep in reserve for evening household load. 65% is a reasonable starting point for a 13.5kWh battery; tune by watching what SOC you end the night on.
 - **Peak end time.** The YAML defaults to 21:01 (newer GloBird plans). If your plan ends at 20:00, change the `peak_end` trigger time to 20:01.
 - **Super export cap.** Set the `input_number.zero_hero_super_cap` helper to `10` (older GloBird plan) or `15` (newer plan). The profit notification reads from this helper - do not leave it at the default without checking your plan.
 - **Export limit entity name.** This is most likely `number.goodwe_grid_export_limit_2` (with `_2` suffix) on systems where the integration has been re-added. Check Developer Tools > States and use whichever has a live value.

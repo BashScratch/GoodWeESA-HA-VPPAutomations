@@ -100,7 +100,7 @@ There are two GoodWe integrations for Home Assistant: the **native** one bundled
 
 Your actual entities may also be suffixed with `_2` (or `_3`, `_4`...) if you've installed and removed an integration before. HA reserves the original entity ID for the deleted instance and appends a number to the fresh one. So if the YAML examples reference `sensor.goodwe_battery_state_of_charge` and your install shows `sensor.goodwe_battery_state_of_charge_2`, that's the cause.
 
-Every `# EDIT:` marker in the YAML is a place where you should double-check the entity exists in your setup before trusting it. Go to **Developer Tools > States** in HA and search for `goodwe` to see what you actually have.
+Every `# EDIT:` marker in the YAML is a place where you should double-check the entity exists in your setup before trusting it. Go to **Developer Tools > States** in HA and search for `goodwe` to see what your install exposes.
 
 **The active-control entities live in the HACS integration, not the native one.** Specifically:
 
@@ -114,7 +114,7 @@ So Methods 1 and 2 require HACS. Method 4 will run on the native integration alo
 
 In SolarGo's TOU settings, **"discharge power" is total inverter output**, not grid-export specifically. A 10% setting on a 10kW inverter means 1kW total (house load + grid combined), not 1kW to the grid. This trips up a lot of people setting up VPP automations.
 
-This is why Method 4 splits responsibility the way it does: the SolarGo TOU discharge slot is set to 100% (give the inverter full headroom), and HA's `number.goodwe_grid_export_limit` is the precise lever that actually controls grid export. Methods 1 and 2 use SolarGo-style "total discharge" semantics and inherit the imprecision.
+This is why Method 4 splits responsibility the way it does: the SolarGo TOU discharge slot is set to 100% (give the inverter full headroom), and HA's `number.goodwe_grid_export_limit` is the precise lever for grid export. Methods 1 and 2 use SolarGo-style "total discharge" semantics and inherit the imprecision.
 
 ---
 
@@ -132,6 +132,6 @@ If this guide helped and you're not on GloBird yet, you can sign up via my refer
 
 ## Disclaimer
 
-These automations are provided as-is under the MIT [LICENSE](./LICENSE). They're designed to be sensible, but they send commands to expensive hardware that sits on your grid connection. Always test while watching what actually happens. I'm not liable for surprise grid charges, confused batteries, hardware wear, or your inverter developing an attitude.
+These automations are provided as-is under the MIT [LICENSE](./LICENSE). They're designed to be sensible, but they send commands to expensive hardware that sits on your grid connection. Always test while watching what happens. I'm not liable for surprise grid charges, confused batteries, hardware wear, or your inverter developing an attitude.
 
 Test it on a day you're home. Watch the first cycle. Read the logs. If something feels wrong, disable the automation and work out why before re-enabling.

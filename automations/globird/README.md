@@ -24,7 +24,7 @@ Power from the grid is free. The automation force-charges the battery to 100% fr
 
 Worth being honest about the warranty range though: GoodWe's warranty assumes operation between roughly 10% and 90% SOC (typical figures: 6,000 cycles or 10 years to 70% capacity - check your specific warranty document). The Zero Hero pattern as described here charges to 100%, which is **above** GoodWe's recommended top end. There's some buffer in your favour because GoodWe ESA batteries ship with a built-in headroom layer (the "48kWh usable" rating sits inside roughly 49kWh of physical cell capacity, so the 100% you see in SEMS+ or HA isn't actually 100% on the cells), but the warranty document doesn't promise that buffer compensates for charging to 100% daily.
 
-In practice the LFP cycle data above suggests the wear difference between 90% and 100% top-of-charge is small at the timescales an ESA actually operates over - but if you want to stay strictly within GoodWe's recommendation, **set your TOU charge target to 90% instead of 100%**. Easy in Method 3 (one number in your SEMS+ TOU slot). You'll cap the daily charge a bit lower, miss out on some Super Export headroom in the peak window, and stay neatly inside warranty terms.
+In practice the LFP cycle data above suggests the wear difference between 90% and 100% top-of-charge is small at the timescales an ESA operates over - but if you want to stay strictly within GoodWe's recommendation, **set your TOU charge target to 90% instead of 100%**. Easy in Method 3 (one number in your SEMS+ TOU slot). You'll cap the daily charge a bit lower, miss out on some Super Export headroom in the peak window, and stay neatly inside warranty terms.
 
 ### Peak window (6:00 PM - 8:00 or 9:00 PM)
 
@@ -36,7 +36,7 @@ Grid import is expensive. GloBird offers a high "Super Export" rate for the firs
 
 ## A word on what HA can and can't tell the inverter to do
 
-To pick a method, you need to know two things about how the inverter actually responds when HA sends commands.
+To pick a method, you need to know two things about how the inverter responds when HA sends commands.
 
 **1. HA can only command the AC side.** The GoodWe ESA's 10kW model (GW9.999K-EHA-G20) can charge the battery at up to **13.5kW** when the firmware combines grid AC and solar DC simultaneously. This is published spec - see GoodWe's official ESA Series datasheet, "Max. Charging Power" row ([GoodWe ESA Series datasheet PDF, V2.1 April 2026](https://admin.goodwe.com/Api/downloadFile?id=3448&mid=60&type=2)). The inverter's nominal AC power is 9.999kW; the extra ~3.5kW comes from solar DC bypassing the AC stage and going directly to the battery via the MPPTs. The HA-facing API only exposes AC-side controls (Eco Mode, fast-charging switch, EMS power limit), so a HA-driven charge tops out around 10kW. A SEMS+ TOU schedule, by contrast, lets the firmware orchestrate both inputs and gives you the full 13.5kW. Community confirmation of the same effect: Whirlpool thread "Goodwe ESA maximum charge rate?", explanation by user **nutttr** with confirmation from **Zerosignal** ([thread link](https://forums.whirlpool.net.au/thread/9kppp8k2)); also discussed at [mletenay #362](https://github.com/mletenay/home-assistant-goodwe-inverter/discussions/362).
 
@@ -156,7 +156,7 @@ Use the community-maintained GoodWe Experimental integration (HACS) to send Ener
 - Pro: `Discharge` / `Export AC` mode covers house load first, then exports exactly the target Watts.
 - Pro: Watchdog automation included (returns inverter to Auto if HA crashed mid-export).
 - Pro: Inherits the HA smart-layer benefits (SOC guard, notifications, profit calc, tunable rates).
-- Pro: **Comes into its own on dynamic wholesale plans** (Amber Electric, OVO Charge Anytime forecast tiers, etc.) where you want HA to drive mode changes every few minutes based on live price signals. The EMS register is the right tool for that pattern. For a fixed-window plan like Zero Hero, this advantage doesn't really land.
+- Pro: **Comes into its own on dynamic wholesale plans** (Amber Electric, OVO Charge Anytime forecast tiers, etc.) where you want HA to drive mode changes every few minutes based on live price signals. The EMS register is the right tool for that pattern. For a fixed-window plan like Zero Hero, this advantage doesn't land.
 - Con: Requires the experimental HACS integration ([mletenay/home-assistant-goodwe-inverter](https://github.com/mletenay/home-assistant-goodwe-inverter)).
 - Con: EMS option strings vary by firmware - needs verification before it works.
 - Con: A future GoodWe firmware update could change EMS registers and silently break it.
@@ -189,7 +189,7 @@ HA handles the smart layer: at 17:56 it evaluates SOC, arms or blocks the 5kW pe
 
 ## Which method should I pick?
 
-Three recommendations cover most cases. Method 2 exists for completeness but isn't really recommended over the other three (it has the heaviest flash-write footprint and Method 4 dominates it on every other axis).
+Three recommendations cover most cases. Method 2 exists for completeness but isn't recommended over the other three (it has the heaviest flash-write footprint and Method 4 dominates it on every other axis).
 
 - **[Method 1: App-only](./method1_app_only/)** if you don't want to run Home Assistant at all. With Andrew Palmer's Soft Power Limit setup it gets you precise grid export and Zero-Grid credit preservation without any HA. The simplest path; nothing to maintain beyond two TOU slots in SEMS+. A solid choice if HA isn't already in your life.
 

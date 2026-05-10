@@ -1,6 +1,6 @@
 # 5. Find your actual entity IDs in Developer Tools
 
-Every YAML file in this repo has `# EDIT:` comments next to entity IDs. Those entity IDs are *examples* - they're what most installs end up with, but yours might be subtly different. This guide is how you find what you've actually got.
+Every YAML file in this repo has `# EDIT:` comments next to entity IDs. Those entity IDs are *examples* - they're what most installs end up with, but yours might be subtly different. This guide is how you find what you've got.
 
 ## Why entity IDs differ between installs
 
@@ -96,7 +96,7 @@ A simple text file or sticky note works. The exact IDs you need depend on which 
 
 ## What you should have at the end of this guide
 
-- A confirmed, written list of the entity IDs your install actually uses for each thing the YAML references.
+- A confirmed, written list of the entity IDs your install uses for each thing the YAML references.
 - A note of whether your `goodwe_eco_mode_power` is in **percentage** or **watts** (Method 2 only).
 - A note of the exact `select.goodwe_ems_mode` option strings your inverter exposes (Method 3 only).
 - No `_2` confusion left over - you know which copy of each entity is live.

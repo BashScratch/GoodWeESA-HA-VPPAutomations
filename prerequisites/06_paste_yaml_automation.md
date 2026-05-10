@@ -90,7 +90,7 @@ You should have your entity IDs written down from [Guide 05](./05_find_your_enti
 
 You can leave the `# EDIT: ...` comment text in place after replacing - it's just a comment, HA ignores it. We leave them so future-you knows which lines you customised.
 
-For Method 3 only: also check the option strings (`"Auto"`, `"Charge"`, `"Discharge"`) match what your `select.goodwe_ems_mode` actually exposes. If your inverter reports `"Export AC"` instead of `"Discharge"`, change the YAML to match.
+For Method 3 only: also check the option strings (`"Auto"`, `"Charge"`, `"Discharge"`) match what your `select.goodwe_ems_mode` exposes. If your inverter reports `"Export AC"` instead of `"Discharge"`, change the YAML to match.
 
 ## Step 6 - Save
 

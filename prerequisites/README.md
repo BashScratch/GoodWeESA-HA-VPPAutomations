@@ -1,6 +1,6 @@
 # Prerequisites - start here if any of this is new
 
-If you've just bought a GoodWe ESA and a GloBird Zero Hero plan and you're trying to make Home Assistant do clever things with both - welcome. This folder is the bit that has to happen before you can paste any of the YAML in this repo and have it actually work.
+If you've just bought a GoodWe ESA and a GloBird Zero Hero plan and you're trying to make Home Assistant do clever things with both - welcome. This folder is the bit that has to happen before you can paste any of the YAML in this repo and have it work.
 
 We assume you've got a Home Assistant install running somewhere (a Green, a Yellow, a Pi, an old laptop, whatever) and you can log into the web UI. Everything else, we'll walk through.
 

@@ -81,7 +81,7 @@ After at least **one full day** of watching the system run with the toggle off, 
 - No automation errored out (red items in the Logbook).
 - The inverter behaved sensibly during free and peak windows even without HA's intervention.
 
-Then flip the toggle on, and watch day two carefully. Now HA will actually arm the export limit at 18:00.
+Then flip the toggle on, and watch day two carefully. Now HA will arm the export limit at 18:00.
 
 ## Bail-out switches
 
@@ -95,7 +95,7 @@ For an actual emergency (inverter doing something visibly wrong, e.g. exporting 
 
 ## What to watch over the first week
 
-- **Daily profit notifications**: do the numbers match what GloBird actually credits you? Their app's "today's earnings" view is the cross-check.
+- **Daily profit notifications**: do the numbers match what GloBird credits you? Their app's "today's earnings" view is the cross-check.
 - **The free-window charge** (Method 4): SOC should reliably hit 100% before 14:00. If it consistently misses, your TOU schedule isn't quite right or your inverter is undersized for your battery.
 - **Peak window depth**: how low does the battery go? If it ends each peak below your guard threshold (`input_number.zero_hero_min_export_soc`), the export limit is too high or the threshold is too low. Tune.
 - **Rate changes**: GloBird sometimes adjusts plan rates. Check your latest bill or plan documents and update the helpers if the figures have changed.

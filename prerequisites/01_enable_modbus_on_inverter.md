@@ -56,7 +56,7 @@ Services > Local access > (enter installer password) > Settings > Communication 
 
 The default installer password is **`1234`**, unless you or your installer have set a custom one. (See the password gotcha below if you've set a custom password in SolarGo and SEMS+ isn't accepting it.)
 
-The path in SolarGo is similar, navigated through the inverter's settings menu rather than the top-level Services entry. If you're on an older app version where the menu wording differs, look for keywords like **"Communication"**, **"Modbus TCP"**, or **"Local Network"** under the inverter's advanced or installer-level settings. On really old firmware revisions the toggle may not be exposed at all and you'll need to update the inverter firmware via the app first, or ask your installer to enable Modbus remotely.
+The path in SolarGo is similar, navigated through the inverter's settings menu rather than the top-level Services entry. If you're on an older app version where the menu wording differs, look for keywords like **"Communication"**, **"Modbus TCP"**, or **"Local Network"** under the inverter's advanced or installer-level settings. On older firmware revisions the toggle may not be exposed at all and you'll need to update the inverter firmware via the app first, or ask your installer to enable Modbus remotely.
 
 If the option isn't where this guide says it is, [Whirlpool 9xv6wp84](https://forums.whirlpool.net.au/thread/9xv6wp84) has the most current community walkthrough including screenshots for several app versions and workarounds for installer-locked inverters. Search the thread for "Modbus" - it's been discussed at length.
 

@@ -15,7 +15,7 @@ GoodWe has two apps:
 - **SolarGo** - the older consumer app. Still where some low-level functions live (notably, where Mitch had to enable Modbus TCP - see [prereq 01](./01_enable_modbus_on_inverter.md)).
 - **SEMS+** - the newer end-user app and installer portal. GoodWe is migrating consumer features into SEMS+ from SolarGo, so this is where TOU setup now lives for most current installs.
 
-**Use SEMS+ for TOU setup.** If you've previously set up TOU in SolarGo, the schedule may still be visible there but SEMS+ is where new features land and where TOU controls have the most polish. If you're on a really old version of SEMS+ that doesn't show TOU, update the app first; if it still doesn't appear, fall back to SolarGo.
+**Use SEMS+ for TOU setup.** If you've previously set up TOU in SolarGo, the schedule may still be visible there but SEMS+ is where new features land and where TOU controls have the most polish. If you're on an older version of SEMS+ that doesn't show TOU, update the app first; if it still doesn't appear, fall back to SolarGo.
 
 > **Installer password gotcha:** if you've set a custom installer password in SolarGo, **that password doesn't work in SEMS+**. The two apps don't share installer credentials. Some TOU options may be behind the SEMS+ installer-level login; if your SolarGo password gets rejected, you need a separate one for SEMS+. Contact your installer or set one up directly in SEMS+ if your account permits.
 
@@ -76,7 +76,7 @@ Save the slot.
 
 > **Critical concept: "discharge power" in SolarGo means *total inverter output*, not grid-export specifically.** A 10% setting on a 10kW inverter means 1kW total (house load + grid combined), not 1kW to the grid. That's why we set discharge power to 100% here and let HA's `number.goodwe_grid_export_limit` (set to 5000W in the YAML) be the precise grid-export lever. The inverter's full output covers house load *plus* up to 5kW to the grid.
 
-> **Why a discharge slot at all?** Without it, the inverter is in self-consumption during peak. That works - the battery covers house load and the export limit caps grid export - but the inverter's output is then effectively capped at house demand. With the discharge slot at 100%, the inverter is willing to push house-load + 5kW to the grid in parallel, which is what you actually want during a peak window.
+> **Why a discharge slot at all?** Without it, the inverter is in self-consumption during peak. That works - the battery covers house load and the export limit caps grid export - but the inverter's output is then effectively capped at house demand. With the discharge slot at 100%, the inverter is willing to push house-load + 5kW to the grid in parallel, which is what you want during a peak window.
 
 ## Step 6 - Confirm timing doesn't collide with HA triggers
 
@@ -112,7 +112,7 @@ The next peak window:
 
 If the charge slot didn't fire - battery isn't charging during the window - check:
 
-- The inverter's working mode is actually set to TOU (Step 3).
+- The inverter's working mode is set to TOU (Step 3).
 - The slot is enabled.
 - The inverter clock is correct. Run the [`goodwe_time_sync.yaml`](../automations/goodwe_time_sync.yaml) automation manually from HA, or check the time on the inverter's local web interface, to make sure it hasn't drifted.
 
