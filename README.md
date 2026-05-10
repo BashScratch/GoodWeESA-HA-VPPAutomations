@@ -124,6 +124,12 @@ Open an issue on GitHub. If you're on a different VPP plan and want to add guide
 
 ---
 
+## If this saved you time (optional)
+
+If this guide helped and you're not on GloBird yet, you can sign up via my referral link and we both get $50 credit: <https://quote.globirdenergy.com.au/quote?pcode=refer&ref=O5BX1X>. Completely optional - the guide and all the YAML in this repo work exactly the same whether you use the link or not. No pressure.
+
+---
+
 ## Disclaimer
 
 These automations are provided as-is under the MIT [LICENSE](./LICENSE). They're designed to be sensible, but they send commands to expensive hardware that sits on your grid connection. Always test while watching what actually happens. I'm not liable for surprise grid charges, confused batteries, hardware wear, or your inverter developing an attitude.

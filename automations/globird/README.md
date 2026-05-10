@@ -189,31 +189,15 @@ HA handles the smart layer: at 17:56 it evaluates SOC, arms or blocks the 5kW pe
 
 ## Which method should I pick?
 
-```
-Default answer for most people: Method 4. The 13.5kW vs 10kW charging
-                difference is the headline (single-phase only, where
-                it matters - large batteries and EV charging during
-                the free window). The precise grid-export control is
-                the sleeper benefit: only Method 4 pins grid export
-                specifically; Method 1 (app-only) and Methods 2/3
-                pin total discharge.
+Three recommendations cover most cases. Method 2 exists for completeness but isn't really recommended over the other three (it has the heaviest flash-write footprint and Method 4 dominates it on every other axis).
 
-If you don't want HA at all:
-  Method 1 - app-only, simplest possible setup. Imprecise discharge
-             (total inverter output, not grid export), no dynamic
-             SOC guard, no notifications. But it works, and there's
-             nothing to maintain.
+- **[Method 1: App-only](./method1_app_only/)** if you don't want to run Home Assistant at all. With Andrew Palmer's Soft Power Limit setup it gets you precise grid export and Zero-Grid credit preservation without any HA. The simplest path; nothing to maintain beyond two TOU slots in SEMS+. A genuinely good answer if HA isn't already in your life.
 
-If you want HA but not a SEMS+ TOU schedule:
-  Method 2 - straightforward, fully HA-driven, ~10kW charge ceiling,
-             same imprecise discharge as the app-only baseline. Needs
-             HACS for the eco_mode_power entity.
-  Method 3 - preserves any SEMS+ schedule but needs HACS and depends
-             on an experimental integration. Same 10kW ceiling. Best
-             fit if you're on a dynamic-pricing plan that needs
-             frequent mode changes (Amber etc), not really for
-             fixed-window plans like Zero Hero.
-```
+- **[Method 4: Hybrid](./method4_hybrid/)** for most people who want the happy middle ground. The things HA is good at (SOC guard, notifications, profit calc, tunable rates) layered on top of the inverter doing the heavy lifting via TOU schedules. Charges at the full 13.5kW (single-phase 10kW model) thanks to firmware-managed AC+DC blending. The default recommendation for most Zero Hero users.
+
+- **[Method 3: EMS RAM Commands](./method3_ems/)** if you want to fully lean into HA-driven inverter control - either because you enjoy the tinkering or because you're planning to move to a dynamic-pricing plan like Amber Electric that needs frequent mode changes. EMS RAM commands are the right tool for fast price-following, and zero flash writes is a bonus. Worth picking even on a fixed-window plan like Zero Hero if you want to learn HA-side inverter control deeply before switching plans.
+
+If none of those quite fit, the per-method READMEs above have the detailed pros/cons.
 
 ## Don't mix methods
 
