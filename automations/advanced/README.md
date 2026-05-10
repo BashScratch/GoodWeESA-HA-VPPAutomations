@@ -8,7 +8,7 @@ Each YAML file in this folder is independent. You can add any subset, in any ord
 
 ### [`grid_voltage_soak.yaml`](./grid_voltage_soak.yaml)
 
-Watches grid voltage. If it climbs above your trigger threshold (default 252V, since AS/NZS 4777 inverters trip at 253V), turns on a configurable dump load (heat pump hot water, EV charger, pool pump, anything resistive) to soak the surplus and pull voltage back down. Releases when voltage falls back to a hysteresis threshold (default 247V).
+Watches grid voltage. If it climbs above your trigger threshold (default 252V - AS/NZS 4777.2 sets 253V as the steady-state maximum, with actual inverter trip thresholds around 258V on a 10-minute average or 260V on a 1-second fast trip), turns on a configurable dump load (heat pump hot water, EV charger, pool pump, anything resistive) to soak the surplus and pull voltage back down before it climbs further. Releases when voltage falls back to a hysteresis threshold (default 247V).
 
 **When to use:** you're in a high-PV-density street where grid voltage gets pushed up on hot afternoons, and you've seen your inverter curtail or trip off as a result.
 

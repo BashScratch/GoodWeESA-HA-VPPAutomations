@@ -17,15 +17,15 @@ If you already know you want HA, skip this and go to [Method 4 (Hybrid)](../meth
 
 Two TOU schedule slots in SEMS+:
 
-- **Charge slot:** 11:00-14:00. The inverter charges the battery to 100% from the grid (free during the Zero Hero window) and from any solar that's available.
-- **Discharge slot:** 18:00-21:00 (or 18:00-20:00 on older Zero Hero plans). The inverter discharges the battery into your house and out to the grid, capped at a power level you set, with a SOC floor so it doesn't drain to zero.
+- **Charge slot:** 11:00-14:00. The inverter charges the battery toward your Charge Cut-off SOC target from the grid (free during the Zero Hero window) and from any solar that's available.
+- **Discharge slot:** 18:00-21:00 (or 18:00-20:00 on older Zero Hero plans). The inverter discharges the battery into your house and out to the grid, capped at the discharge power you set.
 
 That's the whole automation. Outside those windows the inverter sits in self-consumption (use solar first, fill from battery, import from grid only if needed).
 
 ## What you need
 
 - A GoodWe ESA inverter wired up and online.
-- The SEMS+ app on your phone, logged in to your GoodWe account. SolarGo also works for this if you're already using it; we recommend SEMS+ for new setups since GoodWe is migrating consumer features there.
+- The SEMS+ app on your phone, logged in to your GoodWe account. SolarGo also works (you'll need it specifically for the Soft Power Limit setup further down, since that menu hasn't moved to SEMS+ yet); we recommend SEMS+ for the TOU work since GoodWe is migrating consumer features there.
 - A GloBird Zero Hero plan (or similar dynamic plan with fixed free + peak windows).
 - That's it. No Home Assistant, no integrations, no helpers, no YAML.
 
@@ -39,27 +39,32 @@ In SEMS+, navigate to your inverter's settings and set the working mode to **TOU
 
 ### Step 2 - Create the charge slot
 
-| Setting | Value |
+In the SEMS+ TOU dialog, pick the **Charge** tab. The fields you'll see:
+
+| Field | Value |
 |---|---|
-| **Start time** | `11:00` |
-| **End time** | `14:00` |
-| **Mode** | **Charge** |
-| **SOC target** | `100%` (or `90%` if you want to stay strictly within GoodWe's 10-90% warranty recommendation - see the LFP note in the [strategy guide](../#how-the-windows-work)) |
-| **Power source** | **Grid** (high priority) |
-| **Days** | All days |
-| **Enabled** | Yes |
+| **Start Time** | `11:00` |
+| **End Time** | `14:00` |
+| **Repeat** | All months (Jan-Dec selected), all days (Mon-Sun selected) |
+| **Charge Cut-off SOC** | `100%` (or `90%` if you want to stay strictly within GoodWe's 10-90% warranty recommendation - see the LFP note in the [strategy guide](../#how-the-windows-work)). This is the *target* the inverter charges toward; charging stops once SOC hits this. |
+| **Grid Import Charging Power** | `100%` (charge as fast as the inverter will let it) |
+
+Note: there's no separate "Power Source: Grid" field as such. Setting Grid Import Charging Power to 100% tells the inverter to charge from the grid at full rate; solar contributes on top via the DC bus during the same window (this is the firmware-managed AC+DC blending that gets you up to 13.5kW on the single-phase 10kW model).
+
+Save the slot.
 
 ### Step 3 - Create the discharge slot
 
-| Setting | Value |
+Switch to the **Discharge** tab in the same TOU dialog. As of writing the discharge tab only exposes discharge power - no SOC floor field yet (GoodWe is reportedly adding that in a future app/firmware release; if you're reading this in 2027+ check whether it's landed). The fields:
+
+| Field | Value |
 |---|---|
-| **Start time** | `18:00` |
-| **End time** | `21:00` (or `20:00` on older Zero Hero plans) |
-| **Mode** | **Discharge** |
-| **Power** | `5kW` is a reasonable starting point for the 10kW model on Zero Hero - this caps the total inverter output (house + grid combined). See the discharge-power note below. |
-| **SOC target** | `30%` is a reasonable starting floor - the inverter won't discharge below this. Tune up if you find yourself running short overnight, down if you wake up with charge to spare. |
-| **Days** | All days |
-| **Enabled** | Yes |
+| **Start Time** | `18:00` |
+| **End Time** | `21:00` (or `20:00` on older Zero Hero plans) |
+| **Repeat** | All months, all days |
+| **Discharge Power** | `5kW` is a reasonable starting point for the 10kW model on Zero Hero - this caps the total inverter output (house + grid combined). See the discharge-power note below. |
+
+Without an in-app SOC floor, the inverter discharges until it reaches its hard low cutoff. If you want a tighter floor (e.g. keep 20% in the tank for overnight load), the only options are: (a) accept the inverter's hardware default, (b) set a lower discharge power so it can't drain as fast, or (c) move to one of the HA methods which have their own SOC guard logic.
 
 ### Step 4 - Verify it works
 
@@ -157,7 +162,18 @@ If they don't, this method is fine. You're getting most of the Zero Hero benefit
 - **Inverter clock drift.** GoodWe inverters can drift a few minutes per week. If your clock drifts and your TOU charge slot fires from 11:04 to 14:04 instead of 11:00 to 14:00, you've lost ~7% of the free window. Check the inverter clock against your phone's clock periodically and resync via the app if needed. Methods 2-4 include an HA automation that does this daily.
 - **Firmware availability for the 13.5kW combined-charging capability.** On the single-phase 10kW ESA, the firmware that combines grid AC and solar DC for 13.5kW battery charging has been rolling out from around April 2026. Some firmware releases have it, some don't, and some users have had to ask GoodWe Level 2 support for a standalone push. If you're seeing your battery cap at ~10kW during the free window despite plenty of solar, this is the likely cause.
 - **Plan rate changes.** GloBird occasionally adjusts the super rate, base rate, or daily credit. Check your latest bill and your plan documents periodically.
-- **No safety-net SOC guard.** If your battery is going into peak with limited charge (cloudy day, free window cut short, etc.), this method will discharge down to your set SOC floor and then start importing from the grid at peak rates to cover any remaining demand. There's no "skip peak today" logic. HA methods add that.
+- **No safety-net SOC guard.** If your battery is going into peak with limited charge (cloudy day, free window cut short, etc.), this method will discharge down to the inverter's hard cutoff and then start importing from the grid at peak rates to cover any remaining demand. There's no "skip peak today" logic. HA methods add that.
+- **Soft Power Limit isn't dynamic.** If you decide to change your peak export rate (e.g. you want 1.5kW instead of 2kW for a few days), it's a manual trip into the SolarGo installer menu each time. With Method 4, the export limit lives in a HA helper you can edit from the dashboard in two clicks (or via automation if you want it to vary by day of week, weather forecast, etc.). Most users set the Soft Power Limit and forget; if you want to tune it often, that's a real tradeoff to consider.
+
+## Method 1 with Soft Power Limit vs Method 4 - they're closer than you'd think
+
+Once you've set up the Soft Power Limit, Method 1 is functionally close to Method 4 in what it achieves at the inverter level. Both pin grid export precisely, both let the inverter charge at full 13.5kW via TOU. The differences are the things HA brings on top:
+
+- Method 4 adds the SOC guard logic that decides whether to arm peak export each day.
+- Method 4 adds notifications, profit calc, and helper-tunable rates.
+- Method 4 lets you change the export limit dynamically rather than via the installer-menu Soft Power Limit.
+
+If those things matter, Method 4 is worth the HA setup. If they don't, Method 1 with Soft Power Limit gets you almost the same energy outcome with a much simpler maintenance footprint.
 
 ## Going further
 

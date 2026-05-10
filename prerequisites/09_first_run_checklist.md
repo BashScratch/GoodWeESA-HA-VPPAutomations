@@ -1,6 +1,6 @@
 # 9. First-run checklist
 
-You've done the work. The inverter is reachable, HA is talking to it, helpers are created, automations are pasted, sensors are showing values. Before you turn the whole thing loose, run through this checklist. It catches the silly mistakes that aren't worth a debugging session at 18:01 with a half-discharged battery.
+Inverter reachable, HA talking to it, helpers created, automations pasted, sensors showing values. Before you turn the whole thing loose, run through this checklist. It catches the silly mistakes that aren't worth a debugging session at 18:01 with a half-discharged battery.
 
 ## Pre-flight checklist
 

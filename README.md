@@ -10,11 +10,11 @@ This is a work in progress. Things will change. Read the disclaimer at the botto
 
 ## Why this exists
 
-Automating a GoodWe ESA is not as simple as flicking a switch. How you send commands to the inverter matters - the wrong approach can silently overwrite the TOU schedule you painstakingly set up in the GoodWe SolarGo app, or quietly cap your free-window charging at 10kW when a single-phase 10kW ESA could be doing 13.5kW (per GoodWe's own [ESA Series single-phase datasheet, V2.1 April 2026](https://admin.goodwe.com/Api/downloadFile?id=3448&mid=60&type=2) - "Max. Charging Power" of 13.5kW for the GW9.999K-EHA-G20). Note that this throughput advantage is single-phase only; three-phase ESAs (model ending in ETA-G20) cap max charging at nominal AC and don't get the AC+DC blending bump - see the strategy guide's [model compatibility section](./automations/globird/#model-and-firmware-compatibility).
+Automating a GoodWe ESA is not as simple as flicking a switch. How you send commands to the inverter matters - the wrong approach can silently overwrite the TOU schedule you painstakingly set up in the GoodWe SEMS+ app, or quietly cap your free-window charging at 10kW when a single-phase 10kW ESA could be doing 13.5kW (per GoodWe's own [ESA Series single-phase datasheet, V2.1 April 2026](https://admin.goodwe.com/Api/downloadFile?id=3448&mid=60&type=2) - "Max. Charging Power" of 13.5kW for the GW9.999K-EHA-G20). Note that this throughput advantage is single-phase only; three-phase ESAs (model ending in ETA-G20) cap max charging at nominal AC and don't get the AC+DC blending bump - see the strategy guide's [model compatibility section](./automations/globird/#model-and-firmware-compatibility).
 
 So there isn't one automation here. There are four methods - one app-only baseline (no HA at all) and three HA-driven approaches that build on top of it. They trade off differently on charge throughput, simplicity, and how much you trust an experimental HACS integration not to break on the next firmware update. Pick the one that matches your tolerance for fiddling and risk.
 
-## Why use HA at all? (acknowledging GoodWe's apps)
+## Why use HA at all?
 
 A fair question. GoodWe is actively shipping firmware and app updates - the 13.5kW combined AC+DC charging capability has been rolling out via firmware from around April 2026, although availability is uneven (some users have it on the standard OTA, others have had to ask Level 2 support for a standalone firmware push, and some recent firmware releases have shipped without it - it's a mishmash). Their L2 support is responsive when contacted directly. They've also been gradually migrating consumer features from the older **SolarGo** app into the newer **SEMS+** app, so we recommend SEMS+ for new setups (SolarGo still works for everything covered in this guide if you're already comfortable there). A lot of what HA adds here (precise grid-export control during peak, conditional SOC guards, profit notifications keyed to your tariff structure) is reasonably likely to land in SEMS+ itself eventually. This repo is filling a gap that exists today, not staking out a permanent moat. If GoodWe ships those features in the app, by all means use them - the goal is the energy-bill outcome plus the niceties (notifications, profit reporting, dashboards), not the HA setup as an end in itself.
 
@@ -28,10 +28,10 @@ Until then, the smart layer this repo provides (read live SOC, decide whether to
 |---|---|---|---|---|---|
 | **Method 1: App-only** | Two TOU slots in SEMS+, nothing else | No | Up to 13.5kW (single-phase 10kW model) | Created in app, owned by app | Simplest possible setup, or first-time users learning TOU |
 | **Method 2: Standard Eco Mode** | HA toggles Eco Mode on/off | Yes (HACS) | ~10kW (AC only) | **Overwritten** | People who want HA in charge and don't care about SEMS+ schedules |
-| **Method 3: EMS RAM Commands** | HA pokes EMS RAM registers | Yes (HACS) | ~10kW (AC only) | Preserved | Dynamic-pricing VPPs (Amber etc) where mode changes happen often |
-| **Method 4: Hybrid General Mode** | SEMS+ TOU + HA enforces limits | Yes (HACS optional) | **~13.5kW (AC + DC blended, single-phase 10kW model)** | Preserved | **Most people on Zero Hero. This is what we recommend.** |
+| **Method 3: EMS RAM Commands** | HA pokes EMS RAM registers | Yes (HACS) | ~10kW (AC only) | Preserved | Users wanting full HA-driven control, especially as a stepping stone to dynamic-pricing plans (Amber etc) |
+| **Method 4: Hybrid General Mode** | SEMS+ TOU + HA enforces limits | Yes (HACS optional) | **~13.5kW (AC + DC blended, single-phase 10kW model)** | Preserved | **Most people on Zero Hero. The rounded approach - this is what we recommend on balance.** |
 
-Full explanation of each, and why Method 4's throughput advantage settles the recommendation: see **[automations/globird/](./automations/globird/)**.
+Full explanation of each, and why Method 4 is the rounded recommendation on balance: see **[automations/globird/](./automations/globird/)**.
 
 ---
 
@@ -67,7 +67,7 @@ Full explanation of each, and why Method 4's throughput advantage settles the re
     └── goodwe_polarity_fix.yaml              <- corrects sign convention on affected firmware
 ```
 
-### General automations (recommended regardless of which method you pick)
+### General automations (only if you're on Methods 2-4 - Method 1 is app-only and has no HA automations)
 - **[EV Free Window Reminder](./automations/ev_free_window_reminder.yaml)** - pings you at 10:45 if the EV isn't plugged in yet, so you don't miss the free window.
 - **[GoodWe Time Sync](./automations/goodwe_time_sync.yaml)** - syncs the inverter clock to HA once a day. If the inverter's clock drifts away from HA's (and the rest of the world's), TOU schedules start firing at the wrong times and HA's triggers stop matching the inverter's behaviour. Drift is the quiet killer of TOU schedules.
 - **[GoodWe Battery Fault Alert](./automations/goodwe_battery_fault_alert.yaml)** - fires a critical notification if the BMS reports an error or warning. Your battery failing quietly is not the vibe.
@@ -108,13 +108,13 @@ Every `# EDIT:` marker in the YAML is a place where you should double-check the 
 - `switch.goodwe_fast_charging_switch` - force-charge from grid right now. **Method 4's midnight reset uses this** as a safety net (wrapped in `continue_on_error: true`, so Method 4 itself runs fine native-only - the line just no-ops if the entity isn't there).
 - `select.goodwe_ems_mode` and `number.goodwe_ems_power_limit` - direct RAM-level mode and power. **Method 3 needs both.**
 
-So Methods 1 and 2 require HACS. Method 4 will run on the native integration alone, but installing HACS too is recommended (no harm, and you get the safety-net line working).
+So Methods 2 and 3 require HACS. Method 1 (app-only) doesn't use HA at all so HACS doesn't apply. Method 4 will run on the native integration alone, but installing HACS too is recommended (no harm, and you get the safety-net line working).
 
 ## A concept worth understanding before you start: "discharge power" vs "grid export"
 
-In SolarGo's TOU settings, **"discharge power" is total inverter output**, not grid-export specifically. A 10% setting on a 10kW inverter means 1kW total (house load + grid combined), not 1kW to the grid. This trips up a lot of people setting up VPP automations.
+In SEMS+ (and SolarGo) TOU settings, **"discharge power" is total inverter output**, not grid-export specifically. A 10% setting on a 10kW inverter means 1kW total (house load + grid combined), not 1kW to the grid. This trips up a lot of people setting up VPP automations.
 
-This is why Method 4 splits responsibility the way it does: the SolarGo TOU discharge slot is set to 100% (give the inverter full headroom), and HA's `number.goodwe_grid_export_limit` is the precise lever for grid export. Methods 1 and 2 use SolarGo-style "total discharge" semantics and inherit the imprecision.
+This is why Method 4 splits responsibility the way it does: the SEMS+ TOU discharge slot is set to 100% (give the inverter full headroom), and HA's `number.goodwe_grid_export_limit` is the precise lever for grid export. Method 1 with the app-only baseline TOU inherits the imprecision, but Andrew Palmer's Soft Power Limit setup (covered in the Method 1 README) gets around this for users who don't want HA at all. Method 2 also uses "total discharge" semantics and inherits the imprecision; Method 3 uses EMS-mode export semantics which behave similarly.
 
 ---
 
@@ -126,7 +126,7 @@ Open an issue on GitHub. If you're on a different VPP plan and want to add guide
 
 ## If this saved you time (optional)
 
-If this guide helped and you're not on GloBird yet, you can sign up via my referral link and we both get $50 credit: <https://quote.globirdenergy.com.au/quote?pcode=refer&ref=O5BX1X>. Completely optional - the guide and all the YAML in this repo work exactly the same whether you use the link or not. No pressure.
+If this guide helped and you're not on GloBird yet, you can sign up via my referral link and we both get $50 credit: <https://quote.globirdenergy.com.au/quote?pcode=refer&ref=O5BX1X>. Completely optional - the guide and all the YAML in this repo work exactly the same whether you use the link or not. No pressure either way; I'm working on these automations for myself anyway, and I kept seeing the same questions come up in the GoodWe ESA group, so I figured I'd write the lot up in one place.
 
 ---
 

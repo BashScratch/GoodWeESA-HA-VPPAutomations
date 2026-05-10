@@ -87,15 +87,15 @@ From the official [ESA Series three-phase datasheet, V2.1 April 2026](https://ad
 | GW25K-ETA-G20 (25kW) | 25.0kW | 25.0kW |
 | GW29.999K-ETA-G20 (30kW) | 29.999kW | 30.0kW |
 
-**Three-phase ESAs don't have the AC+DC blending headroom.** Max charging equals nominal AC across the entire range. So if you're on a three-phase ESA, **the throughput advantage Method 3 has on single-phase doesn't apply to you** - HA-driven charging and TOU-scheduled charging both top out at the same number.
+**Three-phase ESAs don't have the AC+DC blending headroom.** Max charging equals nominal AC across the entire range. So if you're on a three-phase ESA, **the throughput advantage Method 4 has on single-phase doesn't apply to you** - HA-driven charging and TOU-scheduled charging both top out at the same number.
 
-Method 3 is still the recommended approach on three-phase, just for different reasons. You still get:
+Method 4 is still the recommended approach on three-phase, just for different reasons. You still get:
 
-- Precise grid-export control via `number.goodwe_grid_export_limit` (Methods 1 and 2 set total discharge, which is imprecise).
+- Precise grid-export control via `number.goodwe_grid_export_limit` (Method 1's app-only baseline TOU and Methods 2/3 set total discharge, which is imprecise; Method 1 with Andrew Palmer's Soft Power Limit gets around this).
 - Your SEMS+ TOU schedule isn't deleted by HA mode changes.
 - The HA smart layer (SOC guard, profit notifications, helper-tunable rates) is unchanged.
 
-Just don't expect a 35% throughput bump from switching from Method 1 to Method 3 on a three-phase setup.
+Just don't expect a 35% throughput bump from switching from app-only to Method 4 on a three-phase setup.
 
 ### Naming tip
 
@@ -146,7 +146,7 @@ The straightforward approach. Switch the inverter to Eco Mode at 11:00 AM (to fo
 - Con: **Overwrites your SEMS+ TOU schedule** every time it changes mode.
 - Con: The 5kW peak target is *total inverter discharge*, not grid-export specifically - same imprecision as the app-only baseline. If house load drops mid-peak, more goes to the grid; if house load spikes, less does (or nothing does, if house load exceeds the target).
 
-**Pick this if:** you don't use SEMS+ or SolarGo for scheduling, you're happy for HA to own the timing entirely, you're comfortable with HACS, and the ~30% throughput hit during the free window is acceptable.
+**Pick this if:** you don't use SEMS+ or SolarGo for scheduling, you're happy for HA to own the timing entirely, you're comfortable with HACS, and the ~30% throughput hit during the free window is acceptable. Honest take: this method is dated compared to the other three. It's a carry-over from how earlier-generation GoodWe batteries used to be controlled, before TOU schedules and the EMS RAM register got useful. Still workable, but Methods 1, 3, and 4 are all better choices today.
 
 ### [Method 3: EMS RAM Commands](./method3_ems/) - experimental
 
@@ -179,9 +179,9 @@ HA handles the smart layer: at 17:56 it evaluates SOC, arms or blocks the 5kW pe
 - Pro: Inherits the HA smart-layer benefits (SOC guard, dynamic export limit, notifications, profit calc, tunable rates).
 - Pro: `number.goodwe_grid_export_limit` is precise grid-export control (not "total discharge" like Methods 1, 2, and 3). If house load varies, your grid-export number stays the same (provided the inverter has the headroom to cover both house and grid simultaneously).
 - Pro: **Mostly insulated from firmware changes.** Uses the native HA integration's documented entities plus the GoodWe app's own TOU feature, both of which GoodWe maintains. Less exposed to breakage than Method 3's experimental-register approach.
-- Caveat (corrected from earlier framing): Method 4 still writes to the inverter's persistent storage twice daily via `number.goodwe_grid_export_limit`. Less flash exposure than Method 2 (4 writes/day), but more than Method 3 (zero, since EMS targets RAM). If you specifically want zero flash writes, Method 3 is the right pick. For most users the throughput advantage of Method 4 outweighs this; see Method 4's README for the honest write-cycle math.
-- Pro/Con: One small experimental-only dependency. The midnight reset turns off `switch.goodwe_fast_charging_switch` as a safety net (legacy from when an earlier version of this automation used the fast-charge switch as the primary charging mechanism; now that the charge is owned by TOU, this line just catches the case where someone manually flipped the switch on and forgot). That entity only exists with the HACS integration; on a native-only install the action errors silently and the rest of the automation continues (the YAML uses `continue_on_error: true`). So Method 3 *will* run native-only, you just lose one belt-and-braces line of safety.
-- Con: Requires one schedule in the SEMS+ app + one HA automation instead of just one of either.
+- Caveat: Method 4 still writes to the inverter's persistent storage twice daily via `number.goodwe_grid_export_limit`. Less flash exposure than Method 2 (4 writes/day), but more than Method 3 (zero, since EMS targets RAM). If you specifically want zero flash writes, Method 3 is the right pick. For most users the throughput advantage of Method 4 outweighs this; see Method 4's README for the write-cycle math.
+- Pro/Con: One small experimental-only dependency. The midnight reset turns off `switch.goodwe_fast_charging_switch` as a safety net (legacy from when an earlier version of this automation used the fast-charge switch as the primary charging mechanism; now that the charge is owned by TOU, this line just catches the case where someone manually flipped the switch on and forgot). That entity only exists with the HACS integration; on a native-only install the action errors silently and the rest of the automation continues (the YAML uses `continue_on_error: true`). So Method 4 *will* run native-only, you just lose one belt-and-braces line of safety.
+- Con: Requires two TOU schedules (charge + discharge) in the SEMS+ app, plus one HA automation. More moving parts than the other methods.
 
 **Pick this if:** you want the thing that works well and keeps working. This is the default recommendation.
 

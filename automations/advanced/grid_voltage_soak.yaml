@@ -1,12 +1,18 @@
 alias: "GoodWe ESA: Grid voltage soak (turn on dump load if voltage is high)"
 description: >
-  AS/NZS 4777 inverters trip off the grid at 253V. On hot afternoons with
-  high local solar penetration, grid voltage can climb to 250V+ and your
-  inverter starts curtailing or tripping. If you have a heat pump hot water
-  system, EV charger, or other significant resistive load you can switch on,
-  this automation turns it on automatically when grid voltage gets high,
-  soaking up the local surplus and pulling voltage back down before the
-  inverter trips.
+  AS/NZS 4777.2 sets 253V (230V + 10%) as the maximum steady-state grid
+  voltage. The actual inverter trip thresholds are higher: typically a
+  10-minute average trip around 258V and a fast 1-second trip around 260V.
+  So if your local grid voltage is climbing into the 252-255V range on hot
+  afternoons (high solar penetration in your street pushing voltage up),
+  you're heading toward the trip thresholds and your inverter will start
+  curtailing export before it actually trips off.
+
+  This automation watches grid voltage and engages a configurable dump
+  load (heat pump hot water, EV charger, pool pump, anything resistive)
+  when voltage climbs above the steady-state max, soaking up some of the
+  local surplus and pulling voltage back down before it gets near the
+  actual trip thresholds.
 
   This is a protection automation. You probably won't see it fire often,
   but when it does it's saving you a forced shutdown.

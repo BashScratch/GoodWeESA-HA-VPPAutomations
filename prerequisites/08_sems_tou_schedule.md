@@ -1,6 +1,6 @@
-# 8. Set up the SolarGo TOU schedule (Method 4 only)
+# 8. Set up the SEMS+ TOU schedule (Method 4 only)
 
-If you're going with **Method 4 (Hybrid)** - which we recommend - the free-window charging is handled by the inverter's firmware, not by Home Assistant. You set up two schedule slots once in the SolarGo app (one for the free-window charge, one for the peak-window discharge) and the inverter handles both windows every day without HA needing to lift a finger for the inverter side. HA's only job is the smart layer at peak time: SOC guard, grid-export limit, profit notifications.
+If you're going with **Method 4 (Hybrid)** - which we recommend - the free-window charging is handled by the inverter's firmware, not by Home Assistant. You set up two schedule slots once in the SEMS+ app (one for the free-window charge, one for the peak-window discharge) and the inverter handles both windows every day without HA needing to lift a finger for the inverter side. HA's only job is the smart layer at peak time: SOC guard, grid-export limit, profit notifications.
 
 This is the bit of Method 4 that makes the throughput case work on **single-phase ESAs** (model number ending in EHA-G20). The inverter combines grid AC and solar DC together to charge at up to 13.5kW on the 10kW model, which HA can't ask for. The 13.5kW number is from GoodWe's own [ESA Series single-phase datasheet, V2.1 April 2026](https://admin.goodwe.com/Api/downloadFile?id=3448&mid=60&type=2) - "Max. Charging Power" row for the GW9.999K-EHA-G20. Smaller single-phase models have proportionally lower ceilings (5kW model = 7.5kW, 8kW model = 12kW). Community confirmation: Whirlpool thread "Goodwe ESA maximum charge rate?" by user nutttr with confirmation from Zerosignal (<https://forums.whirlpool.net.au/thread/9kppp8k2>).
 
@@ -74,7 +74,7 @@ Add a second schedule entry. This one tells the inverter "during peak, you're al
 
 Save the slot.
 
-> **Critical concept: "discharge power" in SolarGo means *total inverter output*, not grid-export specifically.** A 10% setting on a 10kW inverter means 1kW total (house load + grid combined), not 1kW to the grid. That's why we set discharge power to 100% here and let HA's `number.goodwe_grid_export_limit` (set to 5000W in the YAML) be the precise grid-export lever. The inverter's full output covers house load *plus* up to 5kW to the grid.
+> **Critical concept: "discharge power" in SEMS+ TOU means *total inverter output*, not grid-export specifically.** A 10% setting on a 10kW inverter means 1kW total (house load + grid combined), not 1kW to the grid. That's why we set discharge power to 100% here and let HA's `number.goodwe_grid_export_limit` (set to 5000W in the YAML) be the precise grid-export lever. The inverter's full output covers house load *plus* up to 5kW to the grid.
 
 > **Why a discharge slot at all?** Without it, the inverter is in self-consumption during peak. That works - the battery covers house load and the export limit caps grid export - but the inverter's output is then effectively capped at house demand. With the discharge slot at 100%, the inverter is willing to push house-load + 5kW to the grid in parallel, which is what you want during a peak window.
 
@@ -124,7 +124,7 @@ If you're running Method 4, your YAML in HA should never touch the operation mod
 
 ## What you should have at the end of this guide
 
-- SolarGo set to TOU mode.
+- SEMS+ set to TOU mode.
 - A daily 11:00-14:00 **charge** slot, target 100% SOC, grid priority.
 - A daily 18:00-21:00 (or 18:00-20:00) **discharge** slot at 100% inverter power.
 - Verified both slots fire (watch battery SOC climb during free, watch grid export during peak).

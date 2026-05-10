@@ -9,7 +9,7 @@ We assume you've got a Home Assistant install running somewhere (a Green, a Yell
 The guides are numbered. If you do them in order you won't get stuck. If you skip ahead you probably will, because each step assumes the previous one is done.
 
 1. [Enable Modbus TCP on the inverter](./01_enable_modbus_on_inverter.md) - turns on the network port HA needs to talk to your GoodWe.
-2. [Install the GoodWe integrations in Home Assistant](./02_install_ha_integrations.md) - the native one (built in) for Methods 1 and 3, plus the experimental HACS one if you're going with Method 3.
+2. [Install the GoodWe integrations in Home Assistant](./02_install_ha_integrations.md) - the native one (built in) for Method 4, plus the experimental HACS one if you're going with Method 2 or 3 (or want the optional safety-net entity for Method 4). Method 1 is app-only and doesn't need HA at all - skip this if that's you.
 3. [Install the HA Companion app for notifications](./03_install_companion_app.md) - this is what fires the "Zero Hero Armed" / "Complete" alerts to your phone.
 4. [Create the required helpers](./04_create_helpers.md) - the toggles and number inputs the automations read from. The full helper list lives in the strategy guide; this guide just shows you the click path.
 5. [Find your actual entity IDs in Developer Tools](./05_find_your_entities.md) - every `# EDIT:` comment in the YAML needs you to substitute a real entity ID from your specific install. This is where you find them.
