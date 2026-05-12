@@ -90,7 +90,8 @@ Full explanation of each, and why Method 4 is the rounded recommendation on bala
 3. Copy the YAML from the method folder you picked.
 4. In Home Assistant, go to **Settings > Automations & Scenes**, create a new automation, click the three dots, choose **Edit in YAML**, and paste.
 5. Use `Ctrl+F` to find every `# EDIT:` comment in the pasted code. Replace the placeholder entity IDs with the real ones from your own HA setup. This step is not optional. Skipping it means the automation will do nothing, or worse, do something unexpected to an entity that happens to share a name.
-6. Save, enable, and watch the first few days of runs to make sure it behaves.
+6. **Do the EDIT replacements BEFORE you save.** Home Assistant strips all comments (anything after a `#`) when it saves an automation. So once you save, the `# EDIT:` markers are gone and you've lost your "here's the line I need to come back to" landmarks. If you save first and then try to come back, you'll be scanning the whole YAML by eye looking for placeholders. Make every replacement in one pass while the comments are still visible.
+7. Save, enable, and watch the first few days of runs to make sure it behaves.
 
 ---
 

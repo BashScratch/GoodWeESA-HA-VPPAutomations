@@ -63,9 +63,11 @@ Open the YAML file from this repo (in your browser, in a text editor, whatever's
 
 The pasted YAML should start with `alias: "GoodWe ESA: ..."` (or `alias: "Energy: ..."` for the EV reminder, or `alias: "System: ..."` for the time sync and battery alert).
 
-## Step 5 - Find and replace every `# EDIT:` comment
+## Step 5 - Find and replace every `# EDIT:` comment (DO THIS BEFORE SAVING)
 
 Use **Ctrl+F (or Cmd+F)** to search inside the editor. Search for `EDIT`.
+
+> **Important: do all your EDIT replacements before you click Save.** Home Assistant strips all YAML comments (anything after a `#`) when it saves an automation. So once you hit Save, the `# EDIT:` markers are gone forever and you've lost your roadmap. If you save with placeholders still in there and come back later, you'll be scanning the whole YAML by eye looking for what to change. Make every replacement in one pass while the comments are still visible.
 
 Every match is a line where you need to replace a placeholder with a real value from your install. The most common ones:
 
@@ -88,7 +90,7 @@ Every match is a line where you need to replace a placeholder with a real value 
 
 You should have your entity IDs written down from [Guide 05](./05_find_your_entities.md). Open that list now and work through every `# EDIT:` line, replacing the example with your real value.
 
-You can leave the `# EDIT: ...` comment text in place after replacing - it's just a comment, HA ignores it. We leave them so future-you knows which lines you customised.
+You can leave the `# EDIT: ...` comment text in place after replacing while you're still editing - it's just a comment, HA ignores it during this stage. The moment you save, however, HA strips all the comments out, so they won't survive to "future-you" anyway. Plan to make every replacement in this one editing pass.
 
 For Method 3 only: also check the option strings (`"Auto"`, `"Charge"`, `"Discharge"`) match what your `select.goodwe_ems_mode` exposes. If your inverter reports `"Export AC"` instead of `"Discharge"`, change the YAML to match.
 
