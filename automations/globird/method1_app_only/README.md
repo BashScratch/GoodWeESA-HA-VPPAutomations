@@ -55,18 +55,22 @@ Save the slot.
 
 ### Step 3 - Create the discharge slot
 
-Switch to the **Discharge** tab in the same TOU dialog. As of writing the discharge tab only exposes discharge power - no SOC floor field yet (GoodWe is reportedly adding that in a future app/firmware release; if you're reading this in 2027+ check whether it's landed). The fields:
+Switch to the **Discharge** tab in the same TOU dialog. As of writing the discharge tab only exposes one knob - **Discharge Power** as a percentage of inverter capacity. There's no SOC floor in the TOU dialog itself (the SOC floor is set separately in the **Battery Protection** menu in SEMS+ - see Step 5 below). The fields:
 
 | Field | Value |
 |---|---|
 | **Start Time** | `18:00` |
 | **End Time** | `21:00` (or `20:00` on older Zero Hero plans) |
 | **Repeat** | All months, all days |
-| **Discharge Power** | `5kW` is a reasonable starting point for the 10kW model on Zero Hero - this caps the total inverter output (house + grid combined). See the discharge-power note below. |
+| **Discharge Power** | Percentage of inverter capacity. See the gotcha section below for how to pick a value. |
 
-Without an in-app SOC floor, the inverter discharges until it reaches its hard low cutoff. If you want a tighter floor (e.g. keep 20% in the tank for overnight load), the only options are: (a) accept the inverter's hardware default, (b) set a lower discharge power so it can't drain as fast, or (c) move to one of the HA methods which have their own SOC guard logic.
+### Step 4 - Set the SOC floor in Battery Protection
 
-### Step 4 - Verify it works
+In SEMS+, separately from the TOU dialog, find the **Battery Protection** (or similar) menu. This is where you set the SOC at which the inverter stops discharging and starts pulling from the grid to cover house load. A reasonable starting point is `20-30%` - leaves some headroom for overnight household use after the peak window.
+
+When the battery hits this floor during peak discharge, the inverter switches to importing from the grid to cover any remaining house load. That import will cost you the Zero-Grid daily credit if it happens during the peak window, so set the floor high enough that you don't run out before peak ends.
+
+### Step 5 - Verify it works
 
 Watch the next free window:
 
@@ -76,19 +80,26 @@ Watch the next free window:
 Watch the next peak window:
 
 - Battery SOC drops as the inverter discharges into the house and grid.
-- Discharge stops when SOC hits your floor.
+- Discharge stops when SOC hits the Battery Protection floor.
 
 That's it. The inverter handles the rest day after day.
 
-## The discharge-power gotcha (read this once)
+## The discharge-power gotcha (read this twice)
 
-In SEMS+'s TOU discharge slot, **"discharge power" means total inverter output, not grid export specifically**.
+The TOU **Discharge Power** field is a **percentage of inverter capacity**, and that percentage represents **total inverter output** - house load and grid export combined - not grid export specifically.
 
-The simple equation: **battery output = grid export + house load**.
+So on a 10kW inverter, setting Discharge Power to 50% means "discharge at up to 5kW total". Of that 5kW, the house gets first call and whatever's left goes to the grid.
 
-Worked example: you set discharge power to 5kW. Your house is drawing 2kW. The inverter discharges up to 5kW total - 2kW covers the house, 3kW goes to the grid. If your house load spikes to 5kW (someone runs the dryer and the kettle), all 5kW goes to the house and nothing reaches the grid. The total figure is the inverter's output ceiling, not a guaranteed grid export.
+Worked example - working out what % to set if you want to export 5kW to the grid on a 10kW inverter:
 
-This is the imprecision the HA methods address by working with grid-export entities directly. **But there's a better way to do it within Method 1 too** - see the next section.
+1. Estimate your typical house load during peak hours (e.g. 2kW between 6pm and 9pm if you're cooking and have lights on).
+2. Add your target grid export (e.g. 5kW for Zero Hero with the 10kWh super cap over 2 hours, or ~3.5kW over 3 hours).
+3. Total output you want: 2kW house + 5kW grid = 7kW.
+4. As a percentage of the 10kW inverter: 70%. Set Discharge Power to 70%.
+
+It's not perfect. House load varies - if the house is drawing 5kW (dryer, oven, kettle all on) you're at the inverter's 7kW ceiling and grid export drops to 2kW. If the house is drawing 0.5kW, grid export climbs to 6.5kW. The total inverter output is what you've pinned, not grid export specifically.
+
+**The better way to do this in Method 1** is to leave Discharge Power at 100% and use the **Soft Power Limit** setting (in the SolarGo installer menu) to pin grid export specifically. That setup is covered in the next section. With it, the inverter discharges at house-load + your chosen grid-export number regardless of house load fluctuation. Worth the installer-password hassle if you care about hitting the Zero Hero credits precisely.
 
 ## Going further: precise grid export with the Soft Power Limit (Andrew Palmer's approach)
 
@@ -129,7 +140,7 @@ Method 1 with the Soft Power Limit gets you:
 
 What you still don't get without HA:
 
-- **Pre-peak SOC guard.** If the battery is short on charge, the inverter still discharges to its TOU SOC floor and you start importing from the grid at peak rates. Method 4 blocks discharge entirely on low-SOC days; this method can't.
+- **Pre-peak SOC guard.** If the battery is short on charge going into peak, the inverter still discharges down to the Battery Protection floor and then starts importing from the grid at peak rates. Method 4 blocks discharge to the grid entirely on low-SOC days, preserving what charge is left for the house. Method 1 can't decide "today's not the day, skip peak export".
 - **Notifications and profit reporting.** No nightly summary of what you exported and earned.
 - **Helper-tunable rates.** If GloBird changes the super rate, you don't have a one-tap UI for adjusting calculations.
 
@@ -144,7 +155,7 @@ If you've enabled Modbus TCP on the inverter (see [prereq 01](../../../prerequis
 This method gets you the basic charge-during-free / discharge-during-peak cycle, which is most of the value. But there are real things HA adds that the app alone can't:
 
 - **Precise grid-export control during peak.** SEMS+ pins total inverter output; HA's `number.goodwe_grid_export_limit` pins grid export specifically. With Zero Hero's "first 10kWh at 15c, rest at 6c" structure, hitting the cap precisely matters.
-- **Dynamic SOC guard.** SEMS+ will discharge to whatever SOC floor you set even if conditions change (cloudy day, free-window charge didn't fill the battery, etc.). HA can decide "today's not the day, skip peak export" based on live SOC at 17:56.
+- **Dynamic SOC guard.** SEMS+ will discharge down to the Battery Protection floor regardless of conditions. If the battery's at 40% going into peak because the free-window charge didn't fill it (cloudy day, late free-window start, etc.), it'll discharge to the floor and then buy grid power at peak rates to cover the rest. HA can decide "today's not the day, skip peak export" based on live SOC at 17:56.
 - **Profit notifications.** SEMS+ shows you what charged and discharged but doesn't compute "you exported X kWh tonight at the super rate, plus the daily credit, total $Y." HA does that and pushes it to your phone each evening.
 - **Helper-tunable rates.** When GloBird adjusts the super rate or daily credit (it happens), updating SEMS+ tariff configuration is fiddly. With HA the rates live in number helpers you can edit from the dashboard in two clicks.
 
@@ -162,7 +173,7 @@ If they don't, this method is fine. You're getting most of the Zero Hero benefit
 - **Inverter clock drift.** GoodWe inverters can drift a few minutes per week. If your clock drifts and your TOU charge slot fires from 11:04 to 14:04 instead of 11:00 to 14:00, you've lost ~7% of the free window. Check the inverter clock against your phone's clock periodically and resync via the app if needed. Methods 2-4 include an HA automation that does this daily.
 - **Firmware availability for the 13.5kW combined-charging capability.** On the single-phase 10kW ESA, the firmware that combines grid AC and solar DC for 13.5kW battery charging has been rolling out from around April 2026. Some firmware releases have it, some don't, and some users have had to ask GoodWe Level 2 support for a standalone push. If you're seeing your battery cap at ~10kW during the free window despite plenty of solar, this is the likely cause.
 - **Plan rate changes.** GloBird occasionally adjusts the super rate, base rate, or daily credit. Check your latest bill and your plan documents periodically.
-- **No safety-net SOC guard.** If your battery is going into peak with limited charge (cloudy day, free window cut short, etc.), this method will discharge down to the inverter's hard cutoff and then start importing from the grid at peak rates to cover any remaining demand. There's no "skip peak today" logic. HA methods add that.
+- **No safety-net SOC guard.** If your battery is going into peak with limited charge (cloudy day, free window cut short, etc.), this method will discharge down to the Battery Protection floor (set in the Battery Protection menu of SEMS+, not the TOU dialog) and then start importing from the grid at peak rates to cover any remaining demand. There's no "skip peak today" logic. HA methods add that.
 - **Soft Power Limit isn't dynamic.** If you decide to change your peak export rate (e.g. you want 1.5kW instead of 2kW for a few days), it's a manual trip into the SolarGo installer menu each time. With Method 4, the export limit lives in a HA helper you can edit from the dashboard in two clicks (or via automation if you want it to vary by day of week, weather forecast, etc.). Most users set the Soft Power Limit and forget; if you want to tune it often, that's a real tradeoff to consider.
 
 ## Method 1 with Soft Power Limit vs Method 4 - they're closer than you'd think

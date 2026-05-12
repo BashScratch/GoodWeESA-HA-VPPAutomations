@@ -48,15 +48,20 @@ If you get `Connection refused` or `timeout` (the expected outcome for most peop
 
 You can do this in either **SEMS+** (recommended - it's the app GoodWe is moving most consumer features into) or the older **SolarGo** app. Both expose the Modbus TCP toggle.
 
-The exact path in current SEMS+:
+### The SEMS+ path (recommended)
 
-```
-Services > Local access > (enter installer password) > Settings > Communication > Enable Modbus
-```
+1. Open the SEMS+ app and log in to your GoodWe account. Make sure your inverter is online and visible on the main dashboard.
+2. Tap your plant / inverter to enter its detail view.
+3. Find the **Services** entry (usually a tab or button in the inverter's detail page). Tap it.
+4. Inside Services, look for **Local access** (sometimes called "Local Configuration" or similar on older app versions). Tap.
+5. Enter the **installer password**. The default is **`1234`** unless you or your installer have set a custom one. See the gotcha below if your SolarGo installer password isn't being accepted.
+6. You should now be in the local-access settings area. Navigate to **Settings > Communication**.
+7. Find the **Enable Modbus** toggle and turn it on. If it's already on, you're done already - close the menus and skip to Step 5.
+8. Some inverter firmware versions need a power cycle for the change to take effect. If port 502 still doesn't respond after toggling Modbus on, isolate the inverter (DC switch off, wait 30 seconds, switch on again).
 
-The default installer password is **`1234`**, unless you or your installer have set a custom one. (See the password gotcha below if you've set a custom password in SolarGo and SEMS+ isn't accepting it.)
+### The SolarGo path (alternative)
 
-The path in SolarGo is similar, navigated through the inverter's settings menu rather than the top-level Services entry. If you're on an older app version where the menu wording differs, look for keywords like **"Communication"**, **"Modbus TCP"**, or **"Local Network"** under the inverter's advanced or installer-level settings. On older firmware revisions the toggle may not be exposed at all and you'll need to update the inverter firmware via the app first, or ask your installer to enable Modbus remotely.
+The path in SolarGo is similar, navigated through the inverter's settings menu rather than the top-level Services entry. The Modbus toggle lives under **Settings > Communication** in the same way once you're past the installer login. If you're on an older app version where the menu wording differs, look for keywords like **"Communication"**, **"Modbus TCP"**, or **"Local Network"** under the inverter's advanced or installer-level settings. On older firmware revisions the toggle may not be exposed at all and you'll need to update the inverter firmware via the app first, or ask your installer to enable Modbus remotely.
 
 If the option isn't where this guide says it is, [Whirlpool 9xv6wp84](https://forums.whirlpool.net.au/thread/9xv6wp84) has the most current community walkthrough including screenshots for several app versions and workarounds for installer-locked inverters. Search the thread for "Modbus" - it's been discussed at length.
 
