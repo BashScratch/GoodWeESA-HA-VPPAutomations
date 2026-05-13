@@ -4,11 +4,15 @@ Template sensors can't be set up via the HA UI - they need to live in your confi
 
 ## What's here
 
-- **`globird_zero_hero_sensors.yaml`** - two sensors:
+- **`globird_zero_hero_sensors.yaml`** - two template sensors:
   - `sensor.zero_hero_session_export` - live kWh exported during the current peak window.
   - `sensor.zero_hero_session_profit` - live AUD earned during the current peak window, including the daily credit.
+- **`goodwe_polarity_fix.yaml`** - template sensor that corrects the active-power sign on firmware revisions that report it inverted. Optional. See the file header for how to tell if you need it.
+- **`goodwe_voltage_statistics.yaml`** - five `statistics` platform sensors that summarise grid voltage over 1-hour and 24-hour windows (min, max, mean). Pairs with [`../automations/advanced/grid_voltage_sag_alert.yaml`](../automations/advanced/grid_voltage_sag_alert.yaml) for the historical-graph half of the diagnostic picture.
 
-Both sensors update in real time and sit happily on a dashboard (I'd suggest a [mini-graph-card](https://github.com/kalkih/mini-graph-card) for the export, and a big number card for the profit).
+The template sensors (`globird_zero_hero_sensors.yaml`, `goodwe_polarity_fix.yaml`) go under the `template:` integration. The statistics sensors (`goodwe_voltage_statistics.yaml`) go under the legacy `sensor:` key with `platform: statistics`. These are two different homes in your config - see the install notes inside each file.
+
+The Zero Hero sensors update in real time and sit happily on a dashboard (I'd suggest a [mini-graph-card](https://github.com/kalkih/mini-graph-card) for the export, and a big number card for the profit).
 
 ## Install
 

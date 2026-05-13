@@ -1,0 +1,96 @@
+alias: "GoodWe ESA: Grid voltage sag alert"
+description: >
+  Alerts when grid voltage drops below the AS 60038 lower steady-state
+  limit (216V on a 230V nominal supply), indicating a voltage sag from
+  the network side. The mirror image of grid_voltage_soak.yaml: that
+  one engages a dump load when voltage climbs high, this one fires a
+  notification when voltage sags low. There's no protective action you
+  can take from the inverter side for low voltage (it's a network
+  problem upstream), but you can record it and report it to your
+  distributor if it becomes a pattern.
+
+  Pairs with the statistics sensors in sensors/goodwe_voltage_statistics.yaml
+  to graph voltage trends over time. The historical record is the
+  diagnostic data you'd hand to your distributor.
+
+mode: single
+
+# =============================================================================
+# REQUIRED HELPERS:
+#
+#   input_number.voltage_sag_alert_threshold  - voltage at which to fire the
+#                                                alert. Default: 216 (V).
+#                                                AS 60038 lower steady-state
+#                                                limit (230V nominal -6%).
+#                                                Min 200, max 225, step 1.
+#                                                Unit: V.
+#   input_number.voltage_sag_release          - voltage at which the alert
+#                                                resets, so it can fire
+#                                                again on the next sag.
+#                                                Default: 220 (V). Set above
+#                                                the alert threshold for
+#                                                hysteresis. Min 200, max
+#                                                230, step 1. Unit: V.
+#   input_boolean.voltage_sag_enabled         - master toggle. Leave off
+#                                                until you've tested it
+#                                                once with a simulated sag.
+# =============================================================================
+
+triggers:
+  - trigger: numeric_state
+    entity_id: sensor.goodwe_on_grid_l1_voltage_2   # EDIT: your grid voltage sensor. On Mitch's install both sensor.goodwe_on_grid_l1_voltage_2 and sensor.goodwe_back_up_l1_voltage work; on-grid is more semantically correct since this measures grid voltage. The _2 suffix appears if you have both native and experimental integrations installed.
+    below: input_number.voltage_sag_alert_threshold
+    for:
+      seconds: 30   # ignore transient dips (air-con next door starting, etc.)
+    id: sag_started
+  - trigger: numeric_state
+    entity_id: sensor.goodwe_on_grid_l1_voltage_2   # EDIT: same sensor as above
+    above: input_number.voltage_sag_release
+    for:
+      minutes: 5   # require sustained recovery before clearing
+    id: sag_ended
+
+conditions:
+  - condition: state
+    entity_id: input_boolean.voltage_sag_enabled
+    state: "on"
+
+actions:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: sag_started
+        sequence:
+          - action: persistent_notification.create
+            data:
+              title: Grid Voltage Sag Detected
+              notification_id: grid_voltage_sag
+              message: >-
+                Grid voltage dropped to
+                {{ states('sensor.goodwe_on_grid_l1_voltage_2') }}V at
+                {{ now().strftime('%H:%M on %d/%m/%Y') }}, below your
+                configured threshold of
+                {{ states('input_number.voltage_sag_alert_threshold') }}V.
+                Check the voltage history graph if sags become frequent.
+          - action: notify.mobile_app_your_device_name   # EDIT: your notify service
+            data:
+              title: Grid Voltage Sag
+              message: >-
+                Grid voltage at
+                {{ states('sensor.goodwe_on_grid_l1_voltage_2') }}V
+                (below {{ states('input_number.voltage_sag_alert_threshold') }}V).
+
+      - conditions:
+          - condition: trigger
+            id: sag_ended
+        sequence:
+          - action: persistent_notification.dismiss
+            data:
+              notification_id: grid_voltage_sag
+          - action: notify.mobile_app_your_device_name   # EDIT: your notify service
+            data:
+              title: Grid Voltage Recovered
+              message: >-
+                Grid voltage back above
+                {{ states('input_number.voltage_sag_release') }}V at
+                {{ states('sensor.goodwe_on_grid_l1_voltage_2') }}V.

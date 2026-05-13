@@ -1,0 +1,70 @@
+# GoodWe Grid Voltage Statistics Sensors
+#
+# Five statistics sensors that summarise grid voltage over rolling 1-hour and
+# 24-hour windows. Pair with the grid_voltage_sag_alert.yaml automation: the
+# automation tells you WHEN a sag happens, these sensors give you the
+# historical record to graph and to hand to your distributor if sags become
+# a pattern.
+#
+# Recommended dashboard layout:
+#   - A mini-graph-card with 1h_min and 1h_max on the same axis (tight band
+#     = stable supply, wide band = noisy supply).
+#   - A second card with 24h_min / 24h_mean / 24h_max for the daily picture.
+#
+# These use HA's built-in `statistics` platform (sensors integration), not
+# the `template:` integration. So they live under `sensor:` at the top
+# level of configuration.yaml (or in sensors.yaml if you've split that).
+# They DON'T go in the same place as the template sensors in this folder.
+#
+# Place this under the `sensor:` key in configuration.yaml, or in a
+# dedicated sensors.yaml if you've split your config:
+#
+#   sensor: !include sensors.yaml
+#
+# If you already have other `sensor:` entries (legacy template sensors,
+# command_line sensors, etc.), append these to the existing list.
+
+- platform: statistics
+  name: "GoodWe Grid Voltage 1h Min"
+  unique_id: goodwe_grid_voltage_1h_min
+  entity_id: sensor.goodwe_on_grid_l1_voltage_2   # EDIT: your grid voltage sensor
+  state_characteristic: value_min
+  max_age:
+    hours: 1
+  sampling_size: 1000
+
+- platform: statistics
+  name: "GoodWe Grid Voltage 1h Max"
+  unique_id: goodwe_grid_voltage_1h_max
+  entity_id: sensor.goodwe_on_grid_l1_voltage_2   # EDIT: same sensor as above
+  state_characteristic: value_max
+  max_age:
+    hours: 1
+  sampling_size: 1000
+
+- platform: statistics
+  name: "GoodWe Grid Voltage 24h Min"
+  unique_id: goodwe_grid_voltage_24h_min
+  entity_id: sensor.goodwe_on_grid_l1_voltage_2   # EDIT: same sensor as above
+  state_characteristic: value_min
+  max_age:
+    hours: 24
+  sampling_size: 5000
+
+- platform: statistics
+  name: "GoodWe Grid Voltage 24h Max"
+  unique_id: goodwe_grid_voltage_24h_max
+  entity_id: sensor.goodwe_on_grid_l1_voltage_2   # EDIT: same sensor as above
+  state_characteristic: value_max
+  max_age:
+    hours: 24
+  sampling_size: 5000
+
+- platform: statistics
+  name: "GoodWe Grid Voltage 24h Mean"
+  unique_id: goodwe_grid_voltage_24h_mean
+  entity_id: sensor.goodwe_on_grid_l1_voltage_2   # EDIT: same sensor as above
+  state_characteristic: mean
+  max_age:
+    hours: 24
+  sampling_size: 5000

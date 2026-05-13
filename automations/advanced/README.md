@@ -30,6 +30,22 @@ Tracks how long it's been since the battery last hit 100% SOC. If 14 days pass w
 
 **Requires:** an `input_datetime.last_full_charge` helper and an `input_number.lfp_calibration_days` helper (default 14).
 
+### [`grid_voltage_sag_alert.yaml`](./grid_voltage_sag_alert.yaml)
+
+The mirror image of `grid_voltage_soak.yaml`. Watches grid voltage and fires a notification when it sags below your alert threshold (default 216V - AS 60038 lower steady-state limit for a 230V nominal supply). Releases at a hysteresis threshold (default 220V) once voltage has been sustained above it for 5 minutes. There's no inverter-side protective action for low voltage (it's a network problem upstream), but you can record it and report it to your distributor if it becomes a pattern.
+
+**When to use:** you suspect your local supply is weak (brownouts during high-demand evenings, lights dimming when the heat pump kicks in, repeated low-voltage warnings from the inverter), and you want a record.
+
+**Requires:** the helpers `input_number.voltage_sag_alert_threshold`, `input_number.voltage_sag_release`, and `input_boolean.voltage_sag_enabled`. Pairs with [`../../sensors/goodwe_voltage_statistics.yaml`](../../sensors/goodwe_voltage_statistics.yaml) for the historical graph.
+
+### [`../../sensors/goodwe_voltage_statistics.yaml`](../../sensors/goodwe_voltage_statistics.yaml) (statistics sensors)
+
+Five built-in `statistics` platform sensors that summarise grid voltage over rolling 1-hour and 24-hour windows: 1h min/max, 24h min/max/mean. Drop them on a mini-graph-card and you can see voltage trends at a glance. The historical record is the diagnostic data you'd hand to your distributor if you ever raise a supply-quality complaint.
+
+**When to use:** alongside `grid_voltage_sag_alert.yaml` for the graph half of the picture, or standalone if you just want to know what your supply looks like over time.
+
+**Requires:** nothing beyond the GoodWe integration and a voltage sensor.
+
 ### [`../sensors/goodwe_polarity_fix.yaml`](../../sensors/goodwe_polarity_fix.yaml) (template sensor)
 
 A correctness fix, not a feature. Some GoodWe ARM firmware revisions report active power with an inverted sign (export shows positive, import shows negative). If your energy dashboard or this guide's profit calculations look backwards, set the polarity-inverted helper to ON and use the corrected sensor.
