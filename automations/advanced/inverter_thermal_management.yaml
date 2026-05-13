@@ -34,13 +34,13 @@ mode: single
 
 triggers:
   - trigger: numeric_state
-    entity_id: sensor.goodwe_inverter_temperature   # EDIT: your inverter temp sensor
+    entity_id: sensor.goodwe_inverter_temperature_module   # EDIT: GoodWe ESA exposes three temperature sensors - _temperature_module (IGBT silicon, runs hottest, best for thermal protection), _temperature_radiator (heatsink), and _temperature_air (ambient inside housing). Module is the right one for derate prevention. May be _2 suffixed if you have both integrations installed.
     above: input_number.inverter_thermal_trigger
     for:
       minutes: 2   # require sustained warmth, not transients
     id: getting_hot
   - trigger: numeric_state
-    entity_id: sensor.goodwe_inverter_temperature
+    entity_id: sensor.goodwe_inverter_temperature_module
     below: input_number.inverter_thermal_release
     for:
       minutes: 5   # require sustained drop before turning fan off
@@ -64,7 +64,7 @@ actions:
             data:
               title: Inverter thermal management engaged
               message: >-
-                Inverter at {{ states('sensor.goodwe_inverter_temperature') }}C.
+                Inverter module at {{ states('sensor.goodwe_inverter_temperature_module') }}C.
                 Turned on external cooling.
 
       - conditions:

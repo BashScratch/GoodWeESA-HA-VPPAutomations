@@ -34,7 +34,7 @@
       state_class: measurement
       icon: mdi:flash
       state: >
-        {% set raw = states('sensor.goodwe_active_power') | float(0) %}
+        {% set raw = states('sensor.goodwe_active_power') | float(0) %}   {# EDIT: may be sensor.goodwe_active_power_2 on installs with both native and experimental integrations - check Dev Tools > States #}
         {% if states('input_boolean.goodwe_polarity_inverted') == 'on' %}
           {{ (raw * -1) | round(0) }}
         {% else %}

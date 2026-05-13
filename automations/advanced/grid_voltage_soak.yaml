@@ -39,13 +39,13 @@ mode: single
 
 triggers:
   - trigger: numeric_state
-    entity_id: sensor.goodwe_grid_voltage   # EDIT: your grid voltage sensor (may be _2 suffixed)
+    entity_id: sensor.goodwe_on_grid_l1_voltage_2   # EDIT: pick the voltage sensor that matches "actual grid voltage". On Mitch's install both sensor.goodwe_on_grid_l1_voltage_2 (the on-grid voltage) and sensor.goodwe_back_up_l1_voltage (the back-up port voltage) read close together while on-grid - either works for this purpose. The on-grid sensor is more semantically correct since this automation protects against grid-side voltage climb. The _2 suffix appears if you have both native and experimental integrations installed; drop it if your install only has one.
     above: input_number.voltage_soak_trigger
     for:
       minutes: 1   # don't fire on transient spikes
     id: voltage_high
   - trigger: numeric_state
-    entity_id: sensor.goodwe_grid_voltage   # EDIT: same sensor
+    entity_id: sensor.goodwe_back_up_l1_voltage   # EDIT: same sensor as above
     below: input_number.voltage_soak_release
     for:
       minutes: 5   # require sustained drop before turning off
@@ -69,7 +69,7 @@ actions:
             data:
               title: Grid voltage high - dump load engaged
               message: >-
-                Grid voltage hit {{ states('sensor.goodwe_grid_voltage') }}V.
+                Grid voltage hit {{ states('sensor.goodwe_back_up_l1_voltage') }}V.
                 Turned on dump load to soak it up.
 
       - conditions:
