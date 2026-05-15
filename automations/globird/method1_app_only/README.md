@@ -46,7 +46,7 @@ In the SEMS+ TOU dialog, pick the **Charge** tab. The fields you'll see:
 | **Start Time** | `11:00` |
 | **End Time** | `14:00` |
 | **Repeat** | All months (Jan-Dec selected), all days (Mon-Sun selected) |
-| **Charge Cut-off SOC** | `100%` (or `90%` if you want to stay strictly within GoodWe's 10-90% warranty recommendation - see the LFP note in the [strategy guide](../#how-the-windows-work)). This is the *target* the inverter charges toward; charging stops once SOC hits this. |
+| **Charge Cut-off SOC** | `100%` for maximum Super Export headroom at peak; or `90%` if you want to be deliberately conservative on cycle wear (see the warranty note in the [strategy guide](../#how-the-windows-work) - the GoodWe residential battery warranty doesn't specify an SOC ceiling, but a lower cut-off reduces daily throughput a touch). This is the *target* the inverter charges toward; charging stops once SOC hits this. |
 | **Grid Import Charging Power** | `100%` (charge as fast as the inverter will let it) |
 
 Note: there's no separate "Power Source: Grid" field as such. Setting Grid Import Charging Power to 100% tells the inverter to charge from the grid at full rate; solar contributes on top via the DC bus during the same window (this is the firmware-managed AC+DC blending that gets you up to 13.5kW on the single-phase 10kW model).
