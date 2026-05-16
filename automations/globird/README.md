@@ -29,21 +29,24 @@ What the warranty actually says (and doesn't): we audited the current GoodWe Aus
 - The battery's "Usable Energy" sits inside a slightly larger physical-cell capacity (e.g. 8 kWh usable vs 8.32 kWh rated on the GW8.3-BAT-D-G20), so the "100%" you see in SEMS+ or HA is approximately 96-98% of the cell range. The buffer is small (a few percent), not huge.
 - Cell voltage range 2.85V-3.6V, conservative on both ends versus LFP's broader 2.5V-3.65V envelope.
 
-How does Zero Hero compare to that 1-cycle-per-day design rate? It depends massively on your battery size, because daily discharge is bounded by whichever is smaller: your battery's usable kWh, or your household's daily needs plus the Super Export cap. The table below assumes a newer GloBird plan (15 kWh Super Export cap) and roughly 20 kWh of total daily battery discharge for households with enough battery to support it (Super Export plus typical evening + overnight household load not covered by solar or the free window). Yours will vary. Lower if you have lots of solar and modest evening use; higher if you have a big house, EV charging, or both.
+How does Zero Hero compare to that 1-cycle-per-day design rate? It depends on two things: your battery size, and how much of your daily household load comes off the battery (which depends on solar coverage, household size, and what else is plugged in). Daily battery discharge is bounded by whichever is smaller: your battery's usable kWh, or your household's daily discharge demand. The table below brackets two realistic cases on a newer GloBird plan (15 kWh Super Export cap):
 
-| Usable | Typical stack | Realistic daily discharge | Cycles/day | Years to throughput cap | What's likely to bind first |
-|---|---|---|---|---|---|
-| 5 kWh | 1 × GW5.1-BAT-D | ~5 (battery-limited) | ~1.0 | 8.2 | throughput, right at 10-yr time |
-| 8 kWh | 1 × GW8.3-BAT-D | ~8 (battery-limited) | ~1.0 | 8.2 | throughput, right at 10-yr time |
-| 16 kWh | 2 × GW8.3-BAT-D | ~16 (battery-limited most days) | ~1.0 | 8.2 | throughput, right at 10-yr time |
-| 24 kWh | 3 × GW8.3-BAT-D | ~20 | ~0.83 | 9.9 | toss-up between throughput and time |
-| 32 kWh | 4 × GW8.3-BAT-D | ~20 | ~0.63 | 13.2 | 10-yr time and 70% capacity floor |
-| 40 kWh | 5 × GW8.3-BAT-D | ~20 | ~0.50 | 16.4 | 10-yr time and 70% capacity floor |
-| 48 kWh | 6 × GW8.3-BAT-D | ~20 | ~0.42 | 19.7 | 10-yr time and 70% capacity floor |
+- **Lighter user case (~15 kWh/day total discharge):** roughly the Super Export cap plus minimal household battery use. Solar covers most daytime load, the free window covers a chunk of evening prep, modest overnight base load. Battery is mostly working the Super Export.
+- **Heavier user case (~30 kWh/day total discharge):** Super Export plus ~15 kWh of household load the battery actually covers (the evening + overnight + early-morning windows where solar and the free window aren't running). A typical Australian household averaging around 800W draw uses ~19 kWh/day total; the battery covers ~15 kWh of that once solar and free-grid contributions are subtracted.
 
-(GW5.1-BAT-D stacks of 1-6 modules give equivalent kWh values: 5, 10, 15, 20, 25, 30 kWh usable. Same daily-discharge math applies. The 5.1 modules are also rated at 3 MWh/kWh throughput, so the years-to-cap column scales identically with capacity.)
+| Usable | Typical stack | Daily discharge: lighter user (~15 kWh demand) | Daily discharge: heavier user (~30 kWh demand) | Years to throughput cap (light to heavy) |
+|---|---|---|---|---|
+| 5 kWh | 1 × GW5.1-BAT-D | 5 (battery-cap) | 5 (battery-cap) | 8.2 to 8.2 |
+| 8 kWh | 1 × GW8.3-BAT-D | 8 (battery-cap) | 8 (battery-cap) | 8.2 to 8.2 |
+| 16 kWh | 2 × GW8.3-BAT-D | 15 | 16 (battery-cap) | 8.8 to 8.2 |
+| 24 kWh | 3 × GW8.3-BAT-D | 15 | 22 (near-cap) | 13.2 to 9.0 |
+| 32 kWh | 4 × GW8.3-BAT-D | 15 | 30 | 17.5 to 8.8 |
+| 40 kWh | 5 × GW8.3-BAT-D | 15 | 30 | 21.9 to 11.0 |
+| 48 kWh | 6 × GW8.3-BAT-D | 15 | 30 | 26.3 to 13.2 |
 
-Read: **small batteries (≤16 kWh) cycle roughly once a day on Zero Hero and sit right at the warranty's design rate** - the throughput cap and the 10-year time trigger fire together around year 8-10. **Large batteries (32 kWh+) are well under the design cycle rate** because household plus Super Export can't drain them daily, so the throughput cap stretches well past 10 years and the time limit / 70% capacity floor will bind first.
+(GW5.1-BAT-D stacks of 1-6 modules give 5, 10, 15, 20, 25, 30 kWh usable. Same math applies - the 5.1 modules are also rated at 3 MWh/kWh throughput.)
+
+Read: **small batteries (≤16 kWh) on Zero Hero cycle at or near the warranty's design rate of 1/day in both user cases**, and the throughput cap hits around year 8 just shy of the 10-year time trigger. **Larger batteries (32 kWh+) sit well below the design cycle rate** in the lighter-user case, but a heavier user with full Super Export plus meaningful household battery dependency can still push them down toward year 9-13. To estimate your own runway: pull your average daily battery discharge from HA over a couple of months, then divide your battery's lifetime throughput budget (3 MWh × your usable kWh) by your annual discharge.
 
 If you'd rather stay deliberately conservative on any battery size, set your TOU charge target to 90% instead of 100%. The LFP wear difference between 90% and 100% top-of-charge is small but the daily throughput drops a touch, which extends your runway. You'll miss a little Super Export headroom in the peak window in exchange.
 
