@@ -1,14 +1,18 @@
 alias: "GoodWe ESA: Zero Hero Daily Credit Watchdog"
 description: >
-  GloBird's Zero-Grid daily credit (~$1) is forfeit at any nonzero peak-window
-  grid import. Even a brief import (the kettle plus the dryer plus the oven all
-  on at once, blowing past your inverter's discharge cap) can cost the credit.
-  This automation watches grid import during the peak window and fires an
-  actionable notification before you cross the threshold, giving you a chance
-  to turn off heavy loads.
+  GloBird's Zero-Grid daily credit (~$1) is forfeit if peak-window grid
+  imports exceed 0.03 kWh/hour (roughly 30 Wh/hour) during the 6pm-9pm
+  window, per the current ZEROHERO key conditions. That's a tolerance,
+  not a zero-import requirement - a fridge compressor cycling on briefly
+  is fine; the kettle plus the dryer plus the oven all on at once,
+  blowing past your inverter's discharge cap, is not. This automation
+  watches accumulated grid import during the peak window and fires an
+  actionable notification once you cross your alert threshold, giving
+  you a chance to turn off heavy loads before you actually cross
+  GloBird's per-hour threshold.
 
-  REQUIRES a utility_meter helper that resets daily at 18:00 and tracks grid
-  imports during the peak window. See the helpers block below.
+  REQUIRES a utility_meter helper that resets daily at 18:00 and tracks
+  grid imports during the peak window. See the helpers block below.
 
 mode: single
 
@@ -67,9 +71,9 @@ actions:
       title: Zero Hero Daily Credit at Risk
       message: >-
         {{ states('sensor.zero_hero_peak_grid_import') | float(0) | round(0) }}Wh
-        of grid import detected during peak. The Zero-Grid daily credit
-        (~$1) is forfeit at any peak-window grid import - turn off heavy
-        loads now to limit the damage.
+        of grid import detected during peak. GloBird's Zero-Grid credit is
+        forfeit above 30 Wh/hour - turn off heavy loads now to stay under
+        the threshold and keep tonight's $1 credit.
       data:
         # iOS actionable notification - tap to mute the warning for tonight
         # or escalate. Adjust action identifiers to your dashboard.

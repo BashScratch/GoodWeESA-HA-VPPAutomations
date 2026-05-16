@@ -49,7 +49,7 @@
   state_characteristic: value_min
   max_age:
     hours: 24
-  sampling_size: 5000
+  sampling_size: 10000   # holds 24h at HA's default 10s polling (8,640 samples)
 
 - platform: statistics
   name: "GoodWe Grid Voltage 24h Max"
@@ -58,7 +58,7 @@
   state_characteristic: value_max
   max_age:
     hours: 24
-  sampling_size: 5000
+  sampling_size: 10000   # holds 24h at HA's default 10s polling (8,640 samples)
 
 - platform: statistics
   name: "GoodWe Grid Voltage 24h Mean"
@@ -67,4 +67,4 @@
   state_characteristic: mean
   max_age:
     hours: 24
-  sampling_size: 5000
+  sampling_size: 10000   # holds 24h at HA's default 10s polling (8,640 samples)

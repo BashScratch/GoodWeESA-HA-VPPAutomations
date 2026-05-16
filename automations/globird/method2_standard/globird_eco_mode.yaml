@@ -1,4 +1,4 @@
-alias: "GoodWe ESA: GloBird Zero Hero (Method 1 - Standard Eco Mode)"
+alias: "GoodWe ESA: GloBird Zero Hero (Method 2 - Standard Eco Mode)"
 description: >
   Uses the standard GoodWe integration's Eco Mode (Economic Mode) to force charging
   at 11:00 and force exporting at 18:00. Simple, but two tradeoffs vs Method 3:

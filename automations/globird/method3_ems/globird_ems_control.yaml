@@ -1,4 +1,4 @@
-alias: "GoodWe ESA: GloBird Zero Hero (Method 2 - EMS RAM Commands)"
+alias: "GoodWe ESA: GloBird Zero Hero (Method 3 - EMS RAM Commands)"
 description: >
   Uses EMS (Energy Management System) RAM registers via the experimental HACS
   integration to force charging and exporting. Preserves SolarGo/SEMS+ TOU
