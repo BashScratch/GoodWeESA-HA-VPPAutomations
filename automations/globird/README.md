@@ -29,24 +29,26 @@ What the warranty actually says (and doesn't): we audited the current GoodWe Aus
 - The battery's "Usable Energy" sits inside a slightly larger physical-cell capacity (e.g. 8 kWh usable vs 8.32 kWh rated on the GW8.3-BAT-D-G20), so the "100%" you see in SEMS+ or HA is approximately 96-98% of the cell range. The buffer is small (a few percent), not huge.
 - Cell voltage range 2.85V-3.6V, conservative on both ends versus LFP's broader 2.5V-3.65V envelope.
 
-How does Zero Hero compare to that 1-cycle-per-day design rate? It depends on two things: your battery size, and how much of your daily household load comes off the battery (which depends on solar coverage, household size, and what else is plugged in). Daily battery discharge is bounded by whichever is smaller: your battery's usable kWh, or your household's daily discharge demand. The table below brackets two realistic cases on a newer GloBird plan (15 kWh Super Export cap):
+How does Zero Hero compare to that 1-cycle-per-day design rate? It depends on your battery size and which Zero Hero strategy you're running:
 
-- **Lighter user case (~15 kWh/day total discharge):** roughly the Super Export cap plus minimal household battery use. Solar covers most daytime load, the free window covers a chunk of evening prep, modest overnight base load. Battery is mostly working the Super Export.
-- **Heavier user case (~30 kWh/day total discharge):** Super Export plus ~15 kWh of household load the battery actually covers (the evening + overnight + early-morning windows where solar and the free window aren't running). A typical Australian household averaging around 800W draw uses ~19 kWh/day total; the battery covers ~15 kWh of that once solar and free-grid contributions are subtracted.
+- **Self-consume focus.** Battery covers household load that solar and the free window don't pick up. No (or minimal) Super Export. Makes sense when the battery is too small to do both, because avoided peak / overnight grid imports pay roughly the same per kWh as Super Export does. A typical Australian household at around 800W average draws ~19 kWh/day total; once solar and the free-grid window subtract their share, the battery typically covers ~10-15 kWh/day of evening + overnight + early-morning load.
+- **Self-consume + Super Export.** Battery covers household *and* pushes the Super Export cap (15 kWh on newer GloBird plans) to grid during peak. Only economically interesting when the battery has enough headroom to do both, otherwise you're just shuffling kWh between two equally-valued outlets while burning warranty cycles.
 
-| Usable | Typical stack | Daily discharge: lighter user (~15 kWh demand) | Daily discharge: heavier user (~30 kWh demand) | Years to throughput cap (light to heavy) |
+For a smaller battery, the strategies converge because total daily discharge is capped at your usable kWh anyway. For a larger battery, the two paths diverge: self-consume floors out around your household's discharge demand (~12 kWh/day typical), while export-plus-self-consume can push to ~27 kWh/day.
+
+| Usable | Typical stack | Self-consume focus (kWh/day discharge) | Self-consume + Super Export (kWh/day discharge) | Years to throughput cap (self-consume to export+) |
 |---|---|---|---|---|
-| 5 kWh | 1 × GW5.1-BAT-D | 5 (battery-cap) | 5 (battery-cap) | 8.2 to 8.2 |
-| 8 kWh | 1 × GW8.3-BAT-D | 8 (battery-cap) | 8 (battery-cap) | 8.2 to 8.2 |
-| 16 kWh | 2 × GW8.3-BAT-D | 15 | 16 (battery-cap) | 8.8 to 8.2 |
-| 24 kWh | 3 × GW8.3-BAT-D | 15 | 22 (near-cap) | 13.2 to 9.0 |
-| 32 kWh | 4 × GW8.3-BAT-D | 15 | 30 | 17.5 to 8.8 |
-| 40 kWh | 5 × GW8.3-BAT-D | 15 | 30 | 21.9 to 11.0 |
-| 48 kWh | 6 × GW8.3-BAT-D | 15 | 30 | 26.3 to 13.2 |
+| 5 kWh | 1 × GW5.1-BAT-D | 5 (battery-cap, all to household) | 5 (battery-cap, no headroom to also export) | 8.2 to 8.2 |
+| 8 kWh | 1 × GW8.3-BAT-D | 8 (battery-cap, all to household) | 8 (battery-cap, no headroom to also export) | 8.2 to 8.2 |
+| 16 kWh | 2 × GW8.3-BAT-D | 12-14 (household demand) | 16 (battery-cap, household + small export) | 9.4 to 8.2 |
+| 24 kWh | 3 × GW8.3-BAT-D | 12-14 | 22 (near-cap, full household + most of Super Export) | 14.1 to 9.0 |
+| 32 kWh | 4 × GW8.3-BAT-D | 12-14 | 27 (household + full Super Export) | 18.8 to 9.7 |
+| 40 kWh | 5 × GW8.3-BAT-D | 12-14 | 27 | 23.5 to 12.2 |
+| 48 kWh | 6 × GW8.3-BAT-D | 12-14 | 27 | 28.2 to 14.6 |
 
 (GW5.1-BAT-D stacks of 1-6 modules give 5, 10, 15, 20, 25, 30 kWh usable. Same math applies - the 5.1 modules are also rated at 3 MWh/kWh throughput.)
 
-Read: **small batteries (≤16 kWh) on Zero Hero cycle at or near the warranty's design rate of 1/day in both user cases**, and the throughput cap hits around year 8 just shy of the 10-year time trigger. **Larger batteries (32 kWh+) sit well below the design cycle rate** in the lighter-user case, but a heavier user with full Super Export plus meaningful household battery dependency can still push them down toward year 9-13. To estimate your own runway: pull your average daily battery discharge from HA over a couple of months, then divide your battery's lifetime throughput budget (3 MWh × your usable kWh) by your annual discharge.
+Read: **small batteries (≤16 kWh) on either strategy cycle at or near the warranty's design rate of 1/day**, so the throughput cap fires around year 8 just inside the 10-year time trigger. **Medium-to-large batteries (24 kWh+) on the self-consume strategy sit well below the design rate** and the throughput cap stretches way past 10 years - time and the 70% capacity floor will bind first. **The same batteries on the export-plus-self-consume strategy** push the throughput cap back down toward year 9-15 depending on size. To estimate your own runway: pull your average daily battery discharge from HA over a couple of months, then divide your battery's lifetime throughput budget (3 MWh × your usable kWh) by your annual discharge.
 
 If you'd rather stay deliberately conservative on any battery size, set your TOU charge target to 90% instead of 100%. The LFP wear difference between 90% and 100% top-of-charge is small but the daily throughput drops a touch, which extends your runway. You'll miss a little Super Export headroom in the peak window in exchange.
 
