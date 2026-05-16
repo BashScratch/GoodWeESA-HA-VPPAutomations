@@ -31,8 +31,8 @@ A lot of what's in this folder is built on threads at [forums.whirlpool.net.au](
 Notable threads:
 
 - [Home Assistant setup with GoodWe inverter (9xv6wp84)](https://forums.whirlpool.net.au/thread/9xv6wp84) - the big general thread, including Modbus enablement.
-- [GoodWe ESA - Setting export TOU with SOC limit (9n111qlk)](https://forums.whirlpool.net.au/thread/9n111qlk) - documents the gotcha that switching out of Eco mode deletes your TOU schedule.
-- [GoodWe ESA maximum charge rate? (9kppp8k2)](https://forums.whirlpool.net.au/thread/9kppp8k2) - explains the 10kW AC + 3.5kW DC blending that gives you 13.5kW total via TOU schedule.
+- [GoodWe ESA - Setting export TOU with SOC limit (9n111qlk)](https://forums.whirlpool.net.au/thread/9n111qlk) - **jcorney** documents the gotcha that switching out of Eco mode deletes your TOU schedule ("my idea of switching between eco and general modes was sound in theory but when you got back from eco to general it deletes the TOU config").
+- [GoodWe ESA maximum charge rate? (9kppp8k2)](https://forums.whirlpool.net.au/thread/9kppp8k2) - **nutttr** explains the 10kW AC + 3.5kW DC blending that gives you 13.5kW total via TOU schedule, confirmed by **Zerosignal**.
 
 ## A note on inverter firmware
 

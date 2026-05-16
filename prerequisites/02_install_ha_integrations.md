@@ -25,7 +25,15 @@ If it works, HA will discover the inverter and offer to add it to an Area. Pick 
 
 After adding, click into the integration and you should see a long list of sensors - battery SOC, PV power, grid import/export, mode, and so on. Don't worry about reading every one yet; we'll come back to specific entities in [Guide 05](./05_find_your_entities.md).
 
-> **Important: set the polling interval to 15 seconds or longer.** The GoodWe ESA's local Modbus implementation can't handle aggressive polling. If HA polls faster than the inverter is comfortable with (the default in some integration versions is 10s or less), you'll see the green COM LED on the inverter blink to indicate a server error and the **SEMS+ portal will stop updating** because the inverter can't talk to both HA and GoodWe's cloud at the same time. Fix it by clicking the integration's three-dots menu > **Configure** and setting the **Scan interval** (or **Polling interval**) to **15 seconds** or longer. 15s is plenty for everything in this guide; the automations work on minute-or-greater timing.
+> **Important: set the polling interval to at least 30 seconds.** The GoodWe ESA's local Modbus implementation doesn't handle aggressive polling well. The HA GoodWe integration's default scan interval is **10 seconds** ([per the HA integration docs](https://www.home-assistant.io/integrations/goodwe/)), and the same page warns: *"frequent polling conflicts with updates to the Goodwe SEMS cloud portal... Reducing polling frequency to 30 seconds or 1 minute seems to help in such cases."* What that looks like in practice: the green COM LED on the inverter blinks to indicate a server error, the **SEMS+ portal stops updating**, and some HA sensors flick to "unavailable" because the inverter can't simultaneously serve HA's Modbus polls and the SEMS cloud channel.
+>
+> **Recommended values:**
+>
+> - **30 seconds** (HA's own recommendation). Safe default. Plenty fast for everything in this guide; the automations work on minute-or-greater timing.
+> - **15 seconds** works for many users on a hardwired ethernet connection but isn't guaranteed - it sits between HA's recommended floor and the documented 10s problem zone. Only try this if you specifically want faster updates and are willing to back off if SEMS+ starts dropping.
+> - **1 to 5 minutes** is the ultra-conservative setting if SEMS+ keeps dropping at 30s ([HA community thread converges around 5 minutes](https://community.home-assistant.io/t/goodwe-sems-polling-interval/565818), on the reasoning that the inverter only updates SEMS at 5-minute intervals anyway).
+>
+> Fix it via the integration's three-dots menu > **Configure** > set the **Scan interval** (or **Polling interval**) to your chosen value. If SEMS+ is still dropping out even at 1-2 minute polling, the cause is more likely your inverter's connection type (Wi-Fi dongle vs hardwired ethernet) than the polling rate - see prereq 01.
 
 ## Part B - HACS (only needed for Method 3)
 
