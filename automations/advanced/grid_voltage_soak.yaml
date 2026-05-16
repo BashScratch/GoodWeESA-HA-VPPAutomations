@@ -1,8 +1,10 @@
 alias: "GoodWe ESA: Grid voltage soak (turn on dump load if voltage is high)"
 description: >
   AS/NZS 4777.2 sets 253V (230V + 10%) as the maximum steady-state grid
-  voltage. The actual inverter trip thresholds are higher: typically a
-  10-minute average trip around 258V and a fast 1-second trip around 260V.
+  voltage. The actual inverter trip thresholds are higher: a 10-minute
+  sustained-average limit (default 255V in AU, configurable to 258V per
+  DNSP) and instantaneous trip stages around 260V (1-2 second trip) and
+  265V (0.2 second trip).
   So if your local grid voltage is climbing into the 252-255V range on hot
   afternoons (high solar penetration in your street pushing voltage up),
   you're heading toward the trip thresholds and your inverter will start

@@ -105,6 +105,8 @@ It's not perfect. House load varies - if the house is drawing 5kW (dryer, oven, 
 
 Method 1 *can* pin grid export to a specific number without HA. The trick is the **Soft Power Limit** setting in SolarGo's installer-level menu, combined with TOU discharge at 100%.
 
+Naming note: GoodWe's own docs sometimes call this **"Software Power Limit"** (see [GoodWe's Export Power Limit Solution page](https://en.goodwe.com/export-power-limit-solution)), while community discussion mostly says "Soft Power Limit". Same thing. You'll find it in SolarGo at **Advanced Setting > Power Limit > Software Power Limit** (installer password required - see prereq 01 for that).
+
 This approach was documented by **Andrew Palmer** on the GoodWe ESA Facebook group ([original post](https://www.facebook.com/groups/1639058747083230/posts/1725207231801714/)). Crediting him because the configuration combination isn't obvious from GoodWe's own docs.
 
 ### How it works
