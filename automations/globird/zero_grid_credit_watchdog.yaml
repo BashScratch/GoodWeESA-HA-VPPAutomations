@@ -1,15 +1,18 @@
 alias: "GoodWe ESA: Zero Hero Daily Credit Watchdog"
 description: >
   GloBird's Zero-Grid daily credit (~$1) is forfeit if peak-window grid
-  imports exceed 0.03 kWh/hour (roughly 30 Wh/hour) during the 6pm-9pm
-  window, per the current ZEROHERO key conditions. That's a tolerance,
-  not a zero-import requirement - a fridge compressor cycling on briefly
-  is fine; the kettle plus the dryer plus the oven all on at once,
-  blowing past your inverter's discharge cap, is not. This automation
-  watches accumulated grid import during the peak window and fires an
-  actionable notification once you cross your alert threshold, giving
-  you a chance to turn off heavy loads before you actually cross
-  GloBird's per-hour threshold.
+  imports exceed the ZEROHERO Threshold, stated in the current welcome
+  pack as "0.03 kWh/Hour". That's an average power of 30W across the
+  6pm-9pm peak window. The most natural reading: total imports during
+  the full 3-hour window must not exceed 0.03 kWh/hour x 3 hours =
+  0.09 kWh (90 Wh). It's a tolerance, not a zero-import requirement -
+  a fridge compressor cycling on briefly is fine; the kettle plus the
+  dryer plus the oven all on at once, blowing past your inverter's
+  discharge cap, is not. This automation watches accumulated grid
+  import during the full 3-hour window and fires an actionable
+  notification once you cross your alert threshold, giving you a
+  chance to turn off heavy loads before you actually approach
+  GloBird's 0.09 kWh limit.
 
   REQUIRES a utility_meter helper that resets daily at 18:00 and tracks
   grid imports during the peak window. See the helpers block below.
@@ -28,11 +31,16 @@ mode: single
 #      - Min 0, max 1000, step 1, unit Wh
 #      - Initial value: 25 (Wh - alerts you when 25Wh of grid import has
 #        accumulated during peak. GloBird's current ZEROHERO key conditions
-#        say the credit is forfeit when imports exceed 0.03 kWh per hour
-#        during the 6pm-9pm window (so roughly 30 Wh per hour). 25 Wh
-#        gives you a small heads-up before the per-hour threshold is reached.
-#        Source: GloBird ZEROHERO welcome pack, current at time of writing -
-#        check your own welcome pack for what applies to your plan.)
+#        give the threshold as 0.03 kWh/hour, which on the natural reading
+#        means 0.09 kWh total (90 Wh) across the full 3-hour 6pm-9pm window.
+#        25 Wh accumulated gives you a clear heads-up well before that
+#        limit. Note: GloBird's wording is slightly ambiguous - it could
+#        also be read as a per-hour cap of 30 Wh/hour - so the 25 Wh
+#        default is conservative under either interpretation. If yours
+#        keeps tripping at 25 Wh on uneventful nights, raise it; if you
+#        want earlier warning, lower it. Source: GloBird ZEROHERO welcome
+#        pack, current at time of writing - check your own welcome pack
+#        for what applies to your plan.)
 #
 # Note on utility_meter setup: the simplest way is via the HA UI:
 #   Settings > Devices & services > Helpers > Create Helper > Utility Meter
@@ -71,9 +79,10 @@ actions:
       title: Zero Hero Daily Credit at Risk
       message: >-
         {{ states('sensor.zero_hero_peak_grid_import') | float(0) | round(0) }}Wh
-        of grid import detected during peak. GloBird's Zero-Grid credit is
-        forfeit above 30 Wh/hour - turn off heavy loads now to stay under
-        the threshold and keep tonight's $1 credit.
+        of grid import accumulated so far this peak window. GloBird's
+        ZEROHERO threshold is 0.03 kWh/hour (around 0.09 kWh / 90 Wh total
+        across the 3-hour window) - turn off heavy loads now to stay under
+        and keep tonight's $1 credit.
       data:
         # iOS actionable notification - tap to mute the warning for tonight
         # or escalate. Adjust action identifiers to your dashboard.

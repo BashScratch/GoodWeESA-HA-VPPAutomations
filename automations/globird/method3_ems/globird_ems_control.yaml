@@ -191,7 +191,10 @@ actions:
               entity_id: number.goodwe_ems_power_limit
             data:
               # Target discharge/export in Watts. Pulled from input_number.zero_hero_peak_export
-              # helper (default 5000W = 5kW) so users can tune from the dashboard.
+              # helper (default 5000W = 5kW). 5 kW * 3 h = 15 kWh, which is exactly the
+              # current Super Export cap, so the default fills the cap without overshoot.
+              # See the helper documentation in automations/globird/README.md for tuning
+              # guidance if you're on a different cap or a smaller battery.
               value: "{{ states('input_number.zero_hero_peak_export') | float(5000) }}"
 
       # ==========================================================
