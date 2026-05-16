@@ -22,9 +22,13 @@ mode: single
 #
 #   2. input_number.zero_hero_credit_alert_threshold
 #      - Min 0, max 1000, step 1, unit Wh
-#      - Initial value: 25 (Wh - alerts you when 25Wh has crossed during peak.
-#        25Wh is intentionally below the threshold where you'd lose the credit
-#        outright - it gives you time to react before the credit is gone.)
+#      - Initial value: 25 (Wh - alerts you when 25Wh of grid import has
+#        accumulated during peak. GloBird's current ZEROHERO key conditions
+#        say the credit is forfeit when imports exceed 0.03 kWh per hour
+#        during the 6pm-9pm window (so roughly 30 Wh per hour). 25 Wh
+#        gives you a small heads-up before the per-hour threshold is reached.
+#        Source: GloBird ZEROHERO welcome pack, current at time of writing -
+#        check your own welcome pack for what applies to your plan.)
 #
 # Note on utility_meter setup: the simplest way is via the HA UI:
 #   Settings > Devices & services > Helpers > Create Helper > Utility Meter

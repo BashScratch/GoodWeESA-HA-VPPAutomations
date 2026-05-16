@@ -65,16 +65,22 @@ The Method 3 automation in this guide uses `"Charge"`, `"Discharge"`, and `"Auto
 
 | What it means | GloBird's term | What this guide calls it |
 |---|---|---|
-| 11:00-14:00 period where grid electricity costs nothing | "Zero Import Window" / "Free Electricity Period" | Free window |
-| 18:00-20:00 (or 21:00) period where export earns a premium | "Super Export Window" | Peak window |
-| High export rate during peak (e.g. $0.15/kWh total) | "Super Export Credit" | Super rate |
-| Export rate once the cap is exceeded (e.g. $0.06/kWh) | "Basic Export Credit" / "Feed-in tariff" | Base rate |
-| Daily credit for not importing during the peak window | "Zero-Grid Credit" | Daily credit |
-| kWh threshold above which super rate drops to base rate | "Super Export Cap" | Super cap (10 kWh older plan, 15 kWh newer plan) |
+| 11:00-14:00 period where grid electricity costs nothing | "ZEROCHARGE" period / "Off-peak Usage" in your bill | Free window |
+| 18:00-21:00 period where export earns a premium (older grandfathered plans end at 20:00) | "Super Export Window" / "ZEROHERO Window" | Peak window |
+| High export rate during peak (e.g. $0.15/kWh total on QLD ZEROHERO, Apr 2026) | "ZEROWASTEDSOLAR" / "Super Export" | Super rate |
+| Export rate outside peak but within 4pm-11pm (e.g. $0.05/kWh on QLD, Apr 2026) | "Solar/GenerationFeedin(4pm-11pm)" | Base rate |
+| Daily credit for not importing during the peak window | "ZEROHERO" credit | Daily credit |
+| kWh threshold above which super rate stops | "Super Export Threshold" / "Super Export Cap" | Super cap (15 kWh current; 10 kWh on older grandfathered plans) |
+| Per-hour import threshold to retain the Zero-Grid credit | "ZEROHERO Threshold" | 30 Wh/hour (0.03 kWh/hour per current GloBird key conditions) |
+| GloBird's special-event high-rate program (not relevant to GoodWe owners) | "ZEROLIMIT" / "Critical Peak" | See note below |
 
 ### Note on the super export rate structure
 
-GloBird structures the super rate internally as: **base rate + bonus = total super rate** (e.g. $0.06 base + $0.09 bonus = $0.15 total). For the purposes of automation, you only care about the *total rate you receive* during peak ($0.15) vs what you receive once you've exceeded the cap ($0.06). The helpers in these automations store and use the total figures.
+GloBird structures the super rate as: **base rate (4pm-11pm feed-in) + Super Export top-up = total super rate**. For QLD ZEROHERO as of April 2026 this is $0.05 base + $0.10 top-up = $0.15 total. For the purposes of automation, you only care about the *total rate you receive* during peak ($0.15 in this example) vs what you receive once you've exceeded the cap ($0.05 same-window, $0.00 after 11pm). The helpers in these automations store and use the total figures. **Rates vary by state and review date** (GloBird reviews on 1 Jan and 1 Jul). Check your current welcome pack for what you're actually on.
+
+### Note on ZEROLIMIT (Critical Peak) ineligibility for GoodWe
+
+GloBird's current ZEROHERO offer lists a "ZEROLIMIT" benefit that pays $1.00/kWh for exports during nominated Critical Peak windows (dispatch events GloBird calls at their discretion). The eligible battery brands listed in the welcome pack are AlphaESS, Anker, eCactus, Neovolt, Redback, SAJ, Sigenergy, SolaX, Solis + Dyness, and Sungrow. **GoodWe is not on the list**, so GoodWe owners on Zero Hero currently get the ZEROHERO daily credit, the ZEROCHARGE free window, and the ZEROWASTEDSOLAR Super Export, but not the Critical Peak top-up. This may change if GoodWe builds the control integration GloBird needs.
 
 ---
 

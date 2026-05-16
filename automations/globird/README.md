@@ -31,8 +31,8 @@ What the warranty actually says (and doesn't): we audited the current GoodWe Aus
 
 How does Zero Hero compare to that 1-cycle-per-day design rate? It depends on your battery size and which Zero Hero strategy you're running:
 
-- **Self-consume focus.** Battery covers household load that solar and the free window don't pick up. No (or minimal) Super Export. Makes sense when the battery is too small to do both, because avoided peak / overnight grid imports pay roughly the same per kWh as Super Export does. Per [AER residential consumption benchmarks (December 2020, the most recent published before the program was discontinued in 2023)](https://www.aer.gov.au/industry/registers/resources/guidelines/electricity-and-gas-consumption-benchmarks-residential-customers-2020): Australian households average ~15 kWh/day nationally, climbing to ~19 kWh/day for a three-person household, ~21 kWh/day for four, and ~25 kWh/day for five or more. Once solar and the free-window grid coverage subtract their share, the battery typically picks up somewhere in the range of ~6-15 kWh/day. Adjust the self-consume column in the table if your household is significantly heavier or lighter.
-- **Self-consume + Super Export.** Battery covers household *and* pushes the Super Export cap (15 kWh on newer GloBird plans) to grid during peak. Only economically interesting when the battery has enough headroom to do both, otherwise you're just shuffling kWh between two equally-valued outlets while burning warranty cycles.
+- **Self-consume focus.** Battery covers household load that solar and the free window don't pick up. No (or minimal) Super Export. Makes sense when the battery is too small to do both. Critically, self-consumption is more valuable per kWh than Super Export: covering peak load avoids $0.47/kWh of imports (QLD ZEROHERO peak rate), covering shoulder load avoids $0.33/kWh, vs Super Export earning $0.15/kWh. So a small-battery user who runs out covering household and then has to buy peak imports loses more than they would have earned by exporting. Per [AER residential consumption benchmarks (December 2020, the most recent published before the program was discontinued in 2023)](https://www.aer.gov.au/industry/registers/resources/guidelines/electricity-and-gas-consumption-benchmarks-residential-customers-2020), Australian households average ~15 kWh/day nationally, climbing to ~19 kWh/day for a three-person household, ~21 kWh/day for four, and ~25 kWh/day for five or more. Once solar and the free-window grid coverage subtract their share, the battery typically picks up somewhere in the range of ~6-15 kWh/day. Adjust the self-consume column in the table if your household is significantly heavier or lighter.
+- **Self-consume + Super Export.** Battery covers household *and* pushes the Super Export cap (15 kWh on the current GloBird plan; 10 kWh on older grandfathered plans) to grid during peak. The economically right pattern when the battery has enough headroom to do both. On a battery smaller than your household discharge demand, prioritising export over self-consume is a net loss because exported kWh earn less than self-consumed kWh save.
 
 For a smaller battery, the strategies converge because total daily discharge is capped at your usable kWh anyway. For a larger battery, the two paths diverge: self-consume floors out around your household's discharge demand (~12 kWh/day typical), while export-plus-self-consume can push to ~27 kWh/day.
 
@@ -52,11 +52,28 @@ Read: **small batteries (≤16 kWh) on either strategy cycle at or near the warr
 
 If you'd rather stay deliberately conservative on any battery size, set your TOU charge target to 90% instead of 100%. The LFP wear difference between 90% and 100% top-of-charge is small but the daily throughput drops a touch, which extends your runway. You'll miss a little Super Export headroom in the peak window in exchange.
 
-### Peak window (6:00 PM - 8:00 or 9:00 PM)
+### Peak window (6:00 PM - 9:00 PM)
 
-Grid import is expensive. GloBird offers a high "Super Export" rate for the first 10 kWh you push back during this window (check your plan - some newer ones cap at 15 kWh), and a daily "Zero-Grid" credit (around $1.00) if you don't import anything during the window.
+Grid import is expensive. GloBird offers two stacked rewards during this window: a **Super Export top-up** that pays $0.15/kWh total for the first 15 kWh exported (current cap; older plan grandparents will see a 10 kWh cap with an 8pm end time instead of 9pm), and a daily **Zero-Grid credit** of $1.00 if your imports during the peak window stay below the threshold (30 Wh/hour per the current GloBird key-conditions document). All rates quoted here are from the QLD ZEROHERO welcome pack issued April 2026; **rates and thresholds vary by state and review date (GloBird reviews on 1 Jan and 1 Jul each year)** - check your own welcome pack or the current GloBird ZEROHERO terms for what applies to you.
 
-**The sweet spot is hitting exactly the Super Export cap**, not dumping the entire battery. You can keep exporting past the cap at the baseline rate (around 6c/kWh), but the wear-and-tear on the battery isn't worth the extra doubloons. Discharge 10 kWh at 15c, bank the $1 credit, and knock off for the evening - about $2.50 for doing nothing.
+For context on what self-consumption pays vs Super Export, here are the QLD ZEROHERO rates from that same pack:
+
+| What 1 kWh of battery does | Value |
+|---|---|
+| Cover house at peak (6pm-9pm) - avoids peak grid import | $0.473/kWh |
+| Cover house at shoulder (most other times outside the free window) | $0.330/kWh |
+| Export at peak (6pm-9pm, up to 15 kWh) - Super Export | $0.150/kWh |
+| Export 4pm-11pm outside peak - standard feed-in | $0.050/kWh |
+| Export 11pm-4pm - standard feed-in | $0.000/kWh |
+
+So **the most valuable thing a battery can do at peak is cover household load** ($0.473/kWh saved), not export ($0.15/kWh earned). Super Export pays a third of what avoiding a peak import does. This means the rational priority order for any battery on Zero Hero is:
+
+1. Cover all household load during the peak window (6-9pm).
+2. Cover all household load at shoulder rates (mostly evening + overnight + early morning).
+3. Export any remaining surplus at peak, up to the 15 kWh Super Export cap.
+4. Anything left after that, don't bother - the post-cap rate is $0.05/kWh at best, often $0.00.
+
+**The sweet spot is "cover household first, then hit the Super Export cap exactly with the surplus"**, not dumping the entire battery to grid. At the current 15 kWh cap that's 15 × $0.15 = $2.25 from Super Export plus the $1 Zero-Grid credit = $3.25/day for doing nothing, before the avoided-import savings from covering household. On an older 10 kWh plan it's $1.50 + $1 = $2.50/day.
 
 ---
 
@@ -274,7 +291,7 @@ The high rate GloBird pays for the first chunk of your peak export. This is the 
 - **Resulting entity ID:** `input_number.zero_hero_rate_super`
 
 ### 4. Base export rate ($/kWh)
-The rate GloBird pays for export beyond the Super Export cap. Usually around $0.06/kWh.
+The rate GloBird pays for any export beyond the Super Export cap (and for any export in the 4pm-11pm window that isn't Super Export). On the current QLD ZEROHERO this is $0.05/kWh in the 4pm-11pm window and $0.00/kWh from 11pm-4pm. Other states may differ - check your welcome pack.
 
 - **Helper type:** Number
 - **Name:** `Zero Hero Rate Base`
@@ -282,7 +299,7 @@ The rate GloBird pays for export beyond the Super Export cap. Usually around $0.
 - **Maximum value:** `1`
 - **Step size:** `0.01`
 - **Unit of measurement:** `AUD/kWh`
-- **Initial value:** `0.06`
+- **Initial value:** `0.05`
 - **Resulting entity ID:** `input_number.zero_hero_rate_base`
 
 ### 5. Daily zero-grid credit ($)
@@ -298,7 +315,7 @@ The flat credit GloBird pays if you don't import anything during the peak window
 - **Resulting entity ID:** `input_number.zero_hero_rate_credit`
 
 ### 6. Super export cap (kWh)
-The kWh threshold above which your export drops from the super rate to the base rate. Older GloBird Zero Hero plans cap at 10 kWh; some newer plans cap at 15 kWh. Check your plan documents.
+The kWh threshold above which your export drops from the super rate to the base rate. Current GloBird Zero Hero plans cap at 15 kWh (Super Export Threshold per the ZEROHERO key conditions); older grandfathered plans cap at 10 kWh. Check your welcome pack.
 
 - **Helper type:** Number
 - **Name:** `Zero Hero Super Cap`
