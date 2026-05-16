@@ -45,30 +45,35 @@ actions:
           - condition: trigger
             id: hit_full
         sequence:
+          # Use the timestamp parameter (Unix seconds) rather than a formatted
+          # string. Formatted strings come out timezone-naive, which then crashes
+          # the daily check below when subtracted from a timezone-aware now().
+          # The timestamp attribute of input_datetime is also Unix seconds, so
+          # the read side and the write side stay in the same numeric space.
           - action: input_datetime.set_datetime
             target:
               entity_id: input_datetime.last_full_charge
             data:
-              datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+              timestamp: "{{ now().timestamp() }}"
 
       - conditions:
           - condition: trigger
             id: daily_check
           - condition: template
             value_template: >
-              {% set last = states('input_datetime.last_full_charge') %}
+              {% set last = state_attr('input_datetime.last_full_charge', 'timestamp') %}
               {% set threshold = states('input_number.lfp_calibration_days') | float(14) %}
-              {% if last in ['unknown', 'unavailable', ''] %}
+              {% if last == None %}
                 false
               {% else %}
-                {{ ((now() - as_datetime(last)).total_seconds() / 86400) > threshold }}
+                {{ (now().timestamp() - last) / 86400 > threshold }}
               {% endif %}
         sequence:
           - action: notify.mobile_app_your_device_name   # EDIT: your notify service
             data:
               title: LFP calibration suggested
               message: >-
-                {% set last = states('input_datetime.last_full_charge') %}
-                {% set days = ((now() - as_datetime(last)).total_seconds() / 86400) | round(0) %}
+                {% set last = state_attr('input_datetime.last_full_charge', 'timestamp') %}
+                {% set days = ((now().timestamp() - last) / 86400) | round(0) %}
                 Battery hasn't hit 100% in {{ days }} days. Consider a manual
                 full-charge tonight to keep SOC readings accurate.

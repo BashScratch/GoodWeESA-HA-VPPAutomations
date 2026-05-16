@@ -46,16 +46,20 @@ triggers:
       minutes: 5   # require sustained drop before turning fan off
     id: cooled_down
 
-conditions:
-  - condition: state
-    entity_id: input_boolean.inverter_thermal_enabled
-    state: "on"
+# No global conditions block. The master toggle gates the getting_hot branch
+# (so disabling it stops the fan from being turned on), but the cooled_down
+# branch must always be allowed to run - otherwise if you flip the master toggle
+# off while the fan is running, the cooled_down trigger fires but is blocked
+# by the master condition and the fan stays on indefinitely.
 
 actions:
   - choose:
       - conditions:
           - condition: trigger
             id: getting_hot
+          - condition: state
+            entity_id: input_boolean.inverter_thermal_enabled
+            state: "on"
         sequence:
           - action: switch.turn_on
             target:
@@ -71,6 +75,9 @@ actions:
           - condition: trigger
             id: cooled_down
         sequence:
+          # Always turn the fan off when temperature drops, regardless of the
+          # master toggle. This is the safety-net path for the case where the
+          # user toggled the master off mid-cycle.
           - action: switch.turn_off
             target:
               entity_id: switch.inverter_cooling_fan

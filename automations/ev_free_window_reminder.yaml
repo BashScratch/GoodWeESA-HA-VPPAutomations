@@ -10,6 +10,15 @@ triggers:
     entity_id: binary_sensor.ev_charger_vehicle_connected # EDIT: your EV charger connected binary sensor
     to: "on"
     id: car_connected_during_window
+  # Catches the "plugged in before the window opened" case. If you connect the
+  # car at 9am after school drop-off, neither of the triggers above will catch
+  # it (pre_window_reminder skips because the car IS connected; the state-change
+  # trigger never fires because it happened outside the time-condition window).
+  # This third trigger fires at the moment the free window opens and checks
+  # whether the car is plugged in.
+  - trigger: time
+    at: "11:00:00"
+    id: window_opens_car_present
 
 conditions: []
 
@@ -48,3 +57,17 @@ actions:
               message: >-
                 Car plugged in during free window. Set EV to charge now
                 via your vehicle app.
+      - conditions:
+          - condition: trigger
+            id: window_opens_car_present
+          - condition: state
+            entity_id: binary_sensor.ev_charger_vehicle_connected # EDIT: your EV charger connected binary sensor
+            state: "on"
+        sequence:
+          - action: notify.mobile_app_your_device_name # EDIT: your notify service
+            data:
+              title: Free Window Open - EV Already Plugged In
+              message: >-
+                Free window just started and your EV is connected.
+                Open your vehicle app and start the charge now to
+                use the full 11am-2pm window.

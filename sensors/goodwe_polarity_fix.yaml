@@ -33,6 +33,12 @@
       device_class: power
       state_class: measurement
       icon: mdi:flash
+      # Pass through unavailability from the source sensor. Without this, the
+      # | float(0) filter would convert 'unavailable' to 0W during inverter
+      # dropouts or firmware updates, and the HA energy dashboard would treat
+      # those fake zeros as real data instead of pausing the statistics.
+      availability: >
+        {{ has_value('sensor.goodwe_active_power') }}   {# EDIT: same sensor as below #}
       state: >
         {% set raw = states('sensor.goodwe_active_power') | float(0) %}   {# EDIT: may be sensor.goodwe_active_power_2 on installs with both native and experimental integrations - check Dev Tools > States #}
         {% if states('input_boolean.goodwe_polarity_inverted') == 'on' %}
