@@ -19,6 +19,19 @@ entities:
   - entity: input_boolean.zero_hero_enabled
     name: Zero Hero Enabled
 
+  - entity: input_boolean.zero_hero_force_safe
+    name: Force Safe (Method 3 panic switch)
+    icon: mdi:shield-alert
+
+  - type: divider
+
+  - type: section
+    label: Discharge Target
+
+  - entity: input_number.zero_hero_peak_export
+    name: Peak Export Target (W)
+    icon: mdi:transmission-tower-export
+
   - type: divider
 
   - type: section
@@ -71,6 +84,25 @@ cards:
     icon: mdi:flash
     tap_action:
       action: toggle
+    layout: horizontal
+
+  - type: custom:mushroom-entity-card
+    entity: input_boolean.zero_hero_force_safe
+    name: Force Safe (Method 3 panic switch)
+    icon: mdi:shield-alert
+    tap_action:
+      action: toggle
+    layout: horizontal
+
+  - type: custom:mushroom-title-card
+    title: ""
+    subtitle: Discharge target
+
+  - type: custom:mushroom-number-card
+    entity: input_number.zero_hero_peak_export
+    name: Peak export target (W)
+    icon: mdi:transmission-tower-export
+    display_mode: buttons
     layout: horizontal
 
   - type: custom:mushroom-title-card

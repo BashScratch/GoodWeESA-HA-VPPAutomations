@@ -25,6 +25,9 @@ max: 5
 #   input_number.zero_hero_rate_credit       - daily zero-grid credit $ (e.g. 1.00)
 #   input_number.zero_hero_super_cap         - kWh cap for super rate   (10 or 15)
 #   input_number.zero_hero_min_export_soc    - SOC % below which peak export is blocked (e.g. 65)
+#   input_number.zero_hero_peak_export       - target peak grid-export limit in W (default 5000 = 5kW;
+#                                              tune to match how aggressively you want to hit the
+#                                              Super Export cap during the 3-hour peak window)
 #   input_number.zero_hero_max_export        - inverter's nominal AC export ceiling in W
 #                                              (10000 for the 10kW ESA, 5000 for the 5kW, etc.
 #                                              this is what HA restores the export limit to at peak end)
@@ -116,15 +119,16 @@ actions:
           - if:
               - condition: template
                 value_template: >
-                  {{ not is_number(states('sensor.goodwe_battery_state_of_charge')) }}   # EDIT: your SOC sensor
+                  {{ not is_number(states('sensor.goodwe_battery_state_of_charge')) or
+                     not is_number(states('sensor.goodwe_total_energy_export')) }}   # EDIT: your SOC and Total Export sensors
             then:
               - action: notify.mobile_app_your_device_name   # EDIT: your notify service
                 data:
                   title: Zero Hero Aborted
                   message: >-
-                    SOC sensor unavailable at 17:56. Export limit unchanged.
-                    Check GoodWe integration.
-              - stop: SOC sensor unavailable
+                    SOC or Total Export sensor unavailable at 17:56. Export limit
+                    unchanged and profit calc would be broken. Check GoodWe integration.
+              - stop: required sensor unavailable
 
           - choose:
               # SOC above guard threshold - arm peak export.
@@ -145,14 +149,14 @@ actions:
                     target:
                       entity_id: number.goodwe_grid_export_limit   # EDIT: your Grid Export Limit entity (may be _2 suffixed)
                     data:
-                      value: 5000
+                      value: "{{ states('input_number.zero_hero_peak_export') | float(5000) }}"
                   - action: notify.mobile_app_your_device_name   # EDIT: your notify service
                     data:
                       title: Zero Hero Armed
                       message: >-
                         Peak export armed. SOC {{
                         states('sensor.goodwe_battery_state_of_charge') }}%.
-                        Exporting at 5kW until end of peak.
+                        Exporting at {{ (states('input_number.zero_hero_peak_export') | float(5000) / 1000) | round(1) }}kW until end of peak.
 
             default:
               - if:

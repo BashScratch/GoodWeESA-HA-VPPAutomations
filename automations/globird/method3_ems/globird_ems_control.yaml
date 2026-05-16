@@ -24,6 +24,8 @@ max: 5
 #   input_number.zero_hero_rate_credit       - GloBird daily zero-grid credit (e.g. 1.00)
 #   input_number.zero_hero_super_cap         - kWh cap for super rate (10 or 15)
 #   input_number.zero_hero_min_export_soc    - SOC % below which peak export is blocked
+#   input_number.zero_hero_peak_export       - target peak export power in W (default 5000;
+#                                              tune via dashboard to match inverter size + plan cap)
 # See automations/globird/README.md for full helper setup instructions.
 #
 # WATCHDOG: This automation includes a 5-minute watchdog (17:55-22:00) that
@@ -149,14 +151,16 @@ actions:
           - if:
               - condition: template
                 value_template: >
-                  {{ not is_number(states('sensor.goodwe_battery_state_of_charge')) }}
+                  {{ not is_number(states('sensor.goodwe_battery_state_of_charge')) or
+                     not is_number(states('sensor.goodwe_total_energy_export')) }}
             then:
               - action: notify.mobile_app_your_device_name   # EDIT: your notify service
                 data:
                   title: Zero Hero Aborted
                   message: >-
-                    SOC sensor unavailable at 18:00. Export command not sent.
-              - stop: SOC sensor unavailable
+                    SOC or Total Export sensor unavailable at 18:00. Export
+                    command not sent and profit calc would be broken.
+              - stop: required sensor unavailable
           - if:
               - condition: numeric_state
                 entity_id: sensor.goodwe_battery_state_of_charge   # EDIT: your SOC sensor
@@ -186,8 +190,9 @@ actions:
             target:
               entity_id: number.goodwe_ems_power_limit
             data:
-              # EDIT: target discharge/export in Watts. 5000 = 5kW net export after house load.
-              value: 5000
+              # Target discharge/export in Watts. Pulled from input_number.zero_hero_peak_export
+              # helper (default 5000W = 5kW) so users can tune from the dashboard.
+              value: "{{ states('input_number.zero_hero_peak_export') | float(5000) }}"
 
       # ==========================================================
       # PEAK END (20:00 or 21:00)
@@ -239,7 +244,7 @@ actions:
       # Returns the inverter to Auto if it's stuck in a forced mode outside
       # an active window (HA crashed mid-export, or similar). Also acts
       # immediately when force_safe is flipped on as a panic switch.
-      # Active windows: 10:58-14:02 (charge buffer), 17:58-21:02 (peak buffer).
+      # Active windows: 11:00-14:00 (charge slot) and 18:00-21:00 (peak slot).
       # If the inverter is already Auto, this does nothing.
       # ==========================================================
       - conditions:
