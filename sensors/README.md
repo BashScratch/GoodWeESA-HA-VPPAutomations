@@ -44,7 +44,7 @@ These names have shifted across mletenay integration versions (older builds may 
 
 ### Step 4: Make sure the helpers exist
 
-These sensors rely on helpers created for the automations. If you've already set up one of the Zero Hero automations per [the strategy guide](../automations/globird/#required-home-assistant-helpers), you have them. Otherwise, create them first.
+These sensors rely on helpers created for the automations. If you've already set up one of the Zero Hero automations per [the strategy guide](../automations/globird/README.md#required-home-assistant-helpers), you have them. Otherwise, create them first.
 
 ### Step 5: Reload
 

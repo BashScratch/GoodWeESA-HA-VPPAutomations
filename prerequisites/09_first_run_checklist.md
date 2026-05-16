@@ -15,7 +15,7 @@ Tick each line before enabling. If any of these are "uh, not sure", go back to t
 
 ### Helpers
 
-- [ ] All helpers from the [strategy guide](../automations/globird/#required-home-assistant-helpers) exist with the right entity IDs (no `_2` suffixes).
+- [ ] All helpers from the [strategy guide](../automations/globird/README.md#required-home-assistant-helpers) exist with the right entity IDs (no `_2` suffixes).
 - [ ] `input_boolean.zero_hero_enabled` exists and is currently **off**.
 - [ ] `input_number.zero_hero_export_start` is at `0` (not some leftover value from testing).
 - [ ] Tariff helpers (`rate_super`, `rate_base`, `rate_credit`, `super_cap`) are set to your actual GloBird plan values, not the example numbers.

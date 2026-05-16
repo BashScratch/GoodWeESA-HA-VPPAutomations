@@ -6,7 +6,7 @@ We use them so that things like the GloBird tariff rates, the daily credit, and 
 
 ## What helpers do you need?
 
-The full list lives in the strategy guide at **[automations/globird/README.md](../automations/globird/#required-home-assistant-helpers)**. We don't duplicate it here because there's a six-of-them shared list plus method-specific extras, and keeping the canonical list in one place stops the two from drifting apart.
+The full list lives in the strategy guide at **[automations/globird/README.md](../automations/globird/README.md#required-home-assistant-helpers)**. We don't duplicate it here because there's a six-of-them shared list plus method-specific extras, and keeping the canonical list in one place stops the two from drifting apart.
 
 This guide covers the **how**. The strategy guide covers the **what**.
 

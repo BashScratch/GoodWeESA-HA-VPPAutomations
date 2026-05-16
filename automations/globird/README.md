@@ -110,7 +110,7 @@ From the official [ESA Series single-phase datasheet, V2.1 April 2026](https://a
 | GW8K-EHA-G20 (8kW) | 8.0kW | 12.0kW |
 | **GW9.999K-EHA-G20 (10kW)** | **9.999kW** | **13.5kW** |
 
-Note the 1.35x multiplier between nominal AC and max charging power. That gap is the AC+DC blending headroom: the firmware can charge from grid (limited by AC) AND from PV (over the DC bus) simultaneously to reach the higher number. **This is the throughput advantage Method 3 unlocks.** HA-driven charging only commands the AC side and tops out at the nominal AC figure.
+Note the 1.35x multiplier between nominal AC and max charging power. That gap is the AC+DC blending headroom: the firmware can charge from grid (limited by AC) AND from PV (over the DC bus) simultaneously to reach the higher number. **This is the throughput advantage Method 4 unlocks**, because Method 4 delegates the charge to the native SEMS+ TOU schedule which can orchestrate both inputs. HA-driven charging (Methods 2 and 3) only commands the AC side and tops out at the nominal AC figure.
 
 Firmware on older inverters may need pushing. A few community reports describe the 13.5kW capability not being live on inverters with older firmware. The April 2026 V2.1 datasheet is now the published spec, but if you're on older firmware and don't see combined grid+solar charging during a TOU charge slot, contact GoodWe support and ask for the latest firmware to be pushed. Their Level 2 support has been responsive on this.
 
