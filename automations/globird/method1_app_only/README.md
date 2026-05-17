@@ -2,6 +2,10 @@
 
 > Before you copy anything: read the [strategy guide](../) to understand why Methods 2-4 add HA on top of this one. If you're unsure what "TOU" or "Economic Mode" means, see the [Glossary](../../../GLOSSARY.md).
 
+> **Heads up: the GoodWe app is a moving target.** SEMS+ and SolarGo are evolving quickly, with new fields and menu reorganisations appearing in most releases. We try to keep these instructions current, but a screen we describe might already have an extra field, a renamed label, or a different layout by the time you open it. If a step here doesn't match what you see in the app, it's almost always a recent app update rather than a fundamental change to the inverter - check the GoodWe ESA Facebook group or the Whirlpool thread for the current state, then come back and the rest of the guide will still apply.
+>
+> **Specific moving piece worth knowing about (as of 18 May 2026):** newer SEMS+ versions paired with recent battery firmware have started exposing a **discharge SOC limit** on the TOU discharge slot - the missing knob we describe further down as needing the separate Battery Protection menu. The rollout is uneven: some installs see the field, others don't, and community reports on whether the setting actually enforces the limit are mixed. GoodWe is actively working on it and expects wider rollout within the next month. If your discharge slot shows an SOC-floor field, try it - but verify the inverter respects it for a few nights before trusting it as your only floor, and keep the Battery Protection setting in place as a backstop.
+
 The simplest possible Zero Hero setup. Everything happens in the GoodWe SEMS+ app (or SolarGo if that's what you've already got working). No Home Assistant, no HACS, no helpers, no YAML. The inverter's firmware does the work; you check the results in the app.
 
 This is the right starting point if any of the following apply:
