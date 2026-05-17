@@ -28,12 +28,25 @@ For each helper in the strategy guide's list, click **Create helper**, pick the 
 - **Name** - exactly what the strategy guide says (e.g. "Zero Hero Enabled"). HA will derive the entity ID from this. **Use the exact name** so the entity ID matches what the YAML expects.
 - **Icon** - optional, but a quick `mdi:flash` or `mdi:currency-usd` makes the dashboards readable at a glance.
 - **Min value, Max value, Step size** - copy from the strategy guide. These prevent you from typing nonsense values into the dashboard later.
-- **Initial value** - the starting value. The strategy guide tells you what to set each helper to.
 - **Unit of measurement** - optional, but helps the dashboard render nicely (e.g. `AUD/kWh`, `%`, `kWh`).
 
 Click **Create**.
 
-## Step 3 - Verify the entity ID
+> **Note: there is no "Initial value" field in the UI.** It used to be requested but Home Assistant only exposes it through YAML configuration, not the helper-creation dialog ([HA input_number docs](https://www.home-assistant.io/integrations/input_number/): *"`initial` is only available in a YAML configuration and not via the Home Assistant user interface"*). You'll set the starting value in the next step, after the helper exists.
+
+## Step 3 - Set the starting value
+
+A freshly-created number helper defaults to its minimum value (or `0` if min is `0`). Set it to whatever the strategy guide recommends:
+
+- **Easiest:** on the Helpers page, click the helper, then use the slider or number-box on its details page to type the recommended starting value. The change saves automatically.
+- **Alternative:** add the helper to a Lovelace dashboard card (see Step 5 below) and set the value from there. The same persistence applies.
+- **Power-user route:** Developer Tools > Actions > `input_number.set_value`, target your helper, set the value. Useful if you want to script a bulk initial setup.
+
+Whichever route you pick, HA persists the value across restarts via the state machine, so you only need to do this once per helper.
+
+For toggle helpers (`input_boolean`), there's no starting-value step at all - they default to off after creation, which is the desired state for the master enable / force-safe toggles in this guide.
+
+## Step 4 - Verify the entity ID
 
 After creating each helper, click into it and confirm the entity ID matches what the strategy guide says.
 
@@ -41,7 +54,7 @@ For example, a toggle named "Zero Hero Enabled" should have entity ID `input_boo
 
 You can also rename the entity ID directly: click the helper, then the cog icon, then the Entity ID field.
 
-## Step 4 - Add them to a dashboard
+## Step 5 - Add them to a dashboard
 
 Strictly optional, but recommended: build yourself a small "Zero Hero Settings" card on your HA dashboard with all the helpers grouped together. When GloBird adjusts the super rate or the daily credit, you'll thank yourself for being able to change it in two clicks.
 

@@ -258,6 +258,8 @@ All three methods use HA "helpers" for configuration and tracking. Before copyin
 
 Six are shared across all methods. Methods 1, 2, and 3 each add one or two extras - see the per-method tables below. It's a bit annoying, but it means you can tune rates and toggle the whole thing on/off without touching the YAML, which you'll thank yourself for the first time GloBird adjusts prices.
 
+> **About "Starting value to set" below.** Home Assistant's helper-creation UI doesn't have an "Initial value" field - you fill in name, min, max, step, unit, then create the helper, then go set its value on the helper's page (or via a dashboard card). The "Starting value to set" lines below tell you what number to type once the helper exists. See [prereq 04](../../prerequisites/04_create_helpers.md#step-3---set-the-starting-value) for the click path.
+
 ### 1. Master enable/disable toggle
 Gates the **peak window** behaviour - the SOC guard, the export limit changes, and the profit notification. Useful when away, or when you're running heavy loads and want to keep the battery full instead of exporting it.
 
@@ -287,7 +289,7 @@ The high rate GloBird pays for the first chunk of your peak export. This is the 
 - **Maximum value:** `2`
 - **Step size:** `0.01`
 - **Unit of measurement:** `AUD/kWh`
-- **Initial value:** `0.15`
+- **Starting value to set:** `0.15`
 - **Resulting entity ID:** `input_number.zero_hero_rate_super`
 
 ### 4. Base export rate ($/kWh)
@@ -299,7 +301,7 @@ The rate GloBird pays for any export beyond the Super Export cap (and for any ex
 - **Maximum value:** `1`
 - **Step size:** `0.01`
 - **Unit of measurement:** `AUD/kWh`
-- **Initial value:** `0.05`
+- **Starting value to set:** `0.05`
 - **Resulting entity ID:** `input_number.zero_hero_rate_base`
 
 ### 5. Daily zero-grid credit ($)
@@ -311,7 +313,7 @@ The flat credit GloBird pays if you don't import anything during the peak window
 - **Maximum value:** `10`
 - **Step size:** `0.01`
 - **Unit of measurement:** `AUD`
-- **Initial value:** `1.00`
+- **Starting value to set:** `1.00`
 - **Resulting entity ID:** `input_number.zero_hero_rate_credit`
 
 ### 6. Super export cap (kWh)
@@ -323,7 +325,7 @@ The kWh threshold above which your export drops from the super rate to the base 
 - **Maximum value:** `30`
 - **Step size:** `1`
 - **Unit of measurement:** `kWh`
-- **Initial value:** `10` (or `15` if you're on a newer plan)
+- **Starting value to set:** `10` (or `15` if you're on a newer plan)
 - **Resulting entity ID:** `input_number.zero_hero_super_cap`
 
 If GloBird changes any of these rates, you change the helper value in the HA UI. No YAML edits required.
@@ -336,8 +338,8 @@ Methods 2-4 use the six shared helpers above plus a few extras depending on whic
 
 **Method 2 (Standard Eco Mode):**
 
-- `input_number.zero_hero_eco_power` - magnitude for Eco Mode Power. Read the **UNIT-TRAP** comment block at the top of the YAML before setting this; the value depends on whether your integration version uses percentages or watts. Min `0`, max `5000`, step `1`. Initial value: `100` (percentage) or `5000` (watts) once you've verified which.
-- `input_number.zero_hero_min_export_soc` - SOC% floor below which peak export is blocked. Min `0`, max `100`, step `1`, unit `%`, initial value `65`.
+- `input_number.zero_hero_eco_power` - magnitude for Eco Mode Power. Read the **UNIT-TRAP** comment block at the top of the YAML before setting this; the value depends on whether your integration version uses percentages or watts. Min `0`, max `5000`, step `1`. Set the value to `100` (percentage) or `5000` (watts) once you've verified which.
+- `input_number.zero_hero_min_export_soc` - SOC% floor below which peak export is blocked. Min `0`, max `100`, step `1`, unit `%`. Set the value to `65`.
 
 **Method 3 (EMS RAM Commands):**
 
@@ -349,7 +351,7 @@ Methods 2-4 use the six shared helpers above plus a few extras depending on whic
 
 - `input_number.zero_hero_min_export_soc` - same as above. (Tune to suit your battery size and overnight load. Start at `65`. If you consistently wake up with battery to spare - meaning you didn't use as much overnight as the threshold protected for - drop it a few percent so peak export arms more aggressively. If you wake up at 0%, raise it.)
 - `input_number.zero_hero_peak_export` - target peak grid export limit in Watts. Method 4 sets `number.goodwe_grid_export_limit` to this value at 17:56 when SOC is above the guard threshold. Default `5000` (5kW). See the Method 3 entry above for the "5 kW × 3 h = 15 kWh = Super Export cap" math and the small-battery / older-plan tuning guidance. Same rules apply here. Min `0`, max `15000`, step `100`, unit `W`.
-- `input_number.zero_hero_max_export` - inverter's nominal AC export ceiling in Watts. **Set this to your specific inverter's nameplate maximum.** Method 4 restores the export limit to this value at peak end (21:01). Examples: `10000` for the 10kW ESA, `8000` for the 8kW, `5000` for the 5kW. Sending `10000` to a smaller inverter's export limit could throw an out-of-bounds error. Min `0`, max `30000`, step `100`, unit `W`. Initial value: whatever your inverter is rated for.
+- `input_number.zero_hero_max_export` - inverter's nominal AC export ceiling in Watts. **Set this to your specific inverter's nameplate maximum.** Method 4 restores the export limit to this value at peak end (21:01). Examples: `10000` for the 10kW ESA, `8000` for the 8kW, `5000` for the 5kW. Sending `10000` to a smaller inverter's export limit could throw an out-of-bounds error. Min `0`, max `30000`, step `100`, unit `W`. Set the value to whatever your inverter is rated for.
 
 ---
 

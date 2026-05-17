@@ -29,7 +29,9 @@ mode: single
 #
 #   2. input_number.zero_hero_credit_alert_threshold
 #      - Min 0, max 1000, step 1, unit Wh
-#      - Initial value: 25 (Wh - alerts you when 25Wh of grid import has
+#      - Note: HA's helper UI doesn't have an "initial value" field. Create
+#        the helper, then set its value to 25 from the helper page.
+#      - Starting value to set: 25 (Wh - alerts you when 25Wh of grid import has
 #        accumulated during peak. GloBird's current ZEROHERO key conditions
 #        give the threshold as 0.03 kWh/hour, which on the natural reading
 #        means 0.09 kWh total (90 Wh) across the full 3-hour 6pm-9pm window.

@@ -33,7 +33,13 @@ After adding, click into the integration and you should see a long list of senso
 > - **15 seconds** works for many users on a hardwired ethernet connection but isn't guaranteed - it sits between HA's recommended floor and the documented 10s problem zone. Only try this if you specifically want faster updates and are willing to back off if SEMS+ starts dropping.
 > - **1 to 5 minutes** is the ultra-conservative setting if SEMS+ keeps dropping at 30s ([HA community thread converges around 5 minutes](https://community.home-assistant.io/t/goodwe-sems-polling-interval/565818), on the reasoning that the inverter only updates SEMS at 5-minute intervals anyway).
 >
-> Fix it via the integration's three-dots menu > **Configure** > set the **Scan interval** (or **Polling interval**) to your chosen value. If SEMS+ is still dropping out even at 1-2 minute polling, the cause is more likely your inverter's connection type (Wi-Fi dongle vs hardwired ethernet) than the polling rate - see prereq 01.
+> **How to change the interval:** the path depends on your HA version. Older versions had a simple **three-dots menu > Configure > Scan interval** slider on the GoodWe integration. Current HA (per the [GoodWe integration docs](https://www.home-assistant.io/integrations/goodwe/)) instead has you do it in two steps:
+>
+> 1. **Settings > Devices & services**, click into your GoodWe integration entry.
+> 2. Three-dots menu > **System options** > toggle **Enable polling for updates** off.
+> 3. Create a custom automation that calls `homeassistant.update_entity` against your GoodWe entities on whatever schedule you want (a `time_pattern` trigger every 30 seconds is the simplest version).
+>
+> Either approach works. If your version still shows a "Configure" option with a scan-interval field, the simple slider path is fine - the automation route is for current versions where the field has moved. If SEMS+ is still dropping out even at 1-2 minute polling, the cause is more likely your inverter's connection type (Wi-Fi dongle vs hardwired ethernet) than the polling rate - see prereq 01.
 
 ## Part B - HACS (only needed for Method 3)
 
