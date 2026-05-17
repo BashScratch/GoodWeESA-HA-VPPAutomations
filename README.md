@@ -8,11 +8,17 @@ This is a work in progress. Things will change. Read the disclaimer at the botto
 
 ---
 
+## Not using Home Assistant?
+
+If you just want to set up your Time of Use schedule in the GoodWe app and be done with it, skip the rest of this introduction and go straight to **[Method 1: App-Only Baseline](./automations/globird/method1_app_only/)**. It's a complete standalone guide. No HA, no HACS, no YAML.
+
 ## Why this exists
 
-Automating a GoodWe ESA is not as simple as flicking a switch. How you send commands to the inverter matters - the wrong approach can silently overwrite the TOU schedule you painstakingly set up in the GoodWe SEMS+ app, or quietly cap your free-window charging at 10kW when a single-phase 10kW ESA could be doing 13.5kW (per GoodWe's own [ESA Series single-phase datasheet, V2.1 April 2026](https://admin.goodwe.com/Api/downloadFile?id=3448&mid=60&type=2) - "Max. Charging Power" of 13.5kW for the GW9.999K-EHA-G20). Note that this throughput advantage is single-phase only; three-phase ESAs (model ending in ETA-G20) cap max charging at nominal AC and don't get the AC+DC blending bump - see the strategy guide's [model compatibility section](./automations/globird/README.md#model-and-firmware-compatibility).
+Automating a GoodWe ESA needs a bit of structural planning. The method you use to send commands to the inverter dictates how it behaves, and getting it wrong can silently overwrite the SEMS+ schedule you painstakingly set up, or quietly throttle your charging capacity.
 
-So there isn't one automation here. There are four methods - one app-only baseline (no HA at all) and three HA-driven approaches that build on top of it. They trade off differently on charge throughput, simplicity, and how much you trust an experimental HACS integration not to break on the next firmware update. Pick the one that matches your tolerance for fiddling and risk.
+For example, a single-phase 10kW ESA can charge at up to 13.5kW by blending AC and DC power simultaneously (per GoodWe's own [ESA Series single-phase datasheet, V2.1 April 2026](https://admin.goodwe.com/Api/downloadFile?id=3448&mid=60&type=2), "Max. Charging Power" row for the GW9.999K-EHA-G20). Some automation approaches will silently cap this at 10kW because they only command the AC side. Note that this throughput advantage applies only to single-phase models; three-phase ESAs (model number ending in ETA-G20) are limited to their nominal AC rating and don't get the AC+DC blending bump - see the strategy guide's [model compatibility section](./automations/globird/README.md#model-and-firmware-compatibility).
+
+To navigate these hardware quirks we've mapped out four approaches. The first is the app-only baseline above. The other three rely on Home Assistant, with different trade-offs between charging throughput, system complexity, and how much you trust an experimental HACS integration to survive the next firmware update. Pick the one that aligns with your tolerance for fiddling.
 
 ## Why use HA at all?
 
