@@ -12,32 +12,55 @@ max: 5
 
 # =============================================================================
 # REQUIRED HELPERS (create these in HA before use):
-#   input_boolean.zero_hero_enabled          - master toggle
-#   input_number.zero_hero_export_start      - tracks export kWh at peak start
-#   input_number.zero_hero_rate_super        - GloBird super export rate $/kWh (e.g. 0.15)
-#   input_number.zero_hero_rate_base         - GloBird base export rate $/kWh (e.g. 0.06)
-#   input_number.zero_hero_rate_credit       - GloBird daily zero-grid credit (e.g. 1.00)
-#   input_number.zero_hero_super_cap         - kWh cap for super rate (10 or 15)
-#   input_number.zero_hero_eco_power         - Eco Mode magnitude (see UNIT-TRAP block below)
-#   input_number.zero_hero_min_export_soc    - SOC % below which peak export is blocked
+#   input_boolean.zero_hero_enabled               - master toggle
+#   input_number.zero_hero_export_start           - tracks export kWh at peak start
+#   input_number.zero_hero_rate_super             - GloBird super export rate $/kWh (e.g. 0.15)
+#   input_number.zero_hero_rate_base              - GloBird base export rate $/kWh (e.g. 0.06)
+#   input_number.zero_hero_rate_credit            - GloBird daily zero-grid credit (e.g. 1.00)
+#   input_number.zero_hero_super_cap              - kWh cap for super rate (10 or 15)
+#   input_number.zero_hero_eco_charge_power       - free-window charge magnitude (see UNIT-TRAP below)
+#   input_number.zero_hero_eco_discharge_power    - peak-window discharge magnitude (see UNIT-TRAP below)
+#   input_number.zero_hero_min_export_soc         - SOC % below which peak export is blocked
 # See automations/globird/README.md for full helper setup instructions.
 #
 # -----------------------------------------------------------------------------
-# UNIT-TRAP - read this before setting input_number.zero_hero_eco_power.
+# UNIT-TRAP - read this before setting the two eco_power helpers.
 # Some integration builds expect Eco Mode Power as a PERCENTAGE (-100 to 100,
-# negative = charge, positive = discharge). Others expect WATTS (-5000 to 5000).
-# If the automation runs but nothing visibly happens at the inverter, this is
-# the first thing to check.
+# negative = charge, positive = discharge). Others expect WATTS (typically
+# -5000 to 5000, but on larger inverters can be wider, e.g. -10000 to 10000
+# on a 10kW ESA). If the automation runs but nothing visibly happens at the
+# inverter, this is the first thing to check.
 #
-# Verify which yours uses:
+# Verify which mode and what bounds yours uses:
 #   1. Open Developer Tools > States > search for `goodwe_eco_mode_power`.
 #   2. Look at the entity's `min` / `max` attributes:
-#        min=-100,  max=100   > percentage. Set helper to 100.
-#        min=-5000, max=5000  > watts.       Set helper to 5000 (or your charge rate).
-#   3. For first-run safety, set the helper to a small value (e.g. 25 or 1000)
-#      and watch what the inverter actually does before scaling up.
-# This automation always treats the helper as the MAGNITUDE - it sends a
-# negative value to charge and a positive value to export.
+#        min=-100,  max=100        > percentage mode.
+#        min=-5000+, max=5000+     > watts mode (the exact numbers reflect your
+#                                    inverter's nominal AC capacity).
+#
+# Recommended starting values for each helper:
+#
+#   zero_hero_eco_charge_power - the magnitude used for the 11:00 force-charge.
+#     - Percentage mode: set to 100 (charge at the inverter's full AC rate).
+#     - Watts mode: set to your inverter's nominal AC rating - e.g. 10000 for
+#       a 10kW ESA, 8000 for 8kW, 5000 for 5kW. HA can only command AC charging
+#       on this method, so this caps at your AC nameplate.
+#
+#   zero_hero_eco_discharge_power - the magnitude used for the 18:00 peak export.
+#     - Watts mode: set to 5000. The math is 5 kW * 3 h = 15 kWh = current
+#       Super Export cap, so 5000 hits the cap exactly across the peak window
+#       without overshooting into the much-lower base feed-in rate.
+#     - Percentage mode: set to the percentage that equals 5000W on your
+#       inverter (50% on a 10kW, 100% on a 5kW, ~63% on an 8kW, etc.).
+#     - If you're on the older 10 kWh cap plan, use 3333 watts (or the
+#       equivalent percentage) instead.
+#
+#   For first-run safety, set both helpers to a small value (e.g. 25 or 1000)
+#   and watch what the inverter actually does before scaling up.
+#
+# This automation always treats each helper as the MAGNITUDE - it sends the
+# charge helper as a negative value at 11:00 and the discharge helper as a
+# positive value at 18:00.
 # -----------------------------------------------------------------------------
 # =============================================================================
 
@@ -101,8 +124,8 @@ actions:
             target:
               entity_id: number.goodwe_eco_mode_power   # EDIT: your GoodWe Eco Mode Power entity
             data:
-              # Negative = charge. Magnitude pulled from the helper - see UNIT-TRAP block at top of file.
-              value: "{{ (states('input_number.zero_hero_eco_power') | float(100)) * -1 }}"
+              # Negative = charge. Magnitude pulled from the charge helper - see UNIT-TRAP block at top of file.
+              value: "{{ (states('input_number.zero_hero_eco_charge_power') | float(100)) * -1 }}"
           - if:
               - condition: state
                 entity_id: input_boolean.zero_hero_enabled
@@ -202,8 +225,9 @@ actions:
             target:
               entity_id: number.goodwe_eco_mode_power
             data:
-              # Positive = discharge/export. Magnitude from helper - see UNIT-TRAP block at top of file.
-              value: "{{ states('input_number.zero_hero_eco_power') | float(100) }}"
+              # Positive = discharge/export. Magnitude from the discharge helper - see UNIT-TRAP block at top of file.
+              # Default 5000W = 5kW. 5 kW * 3 h = 15 kWh = current Super Export cap, so this hits the cap exactly.
+              value: "{{ states('input_number.zero_hero_eco_discharge_power') | float(5000) }}"
 
       # ==========================================================
       # PEAK END (20:00 or 21:00 depending on plan)

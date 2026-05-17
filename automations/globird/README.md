@@ -258,7 +258,13 @@ All three methods use HA "helpers" for configuration and tracking. Before copyin
 
 Six are shared across all methods. Methods 1, 2, and 3 each add one or two extras - see the per-method tables below. It's a bit annoying, but it means you can tune rates and toggle the whole thing on/off without touching the YAML, which you'll thank yourself for the first time GloBird adjusts prices.
 
-> **About "Starting value to set" below.** Home Assistant's helper-creation UI doesn't have an "Initial value" field - you fill in name, min, max, step, unit, then create the helper, then go set its value on the helper's page (or via a dashboard card). The "Starting value to set" lines below tell you what number to type once the helper exists. See [prereq 04](../../prerequisites/04_create_helpers.md#step-3---set-the-starting-value) for the click path.
+> **About "Starting value to set" below.** Home Assistant's helper-creation UI doesn't have an "Initial value" field - the UI exposes name, min, max, step, and unit only. After you create each helper:
+>
+> 1. Go to **Settings > Devices & services > Helpers**, click into the helper you just created.
+> 2. Use the slider or number-box on the helper's details page to enter the recommended starting value listed below.
+> 3. The change saves automatically and persists across HA restarts.
+>
+> The "Starting value to set" lines below tell you what number to type. See [prereq 04 Step 3](../../prerequisites/04_create_helpers.md#step-3---set-the-starting-value) for the full walkthrough including alternative routes (dashboard card or Developer Tools > Actions).
 
 ### 1. Master enable/disable toggle
 Gates the **peak window** behaviour - the SOC guard, the export limit changes, and the profit notification. Useful when away, or when you're running heavy loads and want to keep the battery full instead of exporting it.
@@ -338,7 +344,8 @@ Methods 2-4 use the six shared helpers above plus a few extras depending on whic
 
 **Method 2 (Standard Eco Mode):**
 
-- `input_number.zero_hero_eco_power` - magnitude for Eco Mode Power. Read the **UNIT-TRAP** comment block at the top of the YAML before setting this; the value depends on whether your integration version uses percentages or watts. Min `0`, max `5000`, step `1`. Set the value to `100` (percentage) or `5000` (watts) once you've verified which.
+- `input_number.zero_hero_eco_charge_power` - magnitude for the 11:00 free-window charge. Read the **UNIT-TRAP** comment block at the top of the YAML to confirm whether your `number.goodwe_eco_mode_power` entity uses percentage or watts mode. Min `0`, max `15000`, step `1`. Set the value to your inverter's AC nameplate maximum in watts (`10000` for the 10kW ESA, `8000` for 8kW, `5000` for 5kW), or `100` if your entity is on percentage mode. HA can only command the AC side, so charging tops out at your AC nameplate regardless of what you set here.
+- `input_number.zero_hero_eco_discharge_power` - magnitude for the 18:00 peak export. Same UNIT-TRAP check applies. Min `0`, max `15000`, step `1`. Set the value to `5000` watts (5 kW × 3 h = 15 kWh = current Super Export cap, the same math as Method 3/4's `zero_hero_peak_export`). Or to the equivalent percentage if your entity is on percentage mode (50% on a 10kW, 100% on a 5kW, ~63% on 8kW). If you're on an older 10 kWh-cap plan, set to `3333` watts instead.
 - `input_number.zero_hero_min_export_soc` - SOC% floor below which peak export is blocked. Min `0`, max `100`, step `1`, unit `%`. Set the value to `65`.
 
 **Method 3 (EMS RAM Commands):**
@@ -359,8 +366,8 @@ Methods 2-4 use the six shared helpers above plus a few extras depending on whic
 
 - Your GoodWe integration is installed and working (you can see `sensor.goodwe_battery_state_of_charge` or similar in HA).
 - Your HA Companion App is set up for notifications - you'll want these firing during the first few days.
-- If going with Method 2, the experimental HACS integration is installed and you can see `select.goodwe_ems_mode` (or similar).
-- You've got the six helpers above.
+- If going with Method 2 or Method 3, the experimental HACS integration is installed (Method 2 needs `number.goodwe_eco_mode_power`; Method 3 needs `select.goodwe_ems_mode` and `number.goodwe_ems_power_limit`).
+- You've got the six shared helpers above, plus the per-method extras for whichever method you picked (see each method's section). That's nine helpers in total for Methods 2-4.
 - You've read the strategy, picked a method, and have the right folder open.
 
 Right - you're ready. Go into the method folder you picked and follow the README there.

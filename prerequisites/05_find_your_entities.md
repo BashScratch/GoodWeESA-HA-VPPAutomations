@@ -48,7 +48,7 @@ When you find `number.goodwe_eco_mode_power`, **click it** and look at its **Att
 - If `min` is `-100` and `max` is `100`, the integration uses **percentage**.
 - If `min` is `-5000` and `max` is `5000` (or larger), the integration uses **watts**.
 
-This tells you what to set `input_number.zero_hero_eco_power` to. The Method 2 YAML has a UNIT-TRAP comment block at the top with detailed instructions.
+This tells you what to set the two Method 2 helpers (`input_number.zero_hero_eco_charge_power` and `input_number.zero_hero_eco_discharge_power`) to. The Method 2 YAML has a UNIT-TRAP comment block at the top with detailed instructions for each.
 
 ### Method 3 (EMS RAM Commands) extras
 

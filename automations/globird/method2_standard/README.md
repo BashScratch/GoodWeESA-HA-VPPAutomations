@@ -18,20 +18,20 @@ The straightforward, single-automation approach. HA toggles the inverter between
 
 - **The experimental GoodWe Inverter integration by mletenay**, installed via HACS: <https://github.com/mletenay/home-assistant-goodwe-inverter>. Method 2 uses `number.goodwe_eco_mode_power` to set the charge/discharge magnitude, and that entity is only exposed by the experimental integration (not the native one).
 - The entities `select.goodwe_inverter_operation_mode` and `number.goodwe_eco_mode_power` from your install. Check Developer Tools > States; the entity names may have a `_2` suffix if you've installed and removed the integration before (HA reserves the original ID for the deleted instance and appends `_2` to the fresh one).
-- The eight helpers listed in the [strategy guide](../#required-home-assistant-helpers). Method 2 uses two extras beyond the six shared ones: `input_number.zero_hero_eco_power` (Eco Mode magnitude - read the unit-trap note in the YAML) and `input_number.zero_hero_min_export_soc` (SOC floor for arming peak export).
+- The nine helpers listed in the [strategy guide](../README.md#required-home-assistant-helpers). Method 2 uses three extras beyond the six shared ones: `input_number.zero_hero_eco_charge_power` (free-window charge magnitude), `input_number.zero_hero_eco_discharge_power` (peak-window discharge magnitude), and `input_number.zero_hero_min_export_soc` (SOC floor for arming peak export). Read the UNIT-TRAP block at the top of the YAML before setting the two eco_*_power values - the units depend on which mode your `number.goodwe_eco_mode_power` entity exposes.
 - A notification device set up in HA.
 
 ## Install
 
 1. Open [`globird_eco_mode.yaml`](./globird_eco_mode.yaml) and copy the whole file.
-2. In HA, go to **Settings > Automations & Scenes**, click **Create Automation**, skip the template picker, choose **Start with an empty automation**.
+2. In HA, go to **Settings > Automations & Scenes**, click **Create Automation**, then click **Create new automation** in the dialog. (Older HA versions had a separate "Start with empty automation" option in the same dialog.)
 3. Click the three-dots menu in the top right > **Edit in YAML**. Paste.
 4. Use `Ctrl+F` to find every `# EDIT:` comment. Replace placeholders with your real entity IDs and notify service name.
 5. Save, enable, and watch the next free window and peak window play out.
 
 ## Watch out for
 
-- **Eco Mode Power units (the unit-trap).** Some integration versions expect a percentage (`-100` to `100`), others expect Watts (`-5000` to `5000`). The YAML reads from `input_number.zero_hero_eco_power` so you set this once in the UI rather than editing YAML, but you still need to know which unit your integration uses. Check Developer Tools > States > `goodwe_eco_mode_power` and look at the entity's `min`/`max` attributes; the YAML header explains exactly what to do. If the automation runs but nothing happens at the inverter, this is the first thing to verify.
+- **Eco Mode Power units (the unit-trap).** Some integration versions expose `number.goodwe_eco_mode_power` as a percentage (`-100` to `100`), others as Watts (typically `-5000` to `5000`, sometimes wider on larger inverters). The YAML reads two helpers - `input_number.zero_hero_eco_charge_power` for the 11:00 force-charge and `input_number.zero_hero_eco_discharge_power` for the 18:00 force-export - so you set these once in the UI rather than editing YAML. You still need to know which unit your integration uses though. Check Developer Tools > States > `goodwe_eco_mode_power` and look at the entity's `min`/`max` attributes; the YAML header explains exactly what to set each helper to once you know. If the automation runs but nothing happens at the inverter, this is the first thing to verify.
 - **Peak end time.** The YAML defaults to 21:00. Older GloBird plans end at 20:00. Adjust the trigger time accordingly.
 - **Super export cap.** The YAML profit calculation reads from `input_number.zero_hero_super_cap`. Set it to `10` (older plan) or `15` (newer plan).
 - **First run.** Disable `input_boolean.zero_hero_enabled` first, run through a full day to see that the charge and mode changes fire without anything going sideways, then re-enable for the peak logic to kick in.
