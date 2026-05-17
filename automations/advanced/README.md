@@ -63,6 +63,6 @@ A few automations and sensors have been sketched in the project's plan but not y
 
 ## Common gotchas
 
-- **Test with the master toggle off first.** Each automation has an `input_boolean.*_enabled` switch. Leave it off, watch the trace fire (Settings > Automations > click the automation > Traces tab) on a couple of triggers, then enable when you're satisfied.
+- **Test with the master toggle off first.** Each automation has an `input_boolean.*_enabled` switch. Leave it off, watch the trace fire on a couple of triggers (**Settings > Automations & Scenes**, click the automation to open the editor, then click the **Traces icon** in the top right of the editor next to the YAML menu), then enable when you're satisfied. Older HA versions had this as a "Traces" tab on the automation details page.
 - **The smart plug entities are placeholders.** Every `# EDIT:` marker assumes you have an existing switch entity for the fan, dump load, etc. If you don't, set those up first - any HA-compatible smart plug works.
 - **Polling-rate considerations apply.** These automations read live sensors that come from the GoodWe Modbus integration. If your integration is polling too aggressively (HA's default is 10s; the integration's own docs recommend 30s minimum), see [prereq 02](../../prerequisites/02_install_ha_integrations.md) for the polling note.

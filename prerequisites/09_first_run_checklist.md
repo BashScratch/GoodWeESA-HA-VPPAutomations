@@ -46,7 +46,7 @@ Don't enable `input_boolean.zero_hero_enabled` on day one. Watch first.
 
 ### 11:00 - free window starts
 
-- **Method 2 or 3:** the automation will trigger but will see `zero_hero_enabled` is off and exit on the condition check (or it'll force-charge anyway because Method 2's free-window block doesn't gate on the toggle - check the YAML before deciding). Watch the trace: Settings > Automations > click the automation > "Traces" tab. You'll see the trigger fired and what condition path it took.
+- **Method 2 or 3:** the automation will trigger but will see `zero_hero_enabled` is off and exit on the condition check (or it'll force-charge anyway because Method 2's free-window block doesn't gate on the toggle - check the YAML before deciding). Watch the trace: **Settings > Automations & Scenes**, click the automation to open the editor, then click the **Traces icon** in the top right of the editor window. You'll see the trigger fired and what condition path it took. (Older HA versions had this as a "Traces" tab on the automation details page.)
 - **Method 4:** The SEMS+ TOU schedule fires. The HA automation isn't involved in the free window. Watch the battery SOC climb in the GoodWe integration sensors or the SEMS+ app. Should hit 100% before 14:00; if it doesn't, your inverter's charging slower than expected - usually because solar is producing very little (cloudy day) and the inverter is grid-only at the 10kW AC ceiling.
 
 ### 14:00 - free window ends

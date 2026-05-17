@@ -91,7 +91,7 @@ Don't restart HA on a broken config. It won't start cleanly.
 Once the config is valid:
 
 - If you put the sensors in `templates.yaml`: **Developer Tools > YAML > Reload Template Entities**. Click it. The new sensors appear without restarting HA.
-- If you put them directly in `configuration.yaml`: a full **HA restart** is safer. Settings > System > Restart.
+- If you put them directly in `configuration.yaml`: a full **HA restart** is safer. **Settings > System**, then click the **power icon** in the top right and pick **Restart Home Assistant** (older HA versions had a plain "Restart" button on this page instead).
 
 ## Step 7 - Verify the sensors exist
 

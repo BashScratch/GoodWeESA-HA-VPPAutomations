@@ -24,15 +24,9 @@ You'll see a list of any existing automations. Don't worry about those.
 
 ## Step 2 - Create a new empty automation
 
-Click **Create Automation** (bottom right). HA will offer you three options:
+Click **Create Automation** (bottom right). The dialog that appears in current HA versions shows **"Create new automation"** at the top followed by a list of any installed blueprints. (Older HA versions also had a separate "Start with empty automation" option in this dialog. If you're on an older version and you see it, that one is equivalent to the path described here.)
 
-- "Create new automation"
-- "Use a blueprint"
-- "Start with empty automation"
-
-**Pick "Start with empty automation."** This is critical - the other two options try to be helpful and put you in a different editor mode that fights with what we're doing.
-
-You'll land on a screen with a visual editor that has empty fields for triggers, conditions, and actions. We're about to throw all of that away.
+Click **Create new automation**. You'll land on a screen with a visual editor that has empty fields for triggers, conditions, and actions. We're about to throw all of that away.
 
 ## Step 3 - Switch the editor to YAML mode (the hidden bit)
 
@@ -126,7 +120,7 @@ Each one is a separate automation in HA. Don't try to paste them all into a sing
 - **Forgot to switch to YAML mode.** You opened the empty automation, started typing in the visual editor, got confused. Go back and use the three-dots menu > Edit in YAML.
 - **Pasted into "Edit Dashboard" by accident.** That's a different editor. You want **Settings > Automations & Scenes > Create Automation**, not the dashboard editor.
 - **Save button greyed out.** Usually means there's a YAML syntax error. The save button reactivates when the YAML parses cleanly.
-- **Automation appears in the list but nothing fires.** Check that the toggle next to it is on (blue). And check the **Trace** (click the automation, then "Traces" tab) - HA records every trigger fire, even ones that exited via a condition.
+- **Automation appears in the list but nothing fires.** Check that the toggle next to it is on (blue). And check the **Trace** (click the automation to open the editor, then click the **Traces icon** in the top right of the editor window, next to the three-dots YAML menu) - HA records every trigger fire, even ones that exited via a condition. (Older HA versions had a "Traces" tab on the automation details page; current versions moved this to the icon in the editor.)
 
 ## How to disable an automation if it misbehaves
 

@@ -74,7 +74,7 @@ This is the integration that adds EMS-mode and EMS-power-limit entities - the RA
    - Click **Add**.
 4. Close that dialog. Search HACS for **"GoodWe Inverter"** and you should see the experimental version listed.
 5. Click it, then click **Download**, accept the version, and let it install.
-6. **Restart Home Assistant** when prompted (Settings > System > Restart).
+6. **Restart Home Assistant** when prompted. The restart control in current HA versions lives at **Settings > System**, then click the **power icon in the top right** and choose **Restart Home Assistant** from the dropdown. (Older HA versions exposed this as a plain "Restart" button on the same page.)
 7. After restart, go to **Settings > Devices & services > Add integration**, search for **GoodWe Inverter** (note: this is *different* from the built-in "GoodWe" - look for the one with "Inverter" in the name).
 8. Add the integration with the same IP address you used for the native one.
 
