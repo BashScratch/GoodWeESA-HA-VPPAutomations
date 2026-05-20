@@ -56,7 +56,7 @@ A correctness fix, not a feature. Some GoodWe ARM firmware revisions report acti
 
 A few automations and sensors have been sketched in the project's plan but not yet implemented. They'll land in a future pass:
 
-- **Zero-Grid Credit watchdog** ([`../globird/zero_grid_credit_watchdog.yaml`](../globird/zero_grid_credit_watchdog.yaml) - early implementation, needs the `utility_meter` helper set up before it works) - alerts you when grid import during the peak window threatens GloBird's daily Zero-Grid credit.
+- **Zero-Grid Credit watchdog** ([`../globird/zero_grid_credit_watchdog.yaml`](../globird/zero_grid_credit_watchdog.yaml) - needs the `utility_meter` helper set up before it works; see [prereq 04 Step 6](../../prerequisites/04_create_helpers.md#step-6---create-the-utility-meter-helper-only-if-installing-the-zero-grid-credit-watchdog) for the walkthrough) - alerts you when grid import during the peak window threatens GloBird's daily Zero-Grid credit.
 - **Dynamic export limit** - template sensor that adapts the export limit to live house demand instead of a static number.
 - **EV charge ring-fencing** - binary sensor that gates EV charging on battery state and tariff window. Vendor-specific to each EV charger's API; documented in the plan but not implemented because it depends on your charger.
 - **Dynamic EV load balancing** - template sensor calculating available grid headroom and pushing the value to your EV charger's API. Same vendor-dependence as ring-fencing.

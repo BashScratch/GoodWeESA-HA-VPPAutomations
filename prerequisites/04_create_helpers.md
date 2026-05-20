@@ -18,10 +18,11 @@ If you've never used helpers before, the page will be empty.
 
 ## Step 2 - Create a helper
 
-Click the **Create helper** button (bottom right). HA will offer you a list of helper types. The two we use:
+Click the **Create helper** button (bottom right). HA will offer you a list of helper types. We use three of them:
 
 - **Toggle** - for `input_boolean.zero_hero_enabled` and `input_boolean.zero_hero_force_safe`. A simple on/off switch.
-- **Number** - for everything else (rates, caps, SOC thresholds, the export tracker). A numeric value with a min, max, and step size.
+- **Number** - for the rates, caps, SOC thresholds, and the export tracker. A numeric value with a min, max, and step size. This covers almost all the helpers in the strategy guide.
+- **Utility Meter** - only needed if you're installing the [Zero-Grid Credit watchdog](../automations/globird/zero_grid_credit_watchdog.yaml). Resets daily at 18:00 and tracks accumulated grid imports during the peak window. Step 6 below covers the setup.
 
 For each helper in the strategy guide's list, click **Create helper**, pick the right type, and fill in the fields:
 
@@ -59,6 +60,38 @@ You can also rename the entity ID directly: click the helper, then the cog icon,
 Strictly optional, but recommended: build yourself a small "Zero Hero Settings" card on your HA dashboard with all the helpers grouped together. When GloBird adjusts the super rate or the daily credit, you'll thank yourself for being able to change it in two clicks.
 
 A simple [Entities card](https://www.home-assistant.io/dashboards/entities/) listing all the helpers does the job.
+
+## Step 6 - Create the Utility Meter helper (only if installing the Zero-Grid Credit watchdog)
+
+The Zero-Grid Credit watchdog ([`automations/globird/zero_grid_credit_watchdog.yaml`](../automations/globird/zero_grid_credit_watchdog.yaml)) needs a Utility Meter helper to track grid imports during the 18:00-21:00 peak window. Without this helper the watchdog will trigger on a sensor that doesn't exist and never fire. Skip this step if you're not installing that automation.
+
+From the Helpers page, click **Create helper** > pick **Utility Meter** > fill in:
+
+| Field | Value |
+|---|---|
+| **Name** | `Zero Hero Peak Grid Import` (HA will derive entity ID `sensor.zero_hero_peak_grid_import`) |
+| **Input sensor** | `sensor.goodwe_total_energy_import` (or your equivalent - check Developer Tools > States if you have a `_2` suffix on this sensor) |
+| **Meter reset cycle** | `Daily` |
+| **Cycle offset (days/hours/minutes)** | `0 days, 18 hours, 0 minutes` so it resets at the start of the peak window |
+| **Tariffs** | Leave empty - this isn't a multi-tariff meter, just a daily-resetting accumulator |
+| **Periodically reset** | On (default) |
+
+Click **Create**.
+
+After creation you'll have `sensor.zero_hero_peak_grid_import` on the States page. Outside the peak window it should read `0` (or close to it - it accumulates from 18:00 each day and zeroes again at the next 18:00). During peak, it climbs as you import.
+
+The watchdog automation also needs `input_number.zero_hero_credit_alert_threshold` (a regular Number helper, default value `25`, unit `Wh`) - create it via the Number flow in Step 2 the same way as the other helpers. The watchdog's YAML header has the full details and tuning guidance for both.
+
+If you'd rather configure via `configuration.yaml` instead of the UI, the equivalent YAML block is:
+
+```yaml
+utility_meter:
+  zero_hero_peak_grid_import:
+    source: sensor.goodwe_total_energy_import   # EDIT: your import sensor
+    cycle: daily
+    offset:
+      hours: 18
+```
 
 ## Common gotchas
 
