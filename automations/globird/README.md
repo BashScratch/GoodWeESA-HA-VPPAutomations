@@ -138,7 +138,7 @@ If you're on a three-phase ESA and finding the credit gets blown despite your ba
 
 Method 4 is still the recommended approach on three-phase, just for different reasons. You still get:
 
-- Precise grid-export control via `number.goodwe_grid_export_limit` (Method 1's app-only baseline TOU and Methods 2/3 set total discharge, which is imprecise; Method 1 with Andrew Palmer's Soft Power Limit gets around this).
+- Precise grid-export control via `number.goodwe_grid_export_limit` (Methods 2/3 set total discharge, which is imprecise; Method 1 in current app versions now exposes Export Power Limit per TOU period natively, and on older app versions you can use Andrew Palmer's Soft Power Limit installer-menu workaround to achieve the same outcome).
 - Your SEMS+ TOU schedule isn't deleted by HA mode changes.
 - The HA smart layer (SOC guard, profit notifications, helper-tunable rates) is unchanged.
 
@@ -224,7 +224,7 @@ HA handles the smart layer: at 17:56 it evaluates SOC, arms or blocks the 5kW pe
 - Pro: Native firmware handles the "charge then hold" behaviour correctly.
 - Pro: Never touches operation mode from HA - your TOU schedule is safe.
 - Pro: Inherits the HA smart-layer benefits (SOC guard, dynamic export limit, notifications, profit calc, tunable rates).
-- Pro: `number.goodwe_grid_export_limit` is precise grid-export control (not "total discharge" like Methods 1, 2, and 3). If house load varies, your grid-export number stays the same (provided the inverter has the headroom to cover both house and grid simultaneously).
+- Pro: `number.goodwe_grid_export_limit` is precise grid-export control. If house load varies, your grid-export number stays the same (provided the inverter has the headroom to cover both house and grid simultaneously). Methods 2 and 3 use "total discharge" semantics, which is imprecise. Method 1 used to share that imprecision via SEMS+'s Discharge Power knob, but recent SEMS+ versions expose Export Power Limit per TOU period natively, closing the gap for app-only users.
 - Pro: **Mostly insulated from firmware changes.** Uses the native HA integration's documented entities plus the GoodWe app's own TOU feature, both of which GoodWe maintains. Less exposed to breakage than Method 3's experimental-register approach.
 - Caveat: Method 4 still writes to the inverter's persistent storage twice daily via `number.goodwe_grid_export_limit`. Less flash exposure than Method 2 (4 writes/day), but more than Method 3 (zero, since EMS targets RAM). If you specifically want zero flash writes, Method 3 is the right pick. For most users the throughput advantage of Method 4 outweighs this; see Method 4's README for the write-cycle math.
 - Pro/Con: One small experimental-only dependency. The midnight reset turns off `switch.goodwe_fast_charging_switch` as a safety net (legacy from when an earlier version of this automation used the fast-charge switch as the primary charging mechanism; now that the charge is owned by TOU, this line just catches the case where someone manually flipped the switch on and forgot). That entity only exists with the HACS integration; on a native-only install the action errors silently and the rest of the automation continues (the YAML uses `continue_on_error: true`). So Method 4 *will* run native-only, you just lose one belt-and-braces line of safety.
@@ -238,7 +238,7 @@ HA handles the smart layer: at 17:56 it evaluates SOC, arms or blocks the 5kW pe
 
 Three recommendations cover most cases. Method 2 exists for completeness but isn't recommended over the other three (it has the heaviest flash-write footprint and Method 4 dominates it on every other axis).
 
-- **[Method 1: App-only](./method1_app_only/)** if you don't want to run Home Assistant at all. With Andrew Palmer's Soft Power Limit setup it gets you precise grid export and Zero-Grid credit preservation without any HA. The simplest path; nothing to maintain beyond two TOU slots in SEMS+. A solid choice if HA isn't already in your life.
+- **[Method 1: App-only](./method1_app_only/)** if you don't want to run Home Assistant at all. In current SEMS+ versions you can set Export Power Limit directly in the TOU dialog for precise grid export without any installer-menu trickery; on older app versions Andrew Palmer's Soft Power Limit installer setup gets you the same outcome. Either way: precise grid export and Zero-Grid credit preservation without any HA. The simplest path; nothing to maintain beyond two TOU slots in SEMS+. A solid choice if HA isn't already in your life.
 
 - **[Method 4: Hybrid](./method4_hybrid/)** for most people who want the happy middle ground. The things HA is good at (SOC guard, notifications, profit calc, tunable rates) layered on top of the inverter doing the heavy lifting via TOU schedules. Charges at the full 13.5kW (single-phase 10kW model) thanks to firmware-managed AC+DC blending. The default recommendation for most Zero Hero users.
 

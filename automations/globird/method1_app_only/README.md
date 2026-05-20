@@ -4,7 +4,12 @@
 
 > **Heads up: the GoodWe app is a moving target.** SEMS+ and SolarGo are evolving quickly, with new fields and menu reorganisations appearing in most releases. We try to keep these instructions current, but a screen we describe might already have an extra field, a renamed label, or a different layout by the time you open it. If a step here doesn't match what you see in the app, it's almost always a recent app update rather than a fundamental change to the inverter - check the GoodWe ESA Facebook group or the Whirlpool thread for the current state, then come back and the rest of the guide will still apply.
 >
-> **Specific moving piece worth knowing about (as of 18 May 2026):** newer SEMS+ versions paired with recent battery firmware have started exposing a **discharge SOC limit** field directly on the TOU discharge slot - a per-window floor that lives inside the TOU dialog itself. Up until now the only way to set an SOC floor for the discharge window has been the separate **Battery Protection** menu (see Step 5 below), which is the battery's system-wide last-resort floor where the inverter stops discharging and starts importing from the grid - it applies in every operating mode, not just TOU, and you set it once and leave it. The new per-window TOU field is a different concept: a discharge-window-specific minimum that would let you say "stop the TOU discharge at 30% but still let the battery cover overnight household load down to the Battery Protection floor below that". Rollout is uneven (some installs see the field, others don't, and community reports on whether it actually enforces the limit are mixed). GoodWe is actively working on it; wide rollout expected within the next month. If your discharge slot shows the new field, try it - but verify the inverter respects it for a few nights before relying on it. Battery Protection remains your universal floor regardless of how the new TOU field behaves.
+> **Specific moving pieces worth knowing about (as of 18 May 2026):** recent SEMS+ releases (paired with recent battery firmware) have added two fields directly into the TOU **Time Period** dialog that materially change what Method 1 can do without a workaround. Rollout is uneven across battery firmware and app versions, so what you see in your app may not match the steps below exactly. If you've got either of these fields, prefer them over the older app-only workarounds we describe later in this guide.
+>
+> 1. **Export Power Limit (per TOU period).** A toggle plus a watts value that pins the grid-export rate for that specific TOU window. This is the big one - previously the only way to get precise grid export from the app was the installer-menu **Soft Power Limit** (the "Andrew Palmer approach", covered later in this README). With this field native in TOU, no installer password is needed and the limit applies only to the window you set it on. If your TOU period dialog shows this field, **you can skip the Soft Power Limit section below entirely** - just set Export Power Limit to your target watts (5000 for Zero Hero's 15 kWh Super Export cap at 3 hours).
+> 2. **Discharge SOC limit (per TOU discharge slot).** A per-window floor that lives inside the TOU dialog itself, separate from the system-wide Battery Protection menu (see Step 5 below) which is the battery's last-resort floor where the inverter stops discharging and starts importing from the grid in any operating mode. The new TOU field is a different concept: it would let you say "stop the TOU discharge at 30% but still let the battery cover overnight household load down to the Battery Protection floor below that". Community reports on whether it actually enforces the limit are mixed. GoodWe is actively working on it; wider rollout expected within the next month. If your discharge slot shows the new field, try it but verify it works for a few nights before relying on it.
+>
+> Battery Protection remains your universal floor regardless of how the new TOU fields behave.
 
 The simplest possible Zero Hero setup. Everything happens in the GoodWe SEMS+ app (or SolarGo if that's what you've already got working). No Home Assistant, no HACS, no helpers, no YAML. The inverter's firmware does the work; you check the results in the app.
 
@@ -59,14 +64,24 @@ Save the slot.
 
 ### Step 3 - Create the discharge slot
 
-Switch to the **Discharge** tab in the same TOU dialog. As of writing the discharge tab only exposes one knob - **Discharge Power** as a percentage of inverter capacity. There's no SOC floor in the TOU dialog itself (the SOC floor is set separately in the **Battery Protection** menu in SEMS+ - see Step 5 below). The fields:
+Switch to the **Discharge** tab in the same TOU dialog. The fields you'll see depend on your app/firmware version - newer combinations expose more knobs per period than older ones.
+
+**Common fields (all app versions):**
 
 | Field | Value |
 |---|---|
 | **Start Time** | `18:00` |
 | **End Time** | `21:00` (or `20:00` on older Zero Hero plans) |
 | **Repeat** | All months, all days |
-| **Discharge Power** | Percentage of inverter capacity. See the gotcha section below for how to pick a value. |
+| **Discharge Power** | Percentage of inverter capacity. See "Discharge power, the gotcha" below for how to pick a value if this is the only knob you have. |
+
+**Newer fields (recent SEMS+ + battery firmware combinations):**
+
+| Field | Value |
+|---|---|
+| **Export Power Limit** | Toggle ON; set watts to your target grid-export rate. `5000` watts (5kW) is the sweet spot for Zero Hero - 5 kW × 3 h = 15 kWh, exactly the current Super Export cap. If your app has this field, set Discharge Power to `100%` and let Export Power Limit do the precision work. With Export Power Limit pinned, the inverter outputs `(house load) + (Export Power Limit)` total, so grid export sits at your chosen number regardless of how house load fluctuates. **This is the same outcome that previously required the Soft Power Limit installer-menu workaround.** |
+| **Discharge SOC limit** | If exposed, the per-window minimum SOC the discharge will stop at. Leave at `10-30%` to keep some headroom for overnight household use. (See the callout at the top of this README - this field is in uneven rollout as of mid May 2026 and reports on whether it enforces are mixed; treat it as additional defence-in-depth rather than your primary floor.) |
+| **Rated Current of the Incoming Circuit Breaker** | This is a safety field that limits backfeed current to what your incoming main circuit breaker is rated for. Leave at whatever your installer set it to during commissioning unless you have a specific reason to change it. |
 
 ### Step 4 - Set the SOC floor in Battery Protection
 
@@ -88,7 +103,11 @@ Watch the next peak window:
 
 That's it. The inverter handles the rest day after day.
 
-## The discharge-power gotcha (read this twice)
+## If your app shows Export Power Limit in TOU, skip ahead
+
+If you've already set Export Power Limit in Step 3, the rest of the precision-export discussion below is a legacy fallback. You can jump straight to [Step 4](#step-4---set-the-soc-floor-in-battery-protection) above and then ["What you're missing without HA"](#what-youre-missing-without-ha) further down. Read on only if your TOU dialog doesn't expose Export Power Limit yet.
+
+## Discharge power, the gotcha (read this twice if your TOU dialog only has Discharge Power)
 
 The TOU **Discharge Power** field is a **percentage of inverter capacity**, and that percentage represents **total inverter output** - house load and grid export combined - not grid export specifically.
 
@@ -97,17 +116,22 @@ So on a 10kW inverter, setting Discharge Power to 50% means "discharge at up to 
 Worked example - working out what % to set if you want to export 5kW to the grid on a 10kW inverter:
 
 1. Estimate your typical house load during peak hours (e.g. 2kW between 6pm and 9pm if you're cooking and have lights on).
-2. Add your target grid export (e.g. 5kW for Zero Hero with the 10kWh super cap over 2 hours, or ~3.5kW over 3 hours).
+2. Add your target grid export (e.g. 5kW for Zero Hero with the 15kWh super cap over 3 hours).
 3. Total output you want: 2kW house + 5kW grid = 7kW.
 4. As a percentage of the 10kW inverter: 70%. Set Discharge Power to 70%.
 
 It's not perfect. House load varies - if the house is drawing 5kW (dryer, oven, kettle all on) you're at the inverter's 7kW ceiling and grid export drops to 2kW. If the house is drawing 0.5kW, grid export climbs to 6.5kW. The total inverter output is what you've pinned, not grid export specifically.
 
-**The better way to do this in Method 1** is to leave Discharge Power at 100% and use the **Soft Power Limit** setting (in the SolarGo installer menu) to pin grid export specifically. That setup is covered in the next section. With it, the inverter discharges at house-load + your chosen grid-export number regardless of house load fluctuation. Worth the installer-password hassle if you care about hitting the Zero Hero credits precisely.
+**The cleaner way to get precise grid export in Method 1** depends on what your app exposes:
 
-## Going further: precise grid export with the Soft Power Limit (Andrew Palmer's approach)
+1. **If your app has Export Power Limit in the TOU dialog** (recent versions), use it. Discharge Power 100% + Export Power Limit set to your target watts (5000 for the Zero Hero Super Export cap). The inverter outputs `house load + your Export Power Limit` total, so grid export pins precisely regardless of house load fluctuation. No installer password needed. **This is the recommended path** if your app shows the field.
+2. **If it doesn't**, the **Soft Power Limit** setting in SolarGo's installer-level menu achieves the same outcome via an older mechanism (Andrew Palmer's approach, documented next). It requires the installer password and lives outside the TOU dialog, but it's the right workaround on older app versions until your firmware/app update enables the TOU-native field.
 
-Method 1 *can* pin grid export to a specific number without HA. The trick is the **Soft Power Limit** setting in SolarGo's installer-level menu, combined with TOU discharge at 100%.
+## Legacy fallback: precise grid export with the Soft Power Limit (Andrew Palmer's approach)
+
+**Skip this section if your TOU dialog already exposes Export Power Limit per period** - the new native field does everything Soft Power Limit does, with less hassle. Read on only if you're on an older app/firmware combination that doesn't show it yet.
+
+Method 1 on older app versions *can* still pin grid export to a specific number without HA. The trick is the **Soft Power Limit** setting in SolarGo's installer-level menu, combined with TOU discharge at 100%.
 
 Naming note: GoodWe's own docs sometimes call this **"Software Power Limit"** (see [GoodWe's Export Power Limit Solution page](https://en.goodwe.com/export-power-limit-solution)), while community discussion mostly says "Soft Power Limit". Same thing. You'll find it in SolarGo at **Advanced Setting > Power Limit > Software Power Limit** (installer password required - see prereq 01 for that).
 
@@ -160,7 +184,7 @@ If you've enabled Modbus TCP on the inverter (see [prereq 01](../../../prerequis
 
 This method gets you the basic charge-during-free / discharge-during-peak cycle, which is most of the value. But there are real things HA adds that the app alone can't:
 
-- **Precise grid-export control during peak.** SEMS+ pins total inverter output; HA's `number.goodwe_grid_export_limit` pins grid export specifically. With Zero Hero's "first 10kWh at 15c, rest at 6c" structure, hitting the cap precisely matters.
+- **Precise grid-export control during peak** *(only if your app doesn't yet expose Export Power Limit in TOU - see callout at the top).* In recent SEMS+ versions, the new per-period Export Power Limit field closes this gap natively. On older app/firmware combinations, the SEMS+ Discharge Power knob pins total inverter output (house load + grid export combined), so grid export drifts with house load. HA's `number.goodwe_grid_export_limit` pins grid export specifically. If you've got the new TOU field, this point doesn't apply to you.
 - **Dynamic SOC guard.** SEMS+ will discharge down to the Battery Protection floor regardless of conditions. If the battery's at 40% going into peak because the free-window charge didn't fill it (cloudy day, late free-window start, etc.), it'll discharge to the floor and then buy grid power at peak rates to cover the rest. HA can decide "today's not the day, skip peak export" based on live SOC at 17:56.
 - **Profit notifications.** SEMS+ shows you what charged and discharged but doesn't compute "you exported X kWh tonight at the super rate, plus the daily credit, total $Y." HA does that and pushes it to your phone each evening.
 - **Helper-tunable rates.** When GloBird adjusts the super rate or daily credit (it happens), updating SEMS+ tariff configuration is fiddly. With HA the rates live in number helpers you can edit from the dashboard in two clicks.
@@ -180,17 +204,20 @@ If they don't, this method is fine. You're getting most of the Zero Hero benefit
 - **Firmware availability for the 13.5kW combined-charging capability.** On the single-phase 10kW ESA, the firmware that combines grid AC and solar DC for 13.5kW battery charging has been rolling out from around April 2026. Some firmware releases have it, some don't, and some users have had to ask GoodWe Level 2 support for a standalone push. If you're seeing your battery cap at ~10kW during the free window despite plenty of solar, this is the likely cause.
 - **Plan rate changes.** GloBird occasionally adjusts the super rate, base rate, or daily credit. Check your latest bill and your plan documents periodically.
 - **No safety-net SOC guard.** If your battery is going into peak with limited charge (cloudy day, free window cut short, etc.), this method will discharge down to the Battery Protection floor (set in the Battery Protection menu of SEMS+, not the TOU dialog) and then start importing from the grid at peak rates to cover any remaining demand. There's no "skip peak today" logic. HA methods add that.
-- **Soft Power Limit isn't dynamic.** If you decide to change your peak export rate (e.g. you want 1.5kW instead of 2kW for a few days), it's a manual trip into the SolarGo installer menu each time. With Method 4, the export limit lives in a HA helper you can edit from the dashboard in two clicks (or via automation if you want it to vary by day of week, weather forecast, etc.). Most users set the Soft Power Limit and forget; if you want to tune it often, that's a real tradeoff to consider.
+- **Export Power Limit (new field) isn't dynamic.** If you change your peak export rate often (e.g. you want 1.5kW instead of 2kW for a few days, or vary by day of week / weather forecast), each change is a manual edit to the TOU period in SEMS+. The same applies to the older Soft Power Limit workaround. With Method 4, the export limit lives in an HA helper you can edit from the dashboard in two clicks. Most users set the value once and forget; if you want to tune it often, that's a real tradeoff to consider.
 
-## Method 1 with Soft Power Limit vs Method 4 - they're closer than you'd think
+## Method 1 vs Method 4 - they're closer than you'd think
 
-Once you've set up the Soft Power Limit, Method 1 is functionally close to Method 4 in what it achieves at the inverter level. Both pin grid export precisely, both let the inverter charge at full 13.5kW via TOU. The differences are the things HA brings on top:
+In current app versions (Export Power Limit native in TOU), Method 1 is functionally close to Method 4 in what it achieves at the inverter level. Both pin grid export precisely, both let the inverter charge at full 13.5kW via TOU. The remaining differences are the things HA brings on top:
 
 - Method 4 adds the SOC guard logic that decides whether to arm peak export each day.
-- Method 4 adds notifications, profit calc, and helper-tunable rates.
-- Method 4 lets you change the export limit dynamically rather than via the installer-menu Soft Power Limit.
+- Method 4 adds notifications and a nightly profit calculation.
+- Method 4 puts the rate inputs in HA helpers, so when GloBird adjusts the super rate or credit you can update from a dashboard rather than navigating the SEMS+ tariff config.
+- Method 4 lets you change the export limit dynamically (per-day, by weather forecast, etc.) rather than editing the TOU schedule manually.
 
-If those things matter, Method 4 is worth the HA setup. If they don't, Method 1 with Soft Power Limit gets you almost the same energy outcome with a much simpler maintenance footprint.
+If those things matter, Method 4 is worth the HA setup. If they don't, Method 1 in the current app gets you almost the same energy outcome with a much simpler maintenance footprint.
+
+(On older app versions without TOU-native Export Power Limit, the same comparison applies once you've set up the Soft Power Limit workaround.)
 
 ## Going further
 
