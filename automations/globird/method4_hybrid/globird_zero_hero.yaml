@@ -130,6 +130,49 @@ actions:
                     unchanged and profit calc would be broken. Check GoodWe integration.
               - stop: required sensor unavailable
 
+          # Enable the export-limit switch and verify it actually turned on.
+          # number.goodwe_grid_export_limit is only enforced by the inverter when
+          # this switch is on. If it's off, the inverter exports at full AC power
+          # regardless of what we write to the number entity. This is the single
+          # most common reason Method 4 "appears to work" (trace looks fine, value
+          # set) but the inverter still pushes at full power during peak.
+          # See prereq 05 for the entity reference.
+          - action: switch.turn_on
+            target:
+              entity_id: switch.goodwe_grid_export_limit_switch   # EDIT: your switch entity (typically no _2 suffix even on dual-integration installs)
+            continue_on_error: true
+
+          # Wait up to 60 seconds for the new state to reflect via the next
+          # integration poll cycle. Default polling is 30s; 60s gives a
+          # comfortable margin without eating into the 4-minute window before
+          # peak starts at 18:00.
+          - wait_template: >
+              {{ states('switch.goodwe_grid_export_limit_switch') == 'on' }}
+            timeout: "00:01:00"
+            continue_on_timeout: true
+
+          # If after the wait the switch is still not on, abort. Writing the
+          # number value would be pointless (inverter ignores it) and firing
+          # the "Armed" notification would mislead the user into thinking
+          # everything is fine.
+          - if:
+              - condition: not
+                conditions:
+                  - condition: state
+                    entity_id: switch.goodwe_grid_export_limit_switch
+                    state: "on"
+            then:
+              - action: notify.mobile_app_your_device_name   # EDIT: your notify service
+                data:
+                  title: Zero Hero Aborted - Export Limit Switch Off
+                  message: >-
+                    switch.goodwe_grid_export_limit_switch could not be enabled.
+                    The inverter ignores the export-limit value when this switch
+                    is off, so peak export would not be capped. Manually toggle
+                    the switch on in HA (Settings > Devices & services > GoodWe)
+                    and verify tonight's export.
+              - stop: Export limit switch is off; not safe to proceed
+
           - choose:
               # SOC above guard threshold - arm peak export.
               # Threshold pulled from input_number.zero_hero_min_export_soc helper.
