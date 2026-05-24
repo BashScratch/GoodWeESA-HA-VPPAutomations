@@ -74,9 +74,12 @@ Note exactly what your install reports. The Method 3 YAML uses `"Auto"`, `"Charg
 | Purpose | Likely entity ID |
 |---|---|
 | Grid export power limit | `number.goodwe_grid_export_limit` |
+| Grid export limit master switch | `switch.goodwe_grid_export_limit_switch` |
 | Fast charging switch | `switch.goodwe_fast_charging_switch` |
 
 For `number.goodwe_grid_export_limit`, click and confirm the value isn't `unavailable`. On some installs the value shows as `0`; on others it shows the inverter's nameplate maximum (e.g. `5000` or `10000`). Either is fine - it just tells you what the inverter is currently limited to.
+
+For `switch.goodwe_grid_export_limit_switch`, just confirm the entity exists. The Method 4 YAML enables this automatically at 17:56 (and verifies the state before arming peak export), so you don't need to set it manually. Worth knowing it's there because the inverter only enforces the limit *value* when this switch is on - the YAML's defensive turn-on covers users who'd otherwise never know to check it.
 
 ## Step 4 - Handle the `_2` suffix problem
 
