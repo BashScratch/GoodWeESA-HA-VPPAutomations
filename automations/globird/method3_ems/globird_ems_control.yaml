@@ -20,9 +20,9 @@ max: 5
 #   input_boolean.zero_hero_force_safe       - panic switch: forces inverter to Auto
 #   input_number.zero_hero_export_start      - tracks export kWh at peak start
 #   input_number.zero_hero_rate_super        - GloBird super export rate $/kWh (e.g. 0.15)
-#   input_number.zero_hero_rate_base         - GloBird base export rate $/kWh (e.g. 0.06)
+#   input_number.zero_hero_rate_base         - GloBird base export rate $/kWh (e.g. 0.05)
 #   input_number.zero_hero_rate_credit       - GloBird daily zero-grid credit (e.g. 1.00)
-#   input_number.zero_hero_super_cap         - kWh cap for super rate (10 or 15)
+#   input_number.zero_hero_super_cap         - kWh cap for super rate (15 current, 10 older plan)
 #   input_number.zero_hero_min_export_soc    - SOC % below which peak export is blocked
 #   input_number.zero_hero_peak_export       - target peak export power in W (default 5000;
 #                                              tune via dashboard to match inverter size + plan cap)
@@ -233,9 +233,9 @@ actions:
                     {% set kwh_sold   = [(end_exp - start_exp), 0] | max | round(2) %}
 
                     {% set rate_super = states('input_number.zero_hero_rate_super') | float(0.15) %}
-                    {% set rate_base  = states('input_number.zero_hero_rate_base')  | float(0.06) %}
+                    {% set rate_base  = states('input_number.zero_hero_rate_base')  | float(0.05) %}
                     {% set credit     = states('input_number.zero_hero_rate_credit') | float(1.00) %}
-                    {% set super_cap  = states('input_number.zero_hero_super_cap')   | float(10) %}
+                    {% set super_cap  = states('input_number.zero_hero_super_cap')   | float(15) %}
 
                     {% set super_kwh  = [kwh_sold, super_cap] | min %}
                     {% set base_kwh   = [kwh_sold - super_cap, 0] | max %}

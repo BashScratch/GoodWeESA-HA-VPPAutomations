@@ -21,9 +21,9 @@ max: 5
 #   input_boolean.zero_hero_enabled          - master on/off toggle
 #   input_number.zero_hero_export_start      - internal session kWh tracker
 #   input_number.zero_hero_rate_super        - super export rate $/kWh  (e.g. 0.15)
-#   input_number.zero_hero_rate_base         - base export rate $/kWh   (e.g. 0.06)
+#   input_number.zero_hero_rate_base         - base export rate $/kWh   (e.g. 0.05)
 #   input_number.zero_hero_rate_credit       - daily zero-grid credit $ (e.g. 1.00)
-#   input_number.zero_hero_super_cap         - kWh cap for super rate   (10 or 15)
+#   input_number.zero_hero_super_cap         - kWh cap for super rate   (15 current, 10 older plan)
 #   input_number.zero_hero_min_export_soc    - SOC % below which peak export is blocked (e.g. 65)
 #   input_number.zero_hero_peak_export       - target peak grid-export limit in W (default 5000 = 5kW;
 #                                              tune to match how aggressively you want to hit the
@@ -256,9 +256,9 @@ actions:
 
                 {# Rates and cap pulled from helpers - edit via the UI, not here. #}
                 {% set rate_super = states('input_number.zero_hero_rate_super') | float(0.15) %}
-                {% set rate_base  = states('input_number.zero_hero_rate_base')  | float(0.06) %}
+                {% set rate_base  = states('input_number.zero_hero_rate_base')  | float(0.05) %}
                 {% set credit     = states('input_number.zero_hero_rate_credit') | float(1.00) %}
-                {% set super_cap  = states('input_number.zero_hero_super_cap')   | float(10) %}
+                {% set super_cap  = states('input_number.zero_hero_super_cap')   | float(15) %}
 
                 {% set super_kwh  = [kwh_sold, super_cap] | min %}
                 {% set base_kwh   = [kwh_sold - super_cap, 0] | max %}
