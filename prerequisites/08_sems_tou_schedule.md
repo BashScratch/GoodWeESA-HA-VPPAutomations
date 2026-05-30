@@ -107,8 +107,10 @@ The next free window (11:00 the following day, or right now if you're inside one
 The next peak window:
 
 - At 17:56 you should see a "Zero Hero Armed" notification from HA (assuming `input_boolean.zero_hero_enabled` is on and SOC is above your guard threshold).
-- During peak, grid export should sit at around 5kW plus whatever house load is. SOC should drop steadily.
+- During peak, grid export should sit at around 5kW; the inverter covers house load on top of that, so total inverter output = 5kW + house load. The 5kW is what crosses your meter to the grid, regardless of how house load moves. SOC should drop steadily.
 - At 21:01 you should see a "Zero Hero Complete" notification with the night's profit calculation.
+
+> **Don't be alarmed if `select.goodwe_inverter_operation_mode` reads "general" during peak.** On at least some firmware/integration combinations, that entity continues to report `general` even while a TOU discharge schedule is actively running and exporting to the grid. The TOU schedule operates underneath the headline operation mode; the entity doesn't necessarily flip to `eco` to reflect it. We confirmed this on a working install: operation mode showed `general` for days straight while the battery exported a clean 5kW across every peak window. So if you're debugging and tempted to conclude "my TOU setup isn't working because HA says general", check what actually matters instead - is the battery SOC dropping and is grid export sitting near your limit during peak? If yes, it's working regardless of what the mode entity says.
 
 If the charge slot didn't fire - battery isn't charging during the window - check:
 
