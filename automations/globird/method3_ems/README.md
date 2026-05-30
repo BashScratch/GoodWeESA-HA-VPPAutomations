@@ -24,7 +24,7 @@ Method 3 looks like an experimental version of Method 4 if you read it next to a
   https://github.com/mletenay/home-assistant-goodwe-inverter
   The native HA GoodWe integration does not expose the EMS entities. This method won't work without the experimental one.
 - The entities `select.goodwe_ems_mode` and `number.goodwe_ems_power_limit` - check your actual setup in Developer Tools > States.
-- The nine helpers listed in the [strategy guide](../README.md#required-home-assistant-helpers). Method 3 uses three extras beyond the six shared ones: `input_boolean.zero_hero_force_safe` (panic switch - flip ON to force inverter back to Auto via the watchdog), `input_number.zero_hero_min_export_soc` (SOC floor for arming peak export), and `input_number.zero_hero_peak_export` (target peak discharge power in Watts, default 5000).
+- The ten helpers listed in the [strategy guide](../README.md#required-home-assistant-helpers). Method 3 uses four extras beyond the six shared ones: `input_boolean.zero_hero_force_safe` (panic switch - flip ON to force inverter back to Auto via the watchdog), `input_number.zero_hero_min_export_soc` (SOC floor for arming peak export), `input_number.zero_hero_ems_charge_power` (free-window charge power in Watts, default 5000 - set to your AC nameplate for full-rate charging), and `input_number.zero_hero_peak_export` (target peak discharge power in Watts, default 5000).
 - A notification device set up in HA.
 
 ## Install

@@ -5,7 +5,7 @@ description: >
   schedules (the operation mode is never changed) and writes nothing to flash.
   IMPORTANT: Check the exact option strings for select.goodwe_ems_mode in
   Developer Tools before saving - they vary by inverter model and firmware.
-  Method 2 is experimental. Read the README before enabling.
+  Method 3 is experimental. Read the README before enabling.
   See GLOSSARY.md for EMS mode descriptions.
 mode: queued
 max: 5
@@ -26,6 +26,10 @@ max: 5
 #   input_number.zero_hero_min_export_soc    - SOC % below which peak export is blocked
 #   input_number.zero_hero_peak_export       - target peak export power in W (default 5000;
 #                                              tune via dashboard to match inverter size + plan cap)
+#   input_number.zero_hero_ems_charge_power  - free-window charge power in W (default 5000).
+#                                              Set to your inverter's AC nameplate (10000 for the
+#                                              10kW ESA) to charge at full AC rate. EMS charging
+#                                              is AC-only, so this tops out at your nominal AC.
 # See automations/globird/README.md for full helper setup instructions.
 #
 # WATCHDOG: This automation includes a 5-minute watchdog (17:55-22:00) that
@@ -113,7 +117,12 @@ actions:
             target:
               entity_id: number.goodwe_ems_power_limit   # EDIT: your GoodWe EMS Power Limit entity
             data:
-              value: 5000   # Watts. Charges at up to 5kW from grid.
+              # Charge power pulled from the helper (default 5000W). The old hardcoded
+              # 5000 silently capped free-window charging at half the AC ceiling on a
+              # 10kW ESA - set zero_hero_ems_charge_power to your AC nameplate (e.g.
+              # 10000) to charge at full rate. EMS charging is AC-only, so this caps
+              # at nominal AC regardless (no AC+DC blending - that needs Method 4's TOU).
+              value: "{{ states('input_number.zero_hero_ems_charge_power') | float(5000) }}"
 
       # ==========================================================
       # 2:00 PM - END FREE CHARGE (RETURN TO AUTO)
@@ -247,8 +256,10 @@ actions:
       # Returns the inverter to Auto if it's stuck in a forced mode outside
       # an active window (HA crashed mid-export, or similar). Also acts
       # immediately when force_safe is flipped on as a panic switch.
-      # Active windows: 11:00-14:00 (charge slot) and 18:00-21:00 (peak slot).
-      # If the inverter is already Auto, this does nothing.
+      # Active windows (watchdog suppressed): 11:00-14:01 (charge) and 18:00-21:01
+      # (peak). End times padded 1 min past the end triggers - see the inline note
+      # on the time conditions below for why. If the inverter is already Auto, this
+      # does nothing.
       # ==========================================================
       - conditions:
           - condition: trigger
@@ -265,22 +276,28 @@ actions:
                 entity_id: input_boolean.zero_hero_force_safe
                 state: "on"
               # Or: outside both active windows.
-              # The exclusion windows match the primary triggers exactly so the
-              # watchdog doesn't race the peak_export_start trigger at 18:00.
-              # (Earlier versions used 17:58-21:02 which left a 2-minute gap
-              # where the watchdog could reset the inverter to Auto right before
-              # the peak trigger fires.)
+              # Window starts match the trigger times exactly. HA's time condition
+              # treats `after` as inclusive, so at 11:00:00 / 18:00:00 the time
+              # counts as INSIDE the window and the watchdog stays suppressed,
+              # letting free_charge_start / peak_export_start run unopposed.
+              # Window ends are set ONE MINUTE PAST the end triggers (14:01 / 21:01).
+              # HA treats `before` as exclusive, so without the extra minute the
+              # watchdog would be un-suppressed at exactly 14:00:00 / 21:00:00 and
+              # could fire a spurious "stuck mode" reset/notification racing the
+              # free_charge_end / peak_export_end trigger (both converge on Auto,
+              # but the watchdog alert is noise). The 1-minute pad keeps it quiet
+              # while the end trigger does the clean Auto transition.
               - and:
                   - condition: not
                     conditions:
                       - condition: time
                         after: "11:00:00"
-                        before: "14:00:00"
+                        before: "14:01:00"
                   - condition: not
                     conditions:
                       - condition: time
                         after: "18:00:00"
-                        before: "21:00:00"   # EDIT: change to 20:00 if peak_end is 20:00
+                        before: "21:01:00"   # EDIT: change to 20:01 if peak_end is 20:00
         sequence:
           - variables:
               stuck_mode: "{{ states('select.goodwe_ems_mode') }}"

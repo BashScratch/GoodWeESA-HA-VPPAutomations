@@ -352,6 +352,7 @@ Methods 2-4 use the six shared helpers above plus a few extras depending on whic
 
 - `input_boolean.zero_hero_force_safe` - panic switch. Flip ON to force the watchdog to return the inverter to Auto on the next 5-minute tick. Default off.
 - `input_number.zero_hero_min_export_soc` - same as Method 2 above.
+- `input_number.zero_hero_ems_charge_power` - free-window charge power in Watts. Default `5000`. Set this to your inverter's AC nameplate (`10000` for the 10kW ESA, `8000` for 8kW, `5000` for 5kW) to charge at full AC rate during the free window. EMS charging is AC-only (no AC+DC blending - that needs Method 4's native TOU), so this caps at nominal AC regardless. Min `0`, max `15000`, step `100`, unit `W`.
 - `input_number.zero_hero_peak_export` - target peak export power in Watts. The EMS Discharge command will aim for this number after house load is covered. Default `5000` (5kW). **The math that makes 5000 the sweet spot:** 5 kW × 3 h = 15 kWh, which is exactly the current Super Export cap. Going harder (e.g. 10 kW) on a large battery hits the cap in 90 minutes and then exports the rest at the base feed-in rate ($0.05/kWh) - those kWh would have been worth more covering overnight household load ($0.33/kWh shoulder rate avoided), so faster isn't better. Going gentler under-fills the cap and leaves Super Export dollars unclaimed. If you have a smaller battery that can't sustain 5 kW for the full 3 hours, set this to `(your planned peak-export budget kWh ÷ 3) × 1000` instead - e.g. `3333` for a 10 kWh budget. If you're on an older 10 kWh-cap plan, set to `3333` to hit that cap exactly. Min `0`, max `15000`, step `100`, unit `W`.
 
 **Method 4 (Hybrid):**
@@ -367,7 +368,7 @@ Methods 2-4 use the six shared helpers above plus a few extras depending on whic
 - Your GoodWe integration is installed and working (you can see `sensor.goodwe_battery_state_of_charge` or similar in HA).
 - Your HA Companion App is set up for notifications - you'll want these firing during the first few days.
 - If going with Method 2 or Method 3, the experimental HACS integration is installed (Method 2 needs `number.goodwe_eco_mode_power`; Method 3 needs `select.goodwe_ems_mode` and `number.goodwe_ems_power_limit`).
-- You've got the six shared helpers above, plus the per-method extras for whichever method you picked (see each method's section). That's nine helpers in total for Methods 2-4.
+- You've got the six shared helpers above, plus the per-method extras for whichever method you picked (see each method's section). That's nine helpers total for Methods 2 and 4, or ten for Method 3 (it adds a separate free-window charge-power helper).
 - You've read the strategy, picked a method, and have the right folder open.
 
 Right - you're ready. Go into the method folder you picked and follow the README there.
