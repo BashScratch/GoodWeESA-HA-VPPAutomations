@@ -77,7 +77,7 @@ Every match is a line where you need to replace a placeholder with a real value 
 | `number.goodwe_ems_power_limit` | Your real EMS power limit number entity |
 | `number.goodwe_grid_export_limit` | Your real export limit number entity |
 | `sensor.goodwe_battery_state_of_charge` | Your real SOC sensor entity |
-| `sensor.goodwe_total_energy_export` | Your real total export sensor entity |
+| `sensor.goodwe_meter_total_energy_export` | Your real **meter** export sensor entity (grid feed-in - not the inverter's total export, which overcounts battery-to-house) |
 | `notify.mobile_app_your_device_name` | Your real notify service from [Guide 03](./03_install_companion_app.md) |
 | `binary_sensor.ev_charger_vehicle_connected` | Your EV charger's "vehicle connected" binary sensor (EV reminder only) |
 | `button.goodwe_synchronize_inverter_clock` | Your real clock-sync button entity (time sync only) |

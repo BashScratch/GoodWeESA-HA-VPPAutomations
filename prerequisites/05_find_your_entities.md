@@ -33,7 +33,7 @@ For each method, here's the entity checklist. Find each one in your list, click 
 | Battery error code | `sensor.goodwe_battery_error` | Usually shows `0` or empty when fine |
 | Battery warning code | `sensor.goodwe_battery_warning` | Same |
 | Battery state of health (%) | `sensor.goodwe_battery_state_of_health` | Should show ~100 on a new battery |
-| Total energy exported (lifetime kWh) | `sensor.goodwe_total_energy_export` | Counter that only increases |
+| Grid feed-in exported (lifetime kWh) | `sensor.goodwe_meter_total_energy_export` | Meter-measured grid export; counter that only increases. Use this for profit calcs, **not** `sensor.goodwe_total_energy_export` (the inverter total, which also counts battery energy used by the house) |
 | Synchronise inverter clock | `button.goodwe_synchronize_inverter_clock` | A button entity, used by the time sync automation |
 
 ### Method 2 (Standard Eco Mode) extras

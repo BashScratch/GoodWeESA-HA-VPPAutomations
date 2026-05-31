@@ -19,6 +19,7 @@ max: 5
 # =============================================================================
 # REQUIRED HELPERS (create via Settings > Helpers > Number / Toggle):
 #   input_boolean.zero_hero_enabled          - master on/off toggle
+#   input_boolean.zero_hero_skip_export      - one-night skip toggle (auto-clears at midnight reset)
 #   input_number.zero_hero_export_start      - internal session kWh tracker
 #   input_number.zero_hero_rate_super        - super export rate $/kWh  (e.g. 0.15)
 #   input_number.zero_hero_rate_base         - base export rate $/kWh   (e.g. 0.05)
@@ -98,6 +99,10 @@ actions:
               entity_id: input_number.zero_hero_export_start
             data:
               value: 0
+          # Clear the one-night skip toggle so it only ever skips a single night.
+          - action: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.zero_hero_skip_export
 
       # ==========================================================
       # 5:56 PM - PRE-PEAK GUARD CHECK
@@ -110,9 +115,30 @@ actions:
             entity_id: input_boolean.zero_hero_enabled
             state: "on"
         sequence:
+          # If the user flipped the skip toggle, block export for tonight
+          # (limit 0) to conserve the battery while keeping the zero-import
+          # daily credit, then stop. The toggle auto-clears at midnight reset.
+          - if:
+              - condition: state
+                entity_id: input_boolean.zero_hero_skip_export
+                state: "on"
+            then:
+              - action: number.set_value
+                target:
+                  entity_id: number.goodwe_grid_export_limit   # EDIT: your Grid Export Limit entity (may be _2 suffixed)
+                data:
+                  value: 0
+              - action: notify.mobile_app_your_device_name   # EDIT: your notify service
+                data:
+                  title: "Zero Hero: Export Skipped"
+                  message: >-
+                    Export skipped tonight - battery conserved. Zero-import
+                    daily credit still active.
+              - stop: Export skipped by user toggle
+
           - wait_template: >
               {{ is_number(states('sensor.goodwe_battery_state_of_charge')) and
-              is_number(states('sensor.goodwe_total_energy_export')) }}
+              is_number(states('sensor.goodwe_meter_total_energy_export')) }}
             timeout: "00:02:00"
             continue_on_timeout: true
 
@@ -120,13 +146,13 @@ actions:
               - condition: template
                 value_template: >
                   {{ not is_number(states('sensor.goodwe_battery_state_of_charge')) or
-                     not is_number(states('sensor.goodwe_total_energy_export')) }}   # EDIT: your SOC and Total Export sensors
+                     not is_number(states('sensor.goodwe_meter_total_energy_export')) }}   # EDIT: your SOC and Meter Export sensors
             then:
               - action: notify.mobile_app_your_device_name   # EDIT: your notify service
                 data:
                   title: Zero Hero Aborted
                   message: >-
-                    SOC or Total Export sensor unavailable at 17:56. Export limit
+                    SOC or Meter Export sensor unavailable at 17:56. Export limit
                     unchanged and profit calc would be broken. Check GoodWe integration.
               - stop: required sensor unavailable
 
@@ -187,7 +213,7 @@ actions:
                       entity_id: input_number.zero_hero_export_start
                     data:
                       value: >-
-                        {{ states('sensor.goodwe_total_energy_export') | float(0) }}   # EDIT: your Total Export sensor
+                        {{ states('sensor.goodwe_meter_total_energy_export') | float(0) }}   # EDIT: your Meter Export sensor (grid feed-in)
                   - action: number.set_value
                     target:
                       entity_id: number.goodwe_grid_export_limit   # EDIT: your Grid Export Limit entity (may be _2 suffixed)
@@ -251,7 +277,7 @@ actions:
               title: Zero Hero Complete
               message: >
                 {% set start_exp  = states('input_number.zero_hero_export_start') | float(0) %}
-                {% set end_exp    = states('sensor.goodwe_total_energy_export') | float(0) %}
+                {% set end_exp    = states('sensor.goodwe_meter_total_energy_export') | float(0) %}
                 {% set kwh_sold   = [(end_exp - start_exp), 0] | max | round(2) %}
 
                 {# Rates and cap pulled from helpers - edit via the UI, not here. #}
@@ -265,7 +291,7 @@ actions:
                 {% set profit     = ((super_kwh * rate_super) + (base_kwh * rate_base)) | round(2) %}
                 {% set total      = (profit + credit) | round(2) %}
 
-                Exported {{ kwh_sold }} kWh. Revenue: ${{ '%.2f' | format(profit) }}
+                Exported {{ kwh_sold }} kWh to grid. Revenue: ${{ '%.2f' | format(profit) }}
                 + ${{ '%.2f' | format(credit) }} daily credit
                 = ${{ '%.2f' | format(total) }}. Goodnight.
 

@@ -37,10 +37,12 @@ Watch the indentation. If you're pasting into `configuration.yaml` under a new `
 
 Before reloading, open **Developer Tools > States** and check that you have:
 
-- `sensor.goodwe_total_energy_export` - lifetime export kWh counter
+- `sensor.goodwe_meter_total_energy_export` - lifetime **grid feed-in** kWh counter (measured at the meter)
 - `sensor.goodwe_battery_state_of_charge` - referenced by the Zero Hero automations alongside this file
 
-These names have shifted across mletenay integration versions (older builds may have suffixes like `_2` or different wording). If your entity is named differently, update the references in `globird_zero_hero_sensors.yaml` - there's currently one `sensor.goodwe_total_energy_export` reference inside the template state expression. The templates fail silently to `0` if the sensor doesn't exist, so this is worth a one-minute check now to save a frustrating debug later.
+Use the **meter** export sensor, not the inverter's `sensor.goodwe_total_energy_export`. The inverter's total-export counter includes battery energy sent to your own house loads, so it overstates what actually crossed the meter to the grid - which would inflate the profit figure. The meter sensor is what GloBird actually pays you for.
+
+These names have shifted across mletenay integration versions (older builds may have suffixes like `_2` or different wording). If your entity is named differently, update the references in `globird_zero_hero_sensors.yaml` - there's currently one `sensor.goodwe_meter_total_energy_export` reference inside the template state expression. The templates fail silently to `0` if the sensor doesn't exist, so this is worth a one-minute check now to save a frustrating debug later.
 
 ### Step 4: Make sure the helpers exist
 

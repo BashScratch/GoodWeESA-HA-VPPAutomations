@@ -163,7 +163,7 @@ actions:
         sequence:
           - wait_template: >
               {{ is_number(states('sensor.goodwe_battery_state_of_charge')) and
-              is_number(states('sensor.goodwe_total_energy_export')) }}
+              is_number(states('sensor.goodwe_meter_total_energy_export')) }}
             timeout: "00:02:00"
             continue_on_timeout: true
           - if:
@@ -189,7 +189,7 @@ actions:
                       entity_id: input_number.zero_hero_export_start
                     data:
                       value: >-
-                        {{ states('sensor.goodwe_total_energy_export') | float(0) }}
+                        {{ states('sensor.goodwe_meter_total_energy_export') | float(0) }}
                   - action: notify.mobile_app_your_device_name   # EDIT: your notify service
                     data:
                       title: Zero Hero Armed
@@ -252,7 +252,7 @@ actions:
                   title: Zero Hero Complete
                   message: >
                     {% set start_exp  = states('input_number.zero_hero_export_start') | float(0) %}
-                    {% set end_exp    = states('sensor.goodwe_total_energy_export') | float(0) %}
+                    {% set end_exp    = states('sensor.goodwe_meter_total_energy_export') | float(0) %}
                     {% set kwh_sold   = [(end_exp - start_exp), 0] | max | round(2) %}
 
                     {% set rate_super = states('input_number.zero_hero_rate_super') | float(0.15) %}
@@ -265,7 +265,7 @@ actions:
                     {% set profit     = ((super_kwh * rate_super) + (base_kwh * rate_base)) | round(2) %}
                     {% set total      = (profit + credit) | round(2) %}
 
-                    Exported {{ kwh_sold }} kWh. Revenue: ${{ '%.2f' | format(profit) }}
+                    Exported {{ kwh_sold }} kWh to grid. Revenue: ${{ '%.2f' | format(profit) }}
                     + ${{ '%.2f' | format(credit) }} daily credit
                     = ${{ '%.2f' | format(total) }}. Goodnight.
               - action: input_number.set_value

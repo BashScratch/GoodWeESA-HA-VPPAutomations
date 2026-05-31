@@ -140,8 +140,7 @@ That's the precise grid export the discharge-power gotcha above said wasn't achi
 2. Log in with the **installer password**. The default is `1234` unless your installer set a custom one. SEMS+ uses a different installer password to SolarGo (see [prereq 01](../../../prerequisites/01_enable_modbus_on_inverter.md) for the gotcha).
 3. Navigate to **Settings > Advanced Settings > Power Limit**.
 4. Set **Soft Power Limit** to your desired grid-export rate. For Zero Hero with the 10kWh super cap, **2000W** over 3 hours gives you 6kWh exported - well under the 10kWh super cap, with comfortable margin. Tune higher if you have a larger battery and want to hit the cap exactly; lower if you want a smaller daily target.
-5. Set **Grid Import Power Limit Offset** to **0**. This is critical - leaving it at the default can cause the inverter to pull around 300W from the grid during the peak window, defeating the Zero-Grid daily credit. Setting to 0 fixes the bug.
-6. Save and exit.
+5. Save and exit.
 
 ### What this gives you, and what it doesn't
 
