@@ -48,7 +48,7 @@ Open `templates.yaml`. Open [`sensors/globird_zero_hero_sensors.yaml`](../sensor
 
 Paste at the **bottom** of `templates.yaml`. Don't change indentation - the `- sensor:` block in the file is already at the correct indentation level for inclusion in `templates.yaml`.
 
-Find the `# EDIT:` comment in the pasted block and replace `sensor.goodwe_total_energy_export` with your real total-export sensor entity ID (from [Guide 05](./05_find_your_entities.md)).
+Find the `# EDIT:` comment in the pasted block and replace `sensor.goodwe_meter_total_energy_export` with your real **meter** export sensor entity ID (grid feed-in, from [Guide 05](./05_find_your_entities.md)). Use the meter export sensor, not the inverter's `sensor.goodwe_total_energy_export` - the latter counts battery energy used by your own house and would inflate the profit figure.
 
 Save the file.
 
@@ -100,7 +100,7 @@ Go to **Developer Tools > States** and search for `zero_hero`. You should see:
 - `sensor.zero_hero_session_export` - value should be `0.0` outside peak; will show real kWh during peak.
 - `sensor.zero_hero_session_profit` - same; shows AUD during peak.
 
-If the sensors show `unavailable`, the most common cause is the `# EDIT:` placeholder for `sensor.goodwe_total_energy_export` is wrong. Fix and reload.
+If the sensors show `unavailable`, the most common cause is the `# EDIT:` placeholder for `sensor.goodwe_meter_total_energy_export` is wrong. Fix and reload.
 
 ## Step 8 - Add to a dashboard
 
