@@ -31,7 +31,7 @@ What the warranty actually says (and doesn't): we audited the current GoodWe Aus
 
 How does Zero Hero compare to that 1-cycle-per-day design rate? It depends on your battery size and which Zero Hero strategy you're running:
 
-- **Self-consume focus.** Battery covers household load that solar and the free window don't pick up. No (or minimal) Super Export. Makes sense when the battery is too small to do both. Critically, self-consumption is more valuable per kWh than Super Export: covering peak load avoids $0.47/kWh of imports (QLD ZEROHERO peak rate), covering shoulder load avoids $0.33/kWh, vs Super Export earning $0.15/kWh. So a small-battery user who runs out covering household and then has to buy peak imports loses more than they would have earned by exporting. Per [AER residential consumption benchmarks (December 2020, the most recent published before the program was discontinued in 2023)](https://www.aer.gov.au/industry/registers/resources/guidelines/electricity-and-gas-consumption-benchmarks-residential-customers-2020), Australian households average ~15 kWh/day nationally, climbing to ~19 kWh/day for a three-person household, ~21 kWh/day for four, and ~25 kWh/day for five or more. Once solar and the free-window grid coverage subtract their share, the battery typically picks up somewhere in the range of ~6-15 kWh/day. Adjust the self-consume column in the table if your household is significantly heavier or lighter.
+- **Self-consume focus.** Battery covers household load that solar and the free window don't pick up. No (or minimal) Super Export. Makes sense when the battery is too small to do both. Critically, self-consumption is more valuable per kWh than Super Export: covering peak load avoids $0.51/kWh of imports (QLD ZEROHERO peak rate), covering shoulder load avoids $0.385/kWh, vs Super Export earning $0.10/kWh. So a small-battery user who runs out covering household and then has to buy peak imports loses more than they would have earned by exporting. Per [AER residential consumption benchmarks (December 2020, the most recent published before the program was discontinued in 2023)](https://www.aer.gov.au/industry/registers/resources/guidelines/electricity-and-gas-consumption-benchmarks-residential-customers-2020), Australian households average ~15 kWh/day nationally, climbing to ~19 kWh/day for a three-person household, ~21 kWh/day for four, and ~25 kWh/day for five or more. Once solar and the free-window grid coverage subtract their share, the battery typically picks up somewhere in the range of ~6-15 kWh/day. Adjust the self-consume column in the table if your household is significantly heavier or lighter.
 - **Self-consume + Super Export.** Battery covers household *and* pushes the Super Export cap (15 kWh on the current GloBird plan; 10 kWh on older grandfathered plans) to grid during peak. The economically right pattern when the battery has enough headroom to do both. On a battery smaller than your household discharge demand, prioritising export over self-consume is a net loss because exported kWh earn less than self-consumed kWh save.
 
 For a smaller battery, the strategies converge because total daily discharge is capped at your usable kWh anyway. For a larger battery, the two paths diverge: self-consume floors out around your household's discharge demand (~12 kWh/day typical), while export-plus-self-consume can push to ~27 kWh/day.
@@ -54,26 +54,26 @@ If you'd rather stay deliberately conservative on any battery size, set your TOU
 
 ### Peak window (6:00 PM - 9:00 PM)
 
-Grid import is expensive. GloBird offers two stacked rewards during this window: a **Super Export top-up** that pays $0.15/kWh total for the first 15 kWh exported (current cap; older plan grandparents will see a 10 kWh cap with an 8pm end time instead of 9pm), and a daily **Zero-Grid credit** of $1.00 if your imports during the peak window stay below the threshold (0.03 kWh/hour per the current GloBird key-conditions document, which works out to roughly 0.09 kWh / 90 Wh total across the 3-hour window - a tolerance for inverter standby and brief loads, not a zero-import requirement). All rates quoted here are from the QLD ZEROHERO welcome pack issued April 2026; **rates and thresholds vary by state and review date (GloBird reviews on 1 Jan and 1 Jul each year)** - check your own welcome pack or the current GloBird ZEROHERO terms for what applies to you.
+Grid import is expensive. GloBird offers two stacked rewards during this window: a **Super Export top-up** that pays $0.10/kWh total for the first 15 kWh exported (current cap; older plan grandparents will see a 10 kWh cap with an 8pm end time instead of 9pm), and a daily **Zero-Grid credit** of $1.00 if your imports during the peak window stay below the threshold (0.03 kWh/hour per the current GloBird key-conditions document, which works out to roughly 0.09 kWh / 90 Wh total across the 3-hour window - a tolerance for inverter standby and brief loads, not a zero-import requirement). All rates quoted here are the QLD ZEROHERO rates effective 1 July 2026; **rates and thresholds vary by state and review date (GloBird reviews on 1 Jan and 1 Jul each year)** - check your own welcome pack or the current GloBird ZEROHERO terms for what applies to you. The July 2026 review is a good example of why the rates live in helpers: feed-in dropped from $0.15/$0.05 to $0.10/$0.02 while peak import climbed - four number edits in the HA UI, zero YAML changes.
 
 For context on what self-consumption pays vs Super Export, here are the QLD ZEROHERO rates from that same pack:
 
 | What 1 kWh of battery does | Value |
 |---|---|
-| Cover house at peak (6pm-9pm) - avoids peak grid import | $0.473/kWh |
-| Cover house at shoulder (most other times outside the free window) | $0.330/kWh |
-| Export at peak (6pm-9pm, up to 15 kWh) - Super Export | $0.150/kWh |
-| Export 4pm-11pm outside peak - standard feed-in | $0.050/kWh |
+| Cover house at peak (6pm-9pm) - avoids peak grid import | $0.506/kWh |
+| Cover house at shoulder (most other times outside the free window) | $0.385/kWh |
+| Export at peak (6pm-9pm, up to 15 kWh) - Super Export | $0.100/kWh |
+| Export 4pm-11pm outside peak - standard feed-in | $0.020/kWh |
 | Export 11pm-4pm - standard feed-in | $0.000/kWh |
 
-So **the most valuable thing a battery can do at peak is cover household load** ($0.473/kWh saved), not export ($0.15/kWh earned). Super Export pays a third of what avoiding a peak import does. This means the rational priority order for any battery on Zero Hero is:
+So **the most valuable thing a battery can do at peak is cover household load** ($0.506/kWh saved), not export ($0.10/kWh earned). Super Export pays about a fifth of what avoiding a peak import does. This means the rational priority order for any battery on Zero Hero is:
 
 1. Cover all household load during the peak window (6-9pm).
 2. Cover all household load at shoulder rates (mostly evening + overnight + early morning).
 3. Export any remaining surplus at peak, up to the 15 kWh Super Export cap.
-4. Anything left after that, don't bother - the post-cap rate is $0.05/kWh at best, often $0.00.
+4. Anything left after that, don't bother - the post-cap rate is $0.02/kWh at best, often $0.00.
 
-**The sweet spot is "cover household first, then hit the Super Export cap exactly with the surplus"**, not dumping the entire battery to grid. At the current 15 kWh cap that's 15 × $0.15 = $2.25 from Super Export plus the $1 Zero-Grid credit = $3.25/day for doing nothing, before the avoided-import savings from covering household. On an older 10 kWh plan it's $1.50 + $1 = $2.50/day.
+**The sweet spot is "cover household first, then hit the Super Export cap exactly with the surplus"**, not dumping the entire battery to grid. At the current 15 kWh cap that's 15 × $0.10 = $1.50 from Super Export plus the $1 Zero-Grid credit = $2.50/day for doing nothing, before the avoided-import savings from covering household. On an older 10 kWh plan it's $1.00 + $1 = $2.00/day.
 
 ---
 
@@ -160,7 +160,7 @@ Off by default on every GoodWe ESA we've seen. You'll need to enable it before a
 
 Method 1 is app-only. The other three methods all add HA on top, so before the per-method differences, here's what you get from putting HA in front of any of them versus running SEMS+ alone:
 
-- **Pre-peak SOC guard.** HA checks battery SOC at 17:56 and either arms or blocks peak export entirely based on whether you have enough headroom. SEMS+ TOU can set an SOC floor for the discharge slot, but it can't decide "don't discharge at all today, save what's there for overnight load" - it'll discharge to the floor and then start buying grid power at peak rates to cover the rest of demand. HA's all-or-nothing arming logic avoids that.
+- **Pre-peak SOC guard.** HA checks battery SOC at 17:56 and decides how hard to export based on the headroom available (Method 4 scales the export rate through stepped brackets; Methods 2 and 3 arm or block against a single threshold). SEMS+ TOU can set an SOC floor for the discharge slot, but it can't decide "don't discharge at all today, save what's there for overnight load" - it'll discharge to the floor and then start buying grid power at peak rates to cover the rest of demand. HA's arming logic avoids that.
 - **Conditional notifications.** "Zero Hero Armed" / "Aborted" / "Complete" messages so you know what happened each day without having to check the app.
 - **Profit calculation.** Nightly notification with kWh sold, super-vs-base split, daily credit, and total. Neither SEMS+ nor SolarGo computes this against your tariff structure.
 - **Helper-tunable rates.** Tariff changes are a number edit in the HA UI, not a schedule rebuild in the app.
@@ -214,9 +214,9 @@ Use the community-maintained GoodWe Experimental integration (HACS) to send Ener
 
 ### [Method 4: Hybrid General Mode (recommended)](./method4_hybrid/)
 
-The free charging window is handled natively by a GoodWe **TOU** schedule set directly in the SEMS+ app (11:00-14:00, target 100% SOC, grid priority). The firmware blends grid AC and solar DC to charge at up to 13.5kW and holds at 100% once the target is hit - no HA intervention in the free window.
+The free charging window is handled natively by a GoodWe **TOU** schedule set directly in the SEMS+ app (11:00-13:55, target 100% SOC, grid priority - the slot ends 5 minutes before the window does so the inverter's wind-down doesn't bill at shoulder rates). The firmware blends grid AC and solar DC to charge at up to 13.5kW and holds at 100% once the target is hit - no HA intervention in the free window.
 
-HA handles the smart layer: at 17:56 it evaluates SOC, arms or blocks the 5kW peak export limit, and sends a nightly profit notification.
+HA handles the smart layer: at 17:56 it evaluates SOC once and sets a stepped export limit scaled to the battery's headroom (5kW down to 1kW by SOC bracket, or 0 below the bottom bracket), a floor guard kills export if SOC craters mid-window, and a nightly profit notification lands at peak end.
 
 > **Terminology note:** What the SEMS+ app calls "TOU" or "Economic Mode" is the same thing the HA integration exposes as "Eco mode" in `select.goodwe_inverter_operation_mode`. Despite sharing the "Eco" name, the HA integration's `fast_charging_switch` is a *different* mechanism - it force-charges via a dedicated register, not via the TOU schedule slot, and only runs the AC side. See [GLOSSARY.md](../../GLOSSARY.md) for the full breakdown.
 
@@ -287,7 +287,7 @@ Stores your total-export-so-far at 18:00 each day, so the automation can calcula
 - **Resulting entity ID:** `input_number.zero_hero_export_start`
 
 ### 3. Super export rate ($/kWh)
-The high rate GloBird pays for the first chunk of your peak export. This is the *total* rate you receive per kWh (which GloBird structures internally as base rate + bonus, but you just enter what lands in your account). As of writing this is $0.15/kWh - check your current plan.
+The high rate GloBird pays for the first chunk of your peak export. This is the *total* rate you receive per kWh (which GloBird structures internally as base rate + bonus, but you just enter what lands in your account). As of the 1 July 2026 QLD rates this is $0.10/kWh - check your current plan.
 
 - **Helper type:** Number
 - **Name:** `Zero Hero Rate Super`
@@ -295,11 +295,11 @@ The high rate GloBird pays for the first chunk of your peak export. This is the 
 - **Maximum value:** `2`
 - **Step size:** `0.01`
 - **Unit of measurement:** `AUD/kWh`
-- **Starting value to set:** `0.15`
+- **Starting value to set:** `0.10`
 - **Resulting entity ID:** `input_number.zero_hero_rate_super`
 
 ### 4. Base export rate ($/kWh)
-The rate GloBird pays for any export beyond the Super Export cap (and for any export in the 4pm-11pm window that isn't Super Export). On the current QLD ZEROHERO this is $0.05/kWh in the 4pm-11pm window and $0.00/kWh from 11pm-4pm. Other states may differ - check your welcome pack.
+The rate GloBird pays for any export beyond the Super Export cap (and for any export in the 4pm-11pm window that isn't Super Export). On the current QLD ZEROHERO this is $0.02/kWh in the 4pm-11pm window and $0.00/kWh from 11pm-4pm. Other states may differ - check your welcome pack.
 
 - **Helper type:** Number
 - **Name:** `Zero Hero Rate Base`
@@ -307,7 +307,7 @@ The rate GloBird pays for any export beyond the Super Export cap (and for any ex
 - **Maximum value:** `1`
 - **Step size:** `0.01`
 - **Unit of measurement:** `AUD/kWh`
-- **Starting value to set:** `0.05`
+- **Starting value to set:** `0.02`
 - **Resulting entity ID:** `input_number.zero_hero_rate_base`
 
 ### 5. Daily zero-grid credit ($)
@@ -331,7 +331,7 @@ The kWh threshold above which your export drops from the super rate to the base 
 - **Maximum value:** `30`
 - **Step size:** `1`
 - **Unit of measurement:** `kWh`
-- **Starting value to set:** `10` (or `15` if you're on a newer plan)
+- **Starting value to set:** `15` (or `10` if you're on an older grandfathered plan)
 - **Resulting entity ID:** `input_number.zero_hero_super_cap`
 
 If GloBird changes any of these rates, you change the helper value in the HA UI. No YAML edits required.
@@ -353,12 +353,13 @@ Methods 2-4 use the six shared helpers above plus a few extras depending on whic
 - `input_boolean.zero_hero_force_safe` - panic switch. Flip ON to force the watchdog to return the inverter to Auto on the next 5-minute tick. Default off.
 - `input_number.zero_hero_min_export_soc` - same as Method 2 above.
 - `input_number.zero_hero_ems_charge_power` - free-window charge power in Watts. Default `5000`. Set this to your inverter's AC nameplate (`10000` for the 10kW ESA, `8000` for 8kW, `5000` for 5kW) to charge at full AC rate during the free window. EMS charging is AC-only (no AC+DC blending - that needs Method 4's native TOU), so this caps at nominal AC regardless. Min `0`, max `15000`, step `100`, unit `W`.
-- `input_number.zero_hero_peak_export` - target peak export power in Watts. The EMS Discharge command will aim for this number after house load is covered. Default `5000` (5kW). **The math that makes 5000 the sweet spot:** 5 kW × 3 h = 15 kWh, which is exactly the current Super Export cap. Going harder (e.g. 10 kW) on a large battery hits the cap in 90 minutes and then exports the rest at the base feed-in rate ($0.05/kWh) - those kWh would have been worth more covering overnight household load ($0.33/kWh shoulder rate avoided), so faster isn't better. Going gentler under-fills the cap and leaves Super Export dollars unclaimed. If you have a smaller battery that can't sustain 5 kW for the full 3 hours, set this to `(your planned peak-export budget kWh ÷ 3) × 1000` instead - e.g. `3333` for a 10 kWh budget. If you're on an older 10 kWh-cap plan, set to `3333` to hit that cap exactly. Min `0`, max `15000`, step `100`, unit `W`.
+- `input_number.zero_hero_peak_export` - target peak export power in Watts. The EMS Discharge command will aim for this number after house load is covered. Default `5000` (5kW). **The math that makes 5000 the sweet spot:** 5 kW × 3 h = 15 kWh, which is exactly the current Super Export cap. Going harder (e.g. 10 kW) on a large battery hits the cap in 90 minutes and then exports the rest at the base feed-in rate ($0.02/kWh) - those kWh would have been worth more covering overnight household load ($0.385/kWh shoulder rate avoided), so faster isn't better. Going gentler under-fills the cap and leaves Super Export dollars unclaimed. If you have a smaller battery that can't sustain 5 kW for the full 3 hours, set this to `(your planned peak-export budget kWh ÷ 3) × 1000` instead - e.g. `3333` for a 10 kWh budget. If you're on an older 10 kWh-cap plan, set to `3333` to hit that cap exactly. Min `0`, max `15000`, step `100`, unit `W`.
 
 **Method 4 (Hybrid):**
 
-- `input_number.zero_hero_min_export_soc` - same as above. (Tune to suit your battery size and overnight load. Start at `65`. If you consistently wake up with battery to spare - meaning you didn't use as much overnight as the threshold protected for - drop it a few percent so peak export arms more aggressively. If you wake up at 0%, raise it.)
-- `input_number.zero_hero_peak_export` - target peak grid export limit in Watts. Method 4 sets `number.goodwe_grid_export_limit` to this value at 17:56 when SOC is above the guard threshold. Default `5000` (5kW). See the Method 3 entry above for the "5 kW × 3 h = 15 kWh = Super Export cap" math and the small-battery / older-plan tuning guidance. Same rules apply here. Min `0`, max `15000`, step `100`, unit `W`.
+Method 4 no longer uses `zero_hero_min_export_soc` or `zero_hero_peak_export`. Its 17:56 decision is a **stepped bracket table** in the YAML (SOC 80%+ arms 5kW, 70-80% arms 3kW, 65-70% arms 2kW, 60-65% arms 1kW, below 60% holds 0) rather than a single all-or-nothing threshold. The old binary guard had a real failure mode: a battery at 66% would arm the full 5kW, dump 15 kWh across the window, and end the night nearly flat - buying shoulder-rate imports before the free window opens. The brackets scale export to what the battery can actually spare; the design math and per-battery-size tuning guidance live in the comment block inside the YAML. Its helpers:
+
+- `input_number.zero_hero_floor_guard_soc` - the mid-window anomaly catch. If SOC crosses below this during the peak window, export is forced to 0 immediately (the 17:56 brackets are a one-shot decision; this covers evenings that go off-script). Set it *below* where your planned bracket trajectories bottom out - it should only ever fire when something is genuinely wrong, not on a night going to plan. Min `0`, max `100`, step `1`, unit `%`. **Starting value to set:** `40`.
 - `input_number.zero_hero_max_export` - inverter's nominal AC export ceiling in Watts. **Set this to your specific inverter's nameplate maximum.** Method 4 restores the export limit to this value at peak end (21:01). Examples: `10000` for the 10kW ESA, `8000` for the 8kW, `5000` for the 5kW. Sending `10000` to a smaller inverter's export limit could throw an out-of-bounds error. Min `0`, max `30000`, step `100`, unit `W`. Set the value to whatever your inverter is rated for.
 - `input_boolean.zero_hero_skip_export` - optional one-night skip toggle. Flip ON during the day and tonight's peak export is blocked (export limit set to 0 at 17:56) while the battery is held back - handy when you want to conserve charge for the morning, or for an EV. The zero-import daily credit is still earned (the battery covers the house, nothing is drawn from the grid). The toggle auto-clears at the midnight reset, so it only ever skips a single night. Default off. Helper type: Toggle.
 
@@ -369,7 +370,7 @@ Methods 2-4 use the six shared helpers above plus a few extras depending on whic
 - Your GoodWe integration is installed and working (you can see `sensor.goodwe_battery_state_of_charge` or similar in HA).
 - Your HA Companion App is set up for notifications - you'll want these firing during the first few days.
 - If going with Method 2 or Method 3, the experimental HACS integration is installed (Method 2 needs `number.goodwe_eco_mode_power`; Method 3 needs `select.goodwe_ems_mode` and `number.goodwe_ems_power_limit`).
-- You've got the six shared helpers above, plus the per-method extras for whichever method you picked (see each method's section). That's nine helpers total for Methods 2 and 4, or ten for Method 3 (it adds a separate free-window charge-power helper).
+- You've got the six shared helpers above, plus the per-method extras for whichever method you picked (see each method's section). That's nine helpers total for Method 2, ten for Method 3 (it adds a separate free-window charge-power helper), or eight for Method 4 (plus the optional skip-export toggle).
 - You've read the strategy, picked a method, and have the right folder open.
 
 Right - you're ready. Go into the method folder you picked and follow the README there.

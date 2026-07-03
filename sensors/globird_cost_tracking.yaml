@@ -1,0 +1,97 @@
+# GloBird Zero Hero - Actual Cost Tracking (optional)
+#
+# Two template sensors that answer "what is my electricity actually costing
+# me right now, per hour?" - with the battery's earnings counted properly.
+# Place under the `template:` integration alongside globird_zero_hero_sensors.yaml
+# (same install steps - see the README in this folder).
+#
+# This file is optional. The Zero Hero automations and profit sensors work
+# without it. Install it if you want a live cost figure on a dashboard, or
+# if you're feeding a battery-payback / ROI tracker.
+#
+# REQUIRED SENSOR FILE (install first):
+#   sensors/globird_zero_hero_sensors.yaml - provides sensor.zero_hero_export_price
+#
+# REQUIRED HELPERS (create via Settings > Helpers > Number, same flow as the
+# strategy-guide helpers; set the starting values from your welcome pack -
+# the examples are QLD ZEROHERO effective 1 July 2026):
+#   input_number.globird_import_peak      - peak import $/kWh, 16:00-23:00   (e.g. 0.506)
+#   input_number.globird_import_shoulder  - shoulder import $/kWh, all other (e.g. 0.385)
+#   input_number.globird_import_offpeak   - free-window import $/kWh, 11-14  (e.g. 0.00)
+#   input_number.globird_daily_supply     - daily supply charge $/day        (e.g. 1.738)
+# Plus one you already have from the automations:
+#   input_number.zero_hero_rate_credit    - the $1.00 daily Zero-Grid credit
+#
+# WHY THE CREDIT IS IN THE COST MODEL (and spread as -credit/24 per hour):
+# The $1/day Zero-Grid credit isn't a loyalty freebie - the battery EARNS it
+# every evening by holding the house off-grid through the 6-9pm window. A
+# cost model that ignores it undervalues the battery by ~$365/year, which is
+# real money in any payback calculation. We spread it evenly across the 24
+# hours (rather than crediting it all at 9pm) so the hourly figure stays
+# smooth and a daily/monthly accumulation lands on the same total either
+# way. Yes, this means the sensor can read negative - on a good day your
+# electricity has negative cost. That's the plan working, not a bug.
+#
+# The export side prices every exported kWh through
+# sensor.zero_hero_export_price, so overnight export is correctly valued at
+# $0.00 rather than flattering the figure with a flat feed-in rate.
+
+- sensor:
+    # ------------------------------------------------------------------
+    # Import price right now, in $/kWh. Zero Hero's import structure:
+    #   11:00-14:00  free window ($0.00)
+    #   16:00-23:00  peak (e.g. $0.506)
+    #   everything else  shoulder (e.g. $0.385)
+    # Note the import peak (16-23) is WIDER than the export super window
+    # (18-21) - they're different things in the key conditions.
+    # ------------------------------------------------------------------
+    - name: "GloBird Import Price"
+      unique_id: globird_import_price
+      unit_of_measurement: "AUD/kWh"
+      icon: mdi:transmission-tower-import
+      state: >
+        {% set h = now().hour %}
+        {% if 11 <= h < 14 %}
+          {{ states('input_number.globird_import_offpeak') | float(0.00) }}
+        {% elif 16 <= h < 23 %}
+          {{ states('input_number.globird_import_peak') | float(0.506) }}
+        {% else %}
+          {{ states('input_number.globird_import_shoulder') | float(0.385) }}
+        {% endif %}
+
+    # ------------------------------------------------------------------
+    # Actual hourly cost in $/h:
+    #   + grid import (kW) x current import price
+    #   + daily supply charge / 24
+    #   - grid export (kW) x current export price (window-aware)
+    #   - daily Zero-Grid credit / 24 (see the header for why)
+    #
+    # Reads grid power from the meter's active-power sensor. Sign
+    # convention: this template expects POSITIVE = exporting, NEGATIVE =
+    # importing. Some firmware reports it inverted - check yours against
+    # reality (export on a sunny afternoon should be positive) and use
+    # sensors/goodwe_polarity_fix.yaml if it's backwards.
+    #
+    # No state_class on purpose: HA rejects monetary sensors with
+    # state_class measurement, and a $/h rate isn't a meter reading. If
+    # you want cumulative daily/monthly cost, feed this through a Riemann
+    # sum integration helper (method: left) and then a utility_meter.
+    # ------------------------------------------------------------------
+    - name: "GloBird Actual Hourly Cost"
+      unique_id: globird_actual_hourly_cost
+      unit_of_measurement: "AUD/h"
+      icon: mdi:cash-multiple
+      state: >
+        {% set p = states('sensor.goodwe_active_power') | float(0) %}   {# EDIT: your meter active-power sensor (W, positive = export) #}
+        {% set import_kw = ([-p, 0] | max) / 1000 %}
+        {% set export_kw = ([p, 0] | max) / 1000 %}
+        {% set import_price = states('sensor.globird_import_price') | float(0.385) %}
+        {% set export_price = states('sensor.zero_hero_export_price') | float(0) %}
+        {% set supply = states('input_number.globird_daily_supply') | float(1.738) %}
+        {% set credit = states('input_number.zero_hero_rate_credit') | float(1.00) %}
+        {{ ((import_kw * import_price)
+            + (supply / 24)
+            - (export_kw * export_price)
+            - (credit / 24)) | round(3) }}
+      availability: >
+        {{ is_number(states('sensor.goodwe_active_power')) }}   {# EDIT: same sensor as above #}

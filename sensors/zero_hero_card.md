@@ -23,14 +23,22 @@ entities:
     name: Force Safe (Method 3 panic switch)
     icon: mdi:shield-alert
 
+  - entity: input_boolean.zero_hero_skip_export
+    name: Skip Tonight's Export (Method 4)
+    icon: mdi:sleep
+
   - type: divider
 
   - type: section
     label: Discharge Target
 
   - entity: input_number.zero_hero_peak_export
-    name: Peak Export Target (W)
+    name: Peak Export Target (W) (Methods 2/3)
     icon: mdi:transmission-tower-export
+
+  - entity: input_number.zero_hero_floor_guard_soc
+    name: Floor Guard SOC % (Method 4)
+    icon: mdi:battery-alert
 
   - type: divider
 
@@ -94,14 +102,29 @@ cards:
       action: toggle
     layout: horizontal
 
+  - type: custom:mushroom-entity-card
+    entity: input_boolean.zero_hero_skip_export
+    name: Skip tonight's export (Method 4)
+    icon: mdi:sleep
+    tap_action:
+      action: toggle
+    layout: horizontal
+
   - type: custom:mushroom-title-card
     title: ""
     subtitle: Discharge target
 
   - type: custom:mushroom-number-card
     entity: input_number.zero_hero_peak_export
-    name: Peak export target (W)
+    name: Peak export target (W) (Methods 2/3)
     icon: mdi:transmission-tower-export
+    display_mode: buttons
+    layout: horizontal
+
+  - type: custom:mushroom-number-card
+    entity: input_number.zero_hero_floor_guard_soc
+    name: Floor guard SOC % (Method 4)
+    icon: mdi:battery-alert
     display_mode: buttons
     layout: horizontal
 
@@ -159,5 +182,6 @@ cards:
 ## Notes
 
 - The session sensors (`zero_hero_session_export` and `zero_hero_session_profit`) only show values during an active peak window. They read `0` outside of peak - this is correct.
+- Delete the rows that don't apply to your method: `zero_hero_peak_export` and `zero_hero_force_safe` don't exist on a Method 4 install (the export wattage comes from the stepped brackets in the YAML), and `zero_hero_floor_guard_soc` / `zero_hero_skip_export` don't exist on Methods 2/3.
 - `zero_hero_export_start` is intentionally excluded from the card. It's managed automatically by the automation and editing it manually will throw off the profit calculation.
 - If you only want the rate editors and don't have the template sensors set up, just remove the "Session" section.

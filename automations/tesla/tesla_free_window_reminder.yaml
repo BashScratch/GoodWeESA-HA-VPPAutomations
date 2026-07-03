@@ -1,0 +1,68 @@
+alias: "Tesla: Free Window Reminder"
+description: >
+  SOC-aware plug-in reminder. 10:45: fires only if the car is home,
+  unplugged, and below the reminder threshold - no nagging when the car
+  doesn't need charge. Plus a confirmation when the cable goes in during
+  the window, so you know the free charge is actually happening.
+  Notification only - NOT master-gated, so it works from the day you
+  paste it (and keeps reminding you even while the orchestrator is
+  staged off).
+
+  Replaces the generic ev_free_window_reminder.yaml from the automations
+  root for Teslemetry users - disable that one if you had it installed.
+mode: single
+
+triggers:
+  - trigger: time
+    at: "10:45:00"   # EDIT: 15 min before your free window opens
+    id: pre_window_reminder
+  - trigger: state
+    entity_id: binary_sensor.yourcar_charge_cable   # EDIT: your car's charge cable sensor
+    to: "on"
+    id: car_connected_during_window
+
+conditions: []
+
+actions:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: pre_window_reminder
+          - condition: state
+            entity_id: device_tracker.yourcar_location   # EDIT: your car's device tracker
+            state: home
+          - condition: state
+            entity_id: binary_sensor.yourcar_charge_cable   # EDIT
+            state: "off"
+          - condition: numeric_state
+            entity_id: sensor.yourcar_battery_level   # EDIT: your car's battery level sensor
+            below: input_number.tesla_reminder_soc_threshold
+        sequence:
+          - action: notify.mobile_app_your_device_name   # EDIT: your notify service
+            data:
+              title: "Free Window in 15min"
+              message: >-
+                Tesla is at {{ states('sensor.yourcar_battery_level') }}% and
+                not plugged in. Connect now to charge free 11am-2pm.
+              data:
+                push:
+                  sound:
+                    name: default
+
+      - conditions:
+          - condition: trigger
+            id: car_connected_during_window
+          - condition: time
+            after: "11:01:00"   # EDIT: your free window
+            before: "14:00:00"
+          - condition: state
+            entity_id: device_tracker.yourcar_location   # EDIT
+            state: home
+        sequence:
+          - action: notify.mobile_app_your_device_name   # EDIT: your notify service
+            data:
+              title: "Tesla Connected - Free Window Active"
+              message: >-
+                Plugged in at {{ states('sensor.yourcar_battery_level') }}%.
+                Charging to {{ states('number.yourcar_charge_limit') }}% on
+                free energy.

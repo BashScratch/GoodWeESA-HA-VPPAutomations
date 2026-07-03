@@ -1,0 +1,80 @@
+alias: "Tesla: Peak Charge Blocker"
+description: >
+  Fail-safe: stops Tesla charging at home during the peak/credit window
+  (16:00-23:00) unless the override is on. Two triggers: (a) charging
+  starts during the window - someone plugged in and the car auto-started;
+  (b) a 17:56:30 sweep that catches charging which survived an HA restart
+  across the 16:00 boundary (a restarted HA never saw the peak_start
+  trigger fire). The notification carries a one-tap [Charge Anyway]
+  action, handled by tesla_override_handler.yaml. Master-gated.
+mode: queued
+max: 3
+
+# =============================================================================
+# WHY THIS EXISTS SEPARATELY FROM THE ORCHESTRATOR: the orchestrator's 16:00
+# stop is a scheduled action - it handles the planned case. This blocker is
+# event-driven: it reacts to charging *starting* mid-window (a partner plugs
+# in at 19:00 without thinking about tariffs), which no schedule can catch.
+# During 18:00-21:00 a single charging hour costs ~50c/kWh AND forfeits the
+# $1 Zero-Grid credit - the most expensive electricity of the day.
+#
+# The 17:56:30 sweep time is deliberate: 30 seconds after the Zero Hero
+# ESA arming check, so the two never race.
+# =============================================================================
+
+triggers:
+  - trigger: state
+    entity_id: sensor.yourcar_charging   # EDIT: your car's charging state sensor
+    to: charging
+    id: charge_started
+  - trigger: time
+    at: "17:56:30"
+    id: sweep
+
+conditions:
+  - condition: state
+    entity_id: input_boolean.tesla_orchestrator_enabled
+    state: "on"
+  - condition: state
+    entity_id: device_tracker.yourcar_location   # EDIT: your car's device tracker
+    state: home
+  # Only block when Zero Hero is actually running tonight - if you've paused
+  # the whole export/credit system, there's no credit to protect.
+  - condition: state
+    entity_id: input_boolean.zero_hero_enabled
+    state: "on"
+  - condition: state
+    entity_id: input_boolean.tesla_charge_override
+    state: "off"
+  - condition: time
+    after: "16:00:00"   # EDIT: peak import window (Zero Hero QLD: 16:00-23:00)
+    before: "23:00:00"
+  - condition: template
+    value_template: "{{ states('sensor.yourcar_charging') == 'charging' }}"
+
+actions:
+  - action: switch.turn_off
+    target:
+      entity_id: switch.yourcar_charge   # EDIT: your car's charge switch
+  # The peak-rate label renders from the cost-tracking helper so it stays
+  # current when GloBird moves the rates (falls back to the July 2026 QLD
+  # figure if you haven't created the helper).
+  - action: notify.mobile_app_your_device_name   # EDIT: your notify service
+    data:
+      title: Tesla Peak Charging Stopped
+      message: >-
+        Tesla started charging during PEAK
+        ({{ '%g' | format(states('input_number.globird_import_peak')|float(0.506)*100) }}c/kWh
+        + $1 credit at risk) - charging stopped. Tap Charge Anyway if this
+        is deliberate.
+      data:
+        actions:
+          - action: TESLA_CHARGE_ANYWAY
+            title: Charge Anyway
+        push:
+          sound:
+            name: default
+        tag: tesla_peak_block
+  # Duplicate the notify block above for each additional phone in the
+  # household - everyone should get the [Charge Anyway] button, since the
+  # person who plugged in usually isn't the person running HA.

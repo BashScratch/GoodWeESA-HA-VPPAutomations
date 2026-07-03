@@ -1,0 +1,41 @@
+alias: "Tesla: Override Handler"
+description: >
+  Handles the [Charge Anyway] notification action from the Peak Charge
+  Blocker: turns on tesla_charge_override (which suspends the blocker AND
+  the orchestrator's charge control) and restarts charging. The override
+  auto-clears at 23:00 and on unplug - it's a statement about this session,
+  not a permanent setting. Master-gated.
+mode: single
+
+# =============================================================================
+# The mobile_app_notification_action event fires no matter which phone the
+# button was tapped on - one handler covers the whole household.
+# =============================================================================
+
+triggers:
+  - trigger: event
+    event_type: mobile_app_notification_action
+    event_data:
+      action: TESLA_CHARGE_ANYWAY
+    id: anyway
+
+conditions:
+  - condition: state
+    entity_id: input_boolean.tesla_orchestrator_enabled
+    state: "on"
+
+actions:
+  - action: input_boolean.turn_on
+    target:
+      entity_id: input_boolean.tesla_charge_override
+  - action: switch.turn_on
+    target:
+      entity_id: switch.yourcar_charge   # EDIT: your car's charge switch
+  # Rate label renders from the cost-tracking helper (fallback: July 2026 QLD).
+  - action: notify.mobile_app_your_device_name   # EDIT: your notify service
+    data:
+      title: Tesla Override Active
+      message: >-
+        Charging allowed until 23:00 (or unplug). Note: peak import costs
+        ~{{ '%g' | format(states('input_number.globird_import_peak')|float(0.506)*100) }}c/kWh
+        and the $1 credit may be lost tonight.

@@ -19,8 +19,8 @@ max: 5
 #   input_boolean.zero_hero_enabled          - master toggle
 #   input_boolean.zero_hero_force_safe       - panic switch: forces inverter to Auto
 #   input_number.zero_hero_export_start      - tracks export kWh at peak start
-#   input_number.zero_hero_rate_super        - GloBird super export rate $/kWh (e.g. 0.15)
-#   input_number.zero_hero_rate_base         - GloBird base export rate $/kWh (e.g. 0.05)
+#   input_number.zero_hero_rate_super        - GloBird super export rate $/kWh (e.g. 0.10)
+#   input_number.zero_hero_rate_base         - GloBird base export rate $/kWh (e.g. 0.02)
 #   input_number.zero_hero_rate_credit       - GloBird daily zero-grid credit (e.g. 1.00)
 #   input_number.zero_hero_super_cap         - kWh cap for super rate (15 current, 10 older plan)
 #   input_number.zero_hero_min_export_soc    - SOC % below which peak export is blocked
@@ -232,8 +232,8 @@ actions:
                     {% set end_exp    = states('sensor.goodwe_meter_total_energy_export') | float(0) %}
                     {% set kwh_sold   = [(end_exp - start_exp), 0] | max | round(2) %}
 
-                    {% set rate_super = states('input_number.zero_hero_rate_super') | float(0.15) %}
-                    {% set rate_base  = states('input_number.zero_hero_rate_base')  | float(0.05) %}
+                    {% set rate_super = states('input_number.zero_hero_rate_super') | float(0.10) %}
+                    {% set rate_base  = states('input_number.zero_hero_rate_base')  | float(0.02) %}
                     {% set credit     = states('input_number.zero_hero_rate_credit') | float(1.00) %}
                     {% set super_cap  = states('input_number.zero_hero_super_cap')   | float(15) %}
 
@@ -242,7 +242,16 @@ actions:
                     {% set profit     = ((super_kwh * rate_super) + (base_kwh * rate_base)) | round(2) %}
                     {% set total      = (profit + credit) | round(2) %}
 
-                    Exported {{ kwh_sold }} kWh to grid. Revenue: ${{ '%.2f' | format(profit) }}
+                    {# Rate labels render from the helpers too, so the message
+                       stays honest when GloBird moves the rates - no stale
+                       hard-coded cent values. %g drops trailing zeros. #}
+                    {% set sup_c  = '%g' | format(rate_super * 100) %}
+                    {% set base_c = '%g' | format(rate_base * 100) %}
+
+                    Exported {{ kwh_sold }} kWh to grid: {{ super_kwh | round(2) }} kWh
+                    @ {{ sup_c }}c super{% if base_kwh > 0 %} + {{ base_kwh | round(2) }} kWh
+                    @ {{ base_c }}c base{% endif %}.
+                    Revenue: ${{ '%.2f' | format(profit) }}
                     + ${{ '%.2f' | format(credit) }} daily credit
                     = ${{ '%.2f' | format(total) }}. Goodnight.
               - action: input_number.set_value

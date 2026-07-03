@@ -1,0 +1,51 @@
+alias: "Tesla: Window Summary"
+description: >
+  14:05 daily: reports the free-window result - car SOC, kWh added today
+  (from the ev_charge_daily utility meter in ev_savings_sensors.yaml),
+  approximate km gained, and what the charge was worth against the
+  shoulder import rate. Silently no-ops until the meter exists, or on
+  days under 0.5 kWh (unplugged, already full, away). Notification only -
+  not master-gated.
+mode: single
+
+# =============================================================================
+# REQUIRES: sensor.ev_charge_daily from ev_savings_sensors.yaml (utility
+# meter - needs a full HA restart after adding), and the
+# input_number.globird_import_shoulder helper from the cost-tracking
+# sensors for the $ valuation.
+# =============================================================================
+
+triggers:
+  - trigger: time
+    at: "14:05:00"   # EDIT: 5 min after your free window closes
+    id: summary
+
+conditions:
+  - condition: state
+    entity_id: device_tracker.yourcar_location   # EDIT: your car's device tracker
+    state: home
+  - condition: template
+    value_template: >-
+      {{ is_number(states('sensor.ev_charge_daily')) and
+         states('sensor.ev_charge_daily')|float(0) > 0.5 }}
+
+actions:
+  - variables:
+      kwh: "{{ states('sensor.ev_charge_daily')|float(0)|round(1) }}"
+      km: >-
+        {{ (states('sensor.ev_charge_daily')|float(0) /
+            states('input_number.tesla_efficiency_kwh_100km')|float(13) * 100)|round(0) }}
+      # Valued at the shoulder rate: that's what these kWh would have cost
+      # if you'd charged them outside the free window (peak would be
+      # dearer, but nobody sane charges at peak - shoulder is the honest
+      # counterfactual).
+      dollars: >-
+        {{ (states('sensor.ev_charge_daily')|float(0) *
+            states('input_number.globird_import_shoulder')|float(0.385))|round(2) }}
+  - action: notify.mobile_app_your_device_name   # EDIT: your notify service
+    data:
+      title: "Tesla Window Summary"
+      message: >-
+        Charged to {{ states('sensor.yourcar_battery_level') }}% - added
+        {{ kwh }} kWh (~{{ km }} km) free today. Worth ~${{ dollars }} at
+        shoulder rate.

@@ -67,8 +67,8 @@ The Method 3 automation in this guide uses `"Charge"`, `"Discharge"`, and `"Auto
 |---|---|---|
 | 11:00-14:00 period where grid electricity costs nothing | "ZEROCHARGE" period / "Off-peak Usage" in your bill | Free window |
 | 18:00-21:00 period where export earns a premium (older grandfathered plans end at 20:00) | "Super Export Window" / "ZEROHERO Window" | Peak window |
-| High export rate during peak (e.g. $0.15/kWh total on QLD ZEROHERO, Apr 2026) | "ZEROWASTEDSOLAR" / "Super Export" | Super rate |
-| Export rate outside peak but within 4pm-11pm (e.g. $0.05/kWh on QLD, Apr 2026) | "Solar/GenerationFeedin(4pm-11pm)" | Base rate |
+| High export rate during peak (e.g. $0.10/kWh total on QLD ZEROHERO, Jul 2026) | "ZEROWASTEDSOLAR" / "Super Export" | Super rate |
+| Export rate outside peak but within 4pm-11pm (e.g. $0.02/kWh on QLD, Jul 2026) | "Solar/GenerationFeedin(4pm-11pm)" | Base rate |
 | Daily credit for not importing during the peak window | "ZEROHERO" credit | Daily credit |
 | kWh threshold above which super rate stops | "Super Export Threshold" / "Super Export Cap" | Super cap (15 kWh current; 10 kWh on older grandfathered plans) |
 | Import threshold to retain the Zero-Grid credit | "ZEROHERO Threshold" | 0.03 kWh/hour per current GloBird key conditions = ~0.09 kWh (90 Wh) total across the 3-hour peak window |
@@ -76,7 +76,7 @@ The Method 3 automation in this guide uses `"Charge"`, `"Discharge"`, and `"Auto
 
 ### Note on the super export rate structure
 
-GloBird structures the super rate as: **base rate (4pm-11pm feed-in) + Super Export top-up = total super rate**. For QLD ZEROHERO as of April 2026 this is $0.05 base + $0.10 top-up = $0.15 total. For the purposes of automation, you only care about the *total rate you receive* during peak ($0.15 in this example) vs what you receive once you've exceeded the cap ($0.05 same-window, $0.00 after 11pm). The helpers in these automations store and use the total figures. **Rates vary by state and review date** (GloBird reviews on 1 Jan and 1 Jul). Check your current welcome pack for what you're actually on.
+GloBird structures the super rate as: **base rate (4pm-11pm feed-in) + Super Export top-up = total super rate**. For QLD ZEROHERO as of the 1 July 2026 rate review this is $0.02 base + $0.08 top-up = $0.10 total. For the purposes of automation, you only care about the *total rate you receive* during peak ($0.10 in this example) vs what you receive once you've exceeded the cap ($0.02 same-window, $0.00 after 11pm). The helpers in these automations store and use the total figures. **Rates vary by state and review date** (GloBird reviews on 1 Jan and 1 Jul - the July 2026 review cut the QLD feed-in rates noticeably, so don't assume last quarter's numbers still hold). Check your current welcome pack for what you're actually on.
 
 ### Note on ZEROLIMIT (Critical Peak) and GoodWe
 
@@ -85,6 +85,20 @@ GloBird's current ZEROHERO offer lists a "ZEROLIMIT" benefit that pays **$1.00/k
 What this does NOT necessarily mean is that you can't earn the credit. Anecdotally (community reports, unverified), GloBird's Critical Peak payments appear to be settled from meter data - i.e. if your meter recorded exports during the nominated window, you get paid the top-up regardless of who initiated the discharge. So a GoodWe owner who reacts to a Critical Peak alert (or to a wholesale-price spike) by manually pushing the battery to export *during* the event could in principle collect the $1/kWh. **This is unconfirmed and may depend on your meter's 5-minute interval data, plan terms in your state, and any audit logic GloBird applies.** Don't bank on it; treat it as a possible upside, not a stable revenue stream.
 
 If you want to chase this opportunistically, the technique is: watch AEMO spot price for your region (NSW1, QLD1, VIC1, SA1) via a HA integration like AEMO or OpenNEM, and when it spikes - or when you receive a Critical Peak email/SMS from GloBird - trigger a manual full-rate export through whichever Method you're using. We've parked an automation concept for this (F11 in the project's working notes) but haven't built it because we'd want a few confirmed-payment data points first.
+
+---
+
+## Terms this guide's automations introduce
+
+A few concepts recur across the Method 4 YAML and the [Tesla add-on](./automations/tesla/) that aren't GoodWe's, GloBird's, or HA's vocabulary - they're ours:
+
+| Term | Meaning |
+|---|---|
+| Stepped export / brackets | Method 4's 17:56 decision: instead of an all-or-nothing SOC threshold, the peak export limit scales with battery headroom (80%+ gets 5kW, down through 3/2/1kW, below 60% gets nothing). One evaluation, then the night runs unattended. |
+| Floor guard | The mid-window anomaly catch. If battery SOC crosses below `zero_hero_floor_guard_soc` during the peak window, export is forced to 0 immediately. Tuned to sit *below* every planned bracket trajectory - it firing means something is genuinely wrong, not that the plan is aggressive. |
+| Trickle | A deliberately gentle (default 8A) EV top-up from the house battery outside the free and peak windows, gated behind the car's trickle target and both battery reserve layers. The opposite of "charge as fast as possible" - it's "sip only what the house won't miss". |
+| Dynamic backstop | The computed reserve floor behind the trickle: 10% + your overnight house consumption expressed as a % of the battery. The helper floor is policy; the backstop is arithmetic. Both must clear before a trickle amp flows. |
+| Override | The Tesla add-on's one-tap "Charge Anyway" state. Suspends the peak blocker and orchestrator for the current session only - auto-clears at 23:00 or on unplug. An override is a statement about *this* charge, never a persistent setting. |
 
 ---
 

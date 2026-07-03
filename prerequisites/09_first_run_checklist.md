@@ -36,7 +36,7 @@ Tick each line before enabling. If any of these are "uh, not sure", go back to t
 
 ### Method 4 only
 
-- [ ] SEMS+ TOU schedule is set up (11:00-14:00, charge, 100%, grid priority).
+- [ ] SEMS+ TOU schedule is set up (11:00-13:55, charge, 100%, grid priority - the 13:55 end is deliberate, see prereq 08).
 - [ ] Inverter is in Economic Mode (the working mode dropdown in SEMS+).
 - [ ] **No automations** touching `select.goodwe_inverter_operation_mode`.
 
@@ -57,15 +57,15 @@ Don't enable `input_boolean.zero_hero_enabled` on day one. Watch first.
 
 ### 17:56 - pre-peak guard check
 
-This is the moment that matters. The automation evaluates SOC against your guard threshold (`input_number.zero_hero_min_export_soc`).
+This is the moment that matters. The automation evaluates SOC - Method 4 against its stepped bracket table (which decides *how hard* to export), Methods 2 and 3 against the guard threshold (`input_number.zero_hero_min_export_soc`).
 
-- If SOC is high enough, you should get a "Zero Hero Armed" notification - but only if `zero_hero_enabled` is on. With it off, the automation exits silently.
+- If SOC is high enough, you should get a "Zero Hero Armed" notification (Method 4's includes the bracket rate it picked) - but only if `zero_hero_enabled` is on. With it off, the automation exits silently.
 - Watch the trace either way. Confirm the trigger fired at 17:56 and the condition path went where you expected.
 
 ### 18:00-21:00 (or 20:00) - peak window
 
 - With `zero_hero_enabled` off, nothing happens. The inverter behaves normally - solar covers what it can, battery covers the rest, grid imports if needed.
-- With it on, the export limit is set to 5kW (or whatever you've configured) and the battery starts emptying into the grid. Watch the export sensor climb.
+- With it on, the export limit is set to the armed rate (Method 4's bracket pick, or whatever you've configured on Methods 2/3) and the battery starts emptying into the grid. Watch the export sensor climb.
 
 ### Peak end
 
@@ -97,7 +97,7 @@ For an actual emergency (inverter doing something visibly wrong, e.g. exporting 
 
 - **Daily profit notifications**: do the numbers match what GloBird credits you? Their app's "today's earnings" view is the cross-check.
 - **The free-window charge** (Method 4): SOC should reliably hit 100% before 14:00. If it consistently misses, your TOU schedule isn't quite right or your inverter is undersized for your battery.
-- **Peak window depth**: how low does the battery go? If it ends each peak below your guard threshold (`input_number.zero_hero_min_export_soc`), the export limit is too high or the threshold is too low. Tune.
+- **Peak window depth**: how low does the battery go? On Method 4, if the floor guard is firing on ordinary nights, the brackets are too hot for your battery or the floor is too high - re-cut one of them (the YAML's comment block has the math). On Methods 2/3, if it ends each peak below your guard threshold (`input_number.zero_hero_min_export_soc`), the export target is too high or the threshold too low. Tune.
 - **Rate changes**: GloBird sometimes adjusts plan rates. Check your latest bill or plan documents and update the helpers if the figures have changed.
 - **Inverter clock drift**: some GoodWe units drift several minutes per week. The `goodwe_time_sync.yaml` automation runs daily at 03:00 to correct this. If you're seeing your TOU schedule fire at the wrong times, check the inverter clock.
 

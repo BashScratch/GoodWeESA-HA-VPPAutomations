@@ -59,6 +59,7 @@ Full explanation of each, and why Method 4 is the rounded recommendation on bala
 │   │   ├── method3_ems/                      <- Method 3 (HA, EMS RAM commands)
 │   │   ├── method4_hybrid/                   <- Method 4 (Hybrid, recommended)
 │   │   └── zero_grid_credit_watchdog.yaml    <- daily-credit protection automation
+│   ├── tesla/                                <- optional Tesla charge orchestration (Teslemetry)
 │   └── advanced/                             <- optional advanced layer
 │       ├── README.md
 │       ├── grid_voltage_soak.yaml
@@ -69,7 +70,8 @@ Full explanation of each, and why Method 4 is the rounded recommendation on bala
 │   └── 01-09 numbered guides
 └── sensors/
     ├── README.md
-    ├── globird_zero_hero_sensors.yaml        <- live profit tracking on your dashboard
+    ├── globird_zero_hero_sensors.yaml        <- live profit + export-price tracking
+    ├── globird_cost_tracking.yaml            <- optional $/h actual-cost sensors
     └── goodwe_polarity_fix.yaml              <- corrects sign convention on affected firmware
 ```
 
@@ -83,9 +85,10 @@ Full explanation of each, and why Method 4 is the rounded recommendation on bala
 
 ### Optional advanced automations
 - **[Advanced automations](./automations/advanced/)** - protective and quality-of-life additions (grid-voltage soaking, inverter thermal management, LFP calibration tracker, polarity-fix template sensor). Optional layer on top of any of the four methods.
+- **[Tesla charge orchestration](./automations/tesla/)** - for households charging a Tesla at home, via the Teslemetry integration. Aims the car at the free window with dynamic amps (throttled so the house battery still hits its own charge target), blocks charging during peak with a one-tap override, trickles from the house battery overnight behind two reserve floors, and tracks the savings in dollars and petrol-equivalent terms. If you install this, its SOC-aware reminder replaces the generic EV reminder above.
 
 ### Dashboard sensors
-- **[Zero Hero live sensors](./sensors/)** - template sensors for "how much have I exported in the current peak window" and "how much have I made tonight".
+- **[Zero Hero live sensors](./sensors/)** - template sensors for "how much have I exported in the current peak window", "how much have I made tonight", and "what does a kWh of export earn right now" ($0.00 for 17 hours of the day, which surprises people). Plus an optional actual-hourly-cost pair that prices imports, exports, the supply charge, and the daily credit into one live $/h figure.
 
 ---
 
@@ -133,7 +136,7 @@ Open an issue on GitHub. If you're on a different VPP plan and want to add guide
 
 ## If this saved you time (optional)
 
-If this guide helped and you're not on GloBird yet, you can sign up via my referral link and we both get $50 credit: <https://quote.globirdenergy.com.au/quote?pcode=refer&ref=UGU5P9>. Completely optional - the guide and all the YAML in this repo work exactly the same whether you use the link or not. No pressure either way; I'm working on these automations for myself anyway, and I kept seeing the same questions come up in the GoodWe ESA group, so I figured I'd write the lot up in one place.
+If this guide helped and you're not on GloBird yet, you can sign up via my referral link and we both get $50 credit: <https://quote.globirdenergy.com.au/quote?pcode=refer&ref=UGBIN4>. Completely optional - the guide and all the YAML in this repo work exactly the same whether you use the link or not. No pressure either way; I'm working on these automations for myself anyway, and I kept seeing the same questions come up in the GoodWe ESA group, so I figured I'd write the lot up in one place.
 
 ---
 

@@ -5,14 +5,16 @@
 #
 #   template: !include templates.yaml
 #
-# These sensors read your live export total and calculate session profit
-# against the helpers created for the Zero Hero automations.
+# These sensors read your live export total, calculate session profit
+# against the helpers created for the Zero Hero automations, and expose
+# the time-of-day export price (super window / base window / the $0
+# overnight dead zone - see the Export Price sensor's comment block).
 #
 # REQUIRED HELPERS (create via Settings > Helpers > Number):
 #   input_boolean.zero_hero_enabled         - master on/off toggle
 #   input_number.zero_hero_export_start     - internal session tracker (set by automation)
-#   input_number.zero_hero_rate_super       - super export rate $/kWh (e.g. 0.15)
-#   input_number.zero_hero_rate_base        - base export rate $/kWh  (e.g. 0.06)
+#   input_number.zero_hero_rate_super       - super export rate $/kWh (e.g. 0.10)
+#   input_number.zero_hero_rate_base        - base export rate $/kWh  (e.g. 0.02)
 #   input_number.zero_hero_rate_credit      - daily zero-grid credit $  (e.g. 1.00)
 #   input_number.zero_hero_super_cap        - kWh cap for super rate  (10 old plan / 15 new plan)
 #
@@ -38,6 +40,44 @@
           0.0
         {% endif %}
 
+    # ------------------------------------------------------------------
+    # Export price right now, in $/kWh. GloBird's feed-in is time-of-day
+    # dependent, and the shape matters more than most people expect:
+    #
+    #   18:00-21:00  super rate (e.g. $0.10), but only until the daily
+    #                Super Export cap is filled - after that, base rate
+    #   16:00-23:00  base rate (e.g. $0.02) outside the super window
+    #   23:00-16:00  $0.00 - GloBird pays NOTHING for feed-in from 11pm
+    #                to 4pm the next day
+    #
+    # That last line is the one that bites. 17 hours of the day, exported
+    # energy earns you nothing at all - so a cost tracker, a battery
+    # dispatch decision, or a "should I sell this?" gut call that assumes
+    # a flat feed-in rate silently overvalues daytime export. Overnight
+    # and morning surplus is worth $0 to the grid and $0.385/kWh (the
+    # shoulder import you avoid) staying in the battery for your own use.
+    #
+    # Windows match the current QLD ZEROHERO key conditions. If your plan
+    # differs (older plans run super 18:00-20:00), adjust the hour checks.
+    # ------------------------------------------------------------------
+    - name: "Zero Hero Export Price"
+      unique_id: zero_hero_export_price
+      unit_of_measurement: "AUD/kWh"
+      icon: mdi:cash-clock
+      state: >
+        {% set rate_super = states('input_number.zero_hero_rate_super') | float(0.10) %}
+        {% set rate_base  = states('input_number.zero_hero_rate_base')  | float(0.02) %}
+        {% set super_cap  = states('input_number.zero_hero_super_cap')  | float(15) %}
+        {% set session    = states('sensor.zero_hero_session_export')   | float(0) %}
+        {% set h = now().hour %}
+        {% if 18 <= h < 21 and session < super_cap %}   {# EDIT: 18/21 = super window; use 20 on older 8pm-end plans #}
+          {{ rate_super }}
+        {% elif 16 <= h < 23 %}
+          {{ rate_base }}
+        {% else %}
+          0.00
+        {% endif %}
+
     - name: "Zero Hero Session Profit"
       unique_id: zero_hero_session_profit
       unit_of_measurement: "AUD"
@@ -46,8 +86,8 @@
       icon: mdi:currency-usd
       state: >
         {% set kwh_sold   = states('sensor.zero_hero_session_export') | float(0) %}
-        {% set rate_super = states('input_number.zero_hero_rate_super') | float(0.15) %}
-        {% set rate_base  = states('input_number.zero_hero_rate_base')  | float(0.06) %}
+        {% set rate_super = states('input_number.zero_hero_rate_super') | float(0.10) %}
+        {% set rate_base  = states('input_number.zero_hero_rate_base')  | float(0.02) %}
         {% set credit     = states('input_number.zero_hero_rate_credit') | float(1.00) %}
         {% set super_cap  = states('input_number.zero_hero_super_cap')   | float(10) %}
         {% set super_kwh  = [kwh_sold, super_cap] | min %}

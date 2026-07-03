@@ -44,7 +44,7 @@ Add a new schedule entry:
 | Setting | Value |
 |---|---|
 | **Start time** | `11:00` |
-| **End time** | `14:00` |
+| **End time** | `13:55` (not 14:00 - see below) |
 | **Action / Mode** | **Charge** |
 | **SOC target** | `100%` (charge to full) |
 | **Power source** | **Grid** (high priority) - or "Grid + PV" if your version separates them |
@@ -54,7 +54,8 @@ Add a new schedule entry:
 Save the slot.
 
 > **Why these specific settings?**
-> - **11:00-14:00** matches the GloBird Zero Hero free window. If you're on a different free-window plan (some VPP variants are 10-13 or noon-3), adjust to match.
+> - **11:00-13:55, not 11:00-14:00.** The free window runs to 14:00, but the inverter doesn't stop on a dime - it takes roughly 30 seconds to wind down a full-rate grid charge after the slot ends. End the slot at 14:00:00 sharp and that ramp-down tail lands *after* the free window, billed at the shoulder rate ($0.385/kWh). Pulling at 10kW+, even half a minute of overrun is measurable, and it happens every single day. Ending at 13:55 puts the entire wind-down inside the free window. The cost of the missing five minutes is nothing: on any normal day the battery hit 100% long before 13:55, and the slot was just holding.
+> - **11:00 start** matches the GloBird Zero Hero free window. If you're on a different free-window plan (some VPP variants are 10-13 or noon-3), adjust both ends to match - keeping the ~5-minute early cut-off before the window closes.
 > - **Charge to 100%** because LFP chemistry tolerates regular full charges and the BMS calibrates itself at the top end. Charging to less than 100% leaves money on the table during peak. (See the strategy guide's "Free window" section for detail and citation.)
 > - **Grid priority** so the inverter prefers grid power for the charge (which is free during this window) and uses solar as a top-up. The opposite priority would consume your solar first and only top up from grid if solar wasn't enough - fine, but you'd export less.
 
@@ -74,7 +75,7 @@ Add a second schedule entry. This one tells the inverter "during peak, you're al
 
 Save the slot.
 
-> **Critical concept: "discharge power" in SEMS+ TOU means *total inverter output*, not grid-export specifically.** A 10% setting on a 10kW inverter means 1kW total (house load + grid combined), not 1kW to the grid. That's why we set discharge power to 100% here and let HA's `number.goodwe_grid_export_limit` (set to 5000W in the YAML) be the precise grid-export lever. The inverter's full output covers house load *plus* up to 5kW to the grid.
+> **Critical concept: "discharge power" in SEMS+ TOU means *total inverter output*, not grid-export specifically.** A 10% setting on a 10kW inverter means 1kW total (house load + grid combined), not 1kW to the grid. That's why we set discharge power to 100% here and let HA's `number.goodwe_grid_export_limit` (set by the YAML's stepped SOC brackets - 5kW down to 1kW depending on battery headroom) be the precise grid-export lever. The inverter's full output covers house load *plus* the armed export rate to the grid.
 
 > **Why a discharge slot at all?** Without it, the inverter is in self-consumption during peak. That works - the battery covers house load and the export limit caps grid export - but the inverter's output is then effectively capped at house demand. With the discharge slot at 100%, the inverter is willing to push house-load + 5kW to the grid in parallel, which is what you want during a peak window.
 
@@ -86,7 +87,7 @@ Method 4's HA automation has its own time triggers. Here's the full picture acro
 |---|---|---|
 | 00:01 | Midnight reset (export tracker zeroed, fast-charge switch turned off as safety) | HA |
 | 11:00 | Charge TOU slot starts (battery charges to 100% from grid + solar blended) | Inverter firmware |
-| 14:00 | Charge TOU slot ends | Inverter firmware |
+| 13:55 | Charge TOU slot ends (5 min early so the inverter's ~30s wind-down stays inside the free window) | Inverter firmware |
 | 17:56 | Pre-peak guard check (HA reads SOC, decides to arm export limit or block) | HA |
 | 18:00 | Discharge TOU slot starts (inverter willing to discharge at full output) | Inverter firmware |
 | 21:00 | Discharge TOU slot ends | Inverter firmware |
@@ -106,8 +107,8 @@ The next free window (11:00 the following day, or right now if you're inside one
 
 The next peak window:
 
-- At 17:56 you should see a "Zero Hero Armed" notification from HA (assuming `input_boolean.zero_hero_enabled` is on and SOC is above your guard threshold).
-- During peak, grid export should sit at around 5kW; the inverter covers house load on top of that, so total inverter output = 5kW + house load. The 5kW is what crosses your meter to the grid, regardless of how house load moves. SOC should drop steadily.
+- At 17:56 you should see a "Zero Hero Armed" notification from HA stating the bracket rate (assuming `input_boolean.zero_hero_enabled` is on and SOC is above the bottom export bracket).
+- During peak, grid export should sit at the armed bracket rate (5kW on a full battery, less on a partial one); the inverter covers house load on top of that, so total inverter output = armed rate + house load. The armed rate is what crosses your meter to the grid, regardless of how house load moves. SOC should drop steadily.
 - At 21:01 you should see a "Zero Hero Complete" notification with the night's profit calculation.
 
 > **Don't be alarmed if `select.goodwe_inverter_operation_mode` reads "general" during peak.** On at least some firmware/integration combinations, that entity continues to report `general` even while a TOU discharge schedule is actively running and exporting to the grid. The TOU schedule operates underneath the headline operation mode; the entity doesn't necessarily flip to `eco` to reflect it. We confirmed this on a working install: operation mode showed `general` for days straight while the battery exported a clean 5kW across every peak window. So if you're debugging and tempted to conclude "my TOU setup isn't working because HA says general", check what actually matters instead - is the battery SOC dropping and is grid export sitting near your limit during peak? If yes, it's working regardless of what the mode entity says.
@@ -122,12 +123,12 @@ If the charge slot didn't fire - battery isn't charging during the window - chec
 
 We say this in the strategy README and we'll say it again here. Method 2 (and any operation-mode change in Method 3) **deletes both your TOU slots** ([Whirlpool thread "GoodWe ESA - Setting export TOU with SOC limit"](https://forums.whirlpool.net.au/thread/9n111qlk)). The first time HA writes "Eco mode" or "General mode" to `select.goodwe_inverter_operation_mode`, your carefully-set TOU configuration is gone.
 
-If you're running Method 4, your YAML in HA should never touch the operation mode - and the [Method 4 automation in this repo](../../automations/globird/method4_hybrid/globird_zero_hero.yaml) is designed exactly that way. Don't add additional automations that change `select.goodwe_inverter_operation_mode` while you're on Method 4.
+If you're running Method 4, your YAML in HA should never touch the operation mode - and the [Method 4 automation in this repo](../automations/globird/method4_hybrid/globird_zero_hero.yaml) is designed exactly that way. Don't add additional automations that change `select.goodwe_inverter_operation_mode` while you're on Method 4.
 
 ## What you should have at the end of this guide
 
 - SEMS+ set to TOU mode.
-- A daily 11:00-14:00 **charge** slot, target 100% SOC, grid priority.
+- A daily 11:00-13:55 **charge** slot, target 100% SOC, grid priority.
 - A daily 18:00-21:00 (or 18:00-20:00) **discharge** slot at 100% inverter power.
 - Verified both slots fire (watch battery SOC climb during free, watch grid export during peak).
 - No HA automations touching operation mode.

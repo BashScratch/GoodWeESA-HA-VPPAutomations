@@ -26,7 +26,7 @@ If you already know you want HA, skip this and go to [Method 4 (Hybrid)](../meth
 
 Two TOU schedule slots in SEMS+:
 
-- **Charge slot:** 11:00-14:00. The inverter charges the battery toward your Charge Cut-off SOC target from the grid (free during the Zero Hero window) and from any solar that's available.
+- **Charge slot:** 11:00-13:55. The inverter charges the battery toward your Charge Cut-off SOC target from the grid (free during the Zero Hero window) and from any solar that's available. End the slot at 13:55 rather than 14:00: the inverter takes roughly 30 seconds to wind down a full-rate grid charge, and ending at 14:00 sharp pushes that tail past the free window onto shoulder rates - every day. Five minutes early costs nothing (the battery's normally full and holding by then).
 - **Discharge slot:** 18:00-21:00 (or 18:00-20:00 on older Zero Hero plans). The inverter discharges the battery into your house and out to the grid, capped at the discharge power you set.
 
 That's the whole automation. Outside those windows the inverter sits in self-consumption (use solar first, fill from battery, import from grid only if needed).
@@ -166,7 +166,7 @@ If you've enabled Modbus TCP on the inverter (see [prereq 01](../../../prerequis
 
 This method gets you the basic charge-during-free / discharge-during-peak cycle, which is most of the value. But there are real things HA adds that the app alone can't:
 
-- **Precise grid-export control during peak.** SEMS+ pins total inverter output; HA's `number.goodwe_grid_export_limit` pins grid export specifically. With Zero Hero's "first 15kWh at 15c, rest at 6c" structure, hitting the cap precisely matters. The Soft Power Limit workaround above closes this gap from inside the app at the cost of an installer-password trip. (When GoodWe finishes the in-TOU Export Power Limit rollout - see the callout at the top - this gap will close natively in the consumer app and the Soft Power Limit detour won't be needed.)
+- **Precise grid-export control during peak.** SEMS+ pins total inverter output; HA's `number.goodwe_grid_export_limit` pins grid export specifically. With Zero Hero's "first 15kWh at 10c, rest at 2c" structure (July 2026 QLD rates), hitting the cap precisely matters. The Soft Power Limit workaround above closes this gap from inside the app at the cost of an installer-password trip. (When GoodWe finishes the in-TOU Export Power Limit rollout - see the callout at the top - this gap will close natively in the consumer app and the Soft Power Limit detour won't be needed.)
 - **Dynamic SOC guard.** SEMS+ will discharge down to the Battery Protection floor regardless of conditions. If the battery's at 40% going into peak because the free-window charge didn't fill it (cloudy day, late free-window start, etc.), it'll discharge to the floor and then buy grid power at peak rates to cover the rest. HA can decide "today's not the day, skip peak export" based on live SOC at 17:56.
 - **Profit notifications.** SEMS+ shows you what charged and discharged but doesn't compute "you exported X kWh tonight at the super rate, plus the daily credit, total $Y." HA does that and pushes it to your phone each evening.
 - **Helper-tunable rates.** When GloBird adjusts the super rate or daily credit (it happens), updating SEMS+ tariff configuration is fiddly. With HA the rates live in number helpers you can edit from the dashboard in two clicks.
