@@ -74,7 +74,7 @@ Add a second schedule entry. This one tells the inverter "during peak, you're al
 
 Save the slot.
 
-> **Critical concept: "discharge power" in SEMS+ TOU means *total inverter output*, not grid-export specifically.** A 10% setting on a 10kW inverter means 1kW total (house load + grid combined), not 1kW to the grid. That's why we set discharge power to 100% here and let HA's `number.goodwe_grid_export_limit` (set to 5000W in the YAML) be the precise grid-export lever. The inverter's full output covers house load *plus* up to 5kW to the grid.
+> **Critical concept: "discharge power" in SEMS+ TOU means *total inverter output*, not grid-export specifically.** A 10% setting on a 10kW inverter means 1kW total (house load + grid combined), not 1kW to the grid. That's why we set discharge power to 100% here and let HA's `number.goodwe_grid_export_limit` (set by the YAML's stepped SOC brackets - 5kW down to 1kW depending on battery headroom) be the precise grid-export lever. The inverter's full output covers house load *plus* the armed export rate to the grid.
 
 > **Why a discharge slot at all?** Without it, the inverter is in self-consumption during peak. That works - the battery covers house load and the export limit caps grid export - but the inverter's output is then effectively capped at house demand. With the discharge slot at 100%, the inverter is willing to push house-load + 5kW to the grid in parallel, which is what you want during a peak window.
 
@@ -106,8 +106,8 @@ The next free window (11:00 the following day, or right now if you're inside one
 
 The next peak window:
 
-- At 17:56 you should see a "Zero Hero Armed" notification from HA (assuming `input_boolean.zero_hero_enabled` is on and SOC is above your guard threshold).
-- During peak, grid export should sit at around 5kW; the inverter covers house load on top of that, so total inverter output = 5kW + house load. The 5kW is what crosses your meter to the grid, regardless of how house load moves. SOC should drop steadily.
+- At 17:56 you should see a "Zero Hero Armed" notification from HA stating the bracket rate (assuming `input_boolean.zero_hero_enabled` is on and SOC is above the bottom export bracket).
+- During peak, grid export should sit at the armed bracket rate (5kW on a full battery, less on a partial one); the inverter covers house load on top of that, so total inverter output = armed rate + house load. The armed rate is what crosses your meter to the grid, regardless of how house load moves. SOC should drop steadily.
 - At 21:01 you should see a "Zero Hero Complete" notification with the night's profit calculation.
 
 > **Don't be alarmed if `select.goodwe_inverter_operation_mode` reads "general" during peak.** On at least some firmware/integration combinations, that entity continues to report `general` even while a TOU discharge schedule is actively running and exporting to the grid. The TOU schedule operates underneath the headline operation mode; the entity doesn't necessarily flip to `eco` to reflect it. We confirmed this on a working install: operation mode showed `general` for days straight while the battery exported a clean 5kW across every peak window. So if you're debugging and tempted to conclude "my TOU setup isn't working because HA says general", check what actually matters instead - is the battery SOC dropping and is grid export sitting near your limit during peak? If yes, it's working regardless of what the mode entity says.

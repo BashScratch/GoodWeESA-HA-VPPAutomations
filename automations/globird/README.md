@@ -160,7 +160,7 @@ Off by default on every GoodWe ESA we've seen. You'll need to enable it before a
 
 Method 1 is app-only. The other three methods all add HA on top, so before the per-method differences, here's what you get from putting HA in front of any of them versus running SEMS+ alone:
 
-- **Pre-peak SOC guard.** HA checks battery SOC at 17:56 and either arms or blocks peak export entirely based on whether you have enough headroom. SEMS+ TOU can set an SOC floor for the discharge slot, but it can't decide "don't discharge at all today, save what's there for overnight load" - it'll discharge to the floor and then start buying grid power at peak rates to cover the rest of demand. HA's all-or-nothing arming logic avoids that.
+- **Pre-peak SOC guard.** HA checks battery SOC at 17:56 and decides how hard to export based on the headroom available (Method 4 scales the export rate through stepped brackets; Methods 2 and 3 arm or block against a single threshold). SEMS+ TOU can set an SOC floor for the discharge slot, but it can't decide "don't discharge at all today, save what's there for overnight load" - it'll discharge to the floor and then start buying grid power at peak rates to cover the rest of demand. HA's arming logic avoids that.
 - **Conditional notifications.** "Zero Hero Armed" / "Aborted" / "Complete" messages so you know what happened each day without having to check the app.
 - **Profit calculation.** Nightly notification with kWh sold, super-vs-base split, daily credit, and total. Neither SEMS+ nor SolarGo computes this against your tariff structure.
 - **Helper-tunable rates.** Tariff changes are a number edit in the HA UI, not a schedule rebuild in the app.
@@ -216,7 +216,7 @@ Use the community-maintained GoodWe Experimental integration (HACS) to send Ener
 
 The free charging window is handled natively by a GoodWe **TOU** schedule set directly in the SEMS+ app (11:00-14:00, target 100% SOC, grid priority). The firmware blends grid AC and solar DC to charge at up to 13.5kW and holds at 100% once the target is hit - no HA intervention in the free window.
 
-HA handles the smart layer: at 17:56 it evaluates SOC, arms or blocks the 5kW peak export limit, and sends a nightly profit notification.
+HA handles the smart layer: at 17:56 it evaluates SOC once and sets a stepped export limit scaled to the battery's headroom (5kW down to 1kW by SOC bracket, or 0 below the bottom bracket), a floor guard kills export if SOC craters mid-window, and a nightly profit notification lands at peak end.
 
 > **Terminology note:** What the SEMS+ app calls "TOU" or "Economic Mode" is the same thing the HA integration exposes as "Eco mode" in `select.goodwe_inverter_operation_mode`. Despite sharing the "Eco" name, the HA integration's `fast_charging_switch` is a *different* mechanism - it force-charges via a dedicated register, not via the TOU schedule slot, and only runs the AC side. See [GLOSSARY.md](../../GLOSSARY.md) for the full breakdown.
 
@@ -357,8 +357,9 @@ Methods 2-4 use the six shared helpers above plus a few extras depending on whic
 
 **Method 4 (Hybrid):**
 
-- `input_number.zero_hero_min_export_soc` - same as above. (Tune to suit your battery size and overnight load. Start at `65`. If you consistently wake up with battery to spare - meaning you didn't use as much overnight as the threshold protected for - drop it a few percent so peak export arms more aggressively. If you wake up at 0%, raise it.)
-- `input_number.zero_hero_peak_export` - target peak grid export limit in Watts. Method 4 sets `number.goodwe_grid_export_limit` to this value at 17:56 when SOC is above the guard threshold. Default `5000` (5kW). See the Method 3 entry above for the "5 kW × 3 h = 15 kWh = Super Export cap" math and the small-battery / older-plan tuning guidance. Same rules apply here. Min `0`, max `15000`, step `100`, unit `W`.
+Method 4 no longer uses `zero_hero_min_export_soc` or `zero_hero_peak_export`. Its 17:56 decision is a **stepped bracket table** in the YAML (SOC ≥80% → 5kW, 70-80% → 3kW, 65-70% → 2kW, 60-65% → 1kW, below 60% → 0) rather than a single all-or-nothing threshold. The old binary guard had a real failure mode: a battery at 66% would arm the full 5kW, dump 15 kWh across the window, and end the night nearly flat - buying shoulder-rate imports before the free window opens. The brackets scale export to what the battery can actually spare; the design math and per-battery-size tuning guidance live in the comment block inside the YAML. Its helpers:
+
+- `input_number.zero_hero_floor_guard_soc` - the mid-window anomaly catch. If SOC crosses below this during the peak window, export is forced to 0 immediately (the 17:56 brackets are a one-shot decision; this covers evenings that go off-script). Set it *below* where your planned bracket trajectories bottom out - it should only ever fire when something is genuinely wrong, not on a night going to plan. Min `0`, max `100`, step `1`, unit `%`. **Starting value to set:** `40`.
 - `input_number.zero_hero_max_export` - inverter's nominal AC export ceiling in Watts. **Set this to your specific inverter's nameplate maximum.** Method 4 restores the export limit to this value at peak end (21:01). Examples: `10000` for the 10kW ESA, `8000` for the 8kW, `5000` for the 5kW. Sending `10000` to a smaller inverter's export limit could throw an out-of-bounds error. Min `0`, max `30000`, step `100`, unit `W`. Set the value to whatever your inverter is rated for.
 - `input_boolean.zero_hero_skip_export` - optional one-night skip toggle. Flip ON during the day and tonight's peak export is blocked (export limit set to 0 at 17:56) while the battery is held back - handy when you want to conserve charge for the morning, or for an EV. The zero-import daily credit is still earned (the battery covers the house, nothing is drawn from the grid). The toggle auto-clears at the midnight reset, so it only ever skips a single night. Default off. Helper type: Toggle.
 
@@ -369,7 +370,7 @@ Methods 2-4 use the six shared helpers above plus a few extras depending on whic
 - Your GoodWe integration is installed and working (you can see `sensor.goodwe_battery_state_of_charge` or similar in HA).
 - Your HA Companion App is set up for notifications - you'll want these firing during the first few days.
 - If going with Method 2 or Method 3, the experimental HACS integration is installed (Method 2 needs `number.goodwe_eco_mode_power`; Method 3 needs `select.goodwe_ems_mode` and `number.goodwe_ems_power_limit`).
-- You've got the six shared helpers above, plus the per-method extras for whichever method you picked (see each method's section). That's nine helpers total for Methods 2 and 4, or ten for Method 3 (it adds a separate free-window charge-power helper).
+- You've got the six shared helpers above, plus the per-method extras for whichever method you picked (see each method's section). That's nine helpers total for Method 2, ten for Method 3 (it adds a separate free-window charge-power helper), or eight for Method 4 (plus the optional skip-export toggle).
 - You've read the strategy, picked a method, and have the right folder open.
 
 Right - you're ready. Go into the method folder you picked and follow the README there.

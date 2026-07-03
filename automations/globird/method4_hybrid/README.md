@@ -35,8 +35,9 @@ For most users on a single-phase 10kW ESA who care about charging throughput, Me
 ## How it works in practice
 
 1. In the GoodWe SEMS+ app, you create two TOU schedules: a charge slot (11:00-14:00, target 100% SOC) for the free window, and a discharge slot (peak window, 100% inverter power) for HA to manage on top. The firmware runs both.
-2. In HA, this automation does one thing at 17:56: checks your SOC. If above the guard threshold, it arms the export limit to 5kW and records the baseline export reading. If too low, it drops the limit to 0W.
-3. At peak end (21:01 by default, or 20:01 if you're on an older GloBird plan), HA restores the export limit to unrestricted and fires a profit notification.
+2. In HA, this automation makes one decision at 17:56: it reads your SOC and sets a **stepped export limit** scaled to the battery's headroom - ≥80% arms 5kW, 70-80% arms 3kW, 65-70% arms 2kW, 60-65% arms 1kW, and below 60% holds export at 0. When it arms, it records the baseline export reading for the profit calc. The bracket table (and how to re-cut it for your battery size) is documented in a comment block inside the YAML.
+3. During the window, a **floor guard** watches for the evening going off-script: if SOC crosses below `input_number.zero_hero_floor_guard_soc` (default 40%) while export is armed, the limit is forced to 0 immediately and you get a notification. It's an anomaly catch, not a scheduler - tuned right, it never fires on a night that's going to plan.
+4. At peak end (21:01 by default, or 20:01 if you're on an older GloBird plan), HA restores the export limit to unrestricted and fires a profit notification.
 
 The GoodWe inverter is in General Mode (self-consumption) the entire time from HA's perspective. HA never touches the operation mode - it only touches the export limit number entity.
 
@@ -44,7 +45,7 @@ The GoodWe inverter is in General Mode (self-consumption) the entire time from H
 
 - Working native GoodWe integration. **HACS is optional but recommended.** The core of Method 4 runs on entities the native integration exposes (`number.goodwe_grid_export_limit`, `sensor.goodwe_battery_state_of_charge`). The midnight-reset has one belt-and-braces line that turns off `switch.goodwe_fast_charging_switch` as a safety net; that switch only exists with the experimental HACS integration ([mletenay/home-assistant-goodwe-inverter](https://github.com/mletenay/home-assistant-goodwe-inverter)). On a native-only install the action errors silently (the YAML uses `continue_on_error: true`) and the rest of the automation continues. Method 4 *will* run native-only, you just lose that one safety line. Install HACS too if you want it working.
 - The entity `number.goodwe_grid_export_limit` (may be `_2` suffixed if you've installed and removed the integration before - check your entities) and `sensor.goodwe_battery_state_of_charge`.
-- The nine helpers listed in the [strategy guide](../README.md#required-home-assistant-helpers) - six shared plus three Method 4 extras: `input_number.zero_hero_min_export_soc` (SOC floor for arming peak export), `input_number.zero_hero_peak_export` (target peak grid-export limit in Watts, default 5000), and `input_number.zero_hero_max_export` (your inverter's nominal AC ceiling that HA restores at peak end).
+- The eight helpers listed in the [strategy guide](../README.md#required-home-assistant-helpers) - six shared plus two Method 4 extras: `input_number.zero_hero_floor_guard_soc` (the mid-window anomaly catch, default 40) and `input_number.zero_hero_max_export` (your inverter's nominal AC ceiling that HA restores at peak end). The optional `input_boolean.zero_hero_skip_export` one-night toggle is worth adding too. The export wattage itself isn't a helper any more - it comes from the stepped bracket table in the YAML.
 - A notification device set up in HA.
 - **Two SEMS+ TOU schedules**: a charge slot for the free window, plus a discharge slot for the peak window (HA manages grid export within it). See setup instructions below and the dedicated [TOU setup prerequisite guide](../../../prerequisites/08_sems_tou_schedule.md).
 
@@ -84,7 +85,8 @@ The full step-by-step including SEMS+ menu navigation lives at [prerequisites/08
 
 ## Watch out for
 
-- **SOC guard threshold.** Pulled from `input_number.zero_hero_min_export_soc` - set it to whatever SOC you need to keep in reserve for evening household load. 65% is a reasonable starting point for a 13.5kWh battery; tune by watching what SOC you end the night on.
+- **The bracket table is tuned for a large battery.** The default brackets (5/3/2/1kW across 80/70/65/60% SOC) were designed on a 48 kWh pack with ~13.5-16 kWh of overnight household draw - every bracket lands the battery in the mid-teens-to-twenties by the 11am free window. On a smaller battery the same brackets over-export: the comment block in the YAML has the three-line arithmetic for re-cutting them (a 13.5 kWh pack probably wants a single "above 80% → 2kW, else 0" step). Tune by watching what SOC you reach the free window on, same as the old single threshold.
+- **Floor guard threshold.** Pulled from `input_number.zero_hero_floor_guard_soc` (default 40%). Set it *below* where your planned bracket trajectories bottom out at window end, so it only fires on genuinely broken evenings. If it's firing on normal nights, your brackets and your floor are fighting - lower the floor or soften the brackets.
 - **Peak end time.** The YAML defaults to 21:01 (newer GloBird plans). If your plan ends at 20:00, change the `peak_end` trigger time to 20:01.
 - **Super export cap.** Set the `input_number.zero_hero_super_cap` helper to `10` (older GloBird plan) or `15` (newer plan). The profit notification reads from this helper - do not leave it at the default without checking your plan.
 - **Export limit entity name.** This is most likely `number.goodwe_grid_export_limit_2` (with `_2` suffix) on systems with both the native and experimental integrations installed. Check Developer Tools > States and use whichever has a live value (a non-zero number that updates).
