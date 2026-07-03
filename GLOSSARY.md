@@ -94,7 +94,7 @@ A few concepts recur across the Method 4 YAML and the [Tesla add-on](./automatio
 
 | Term | Meaning |
 |---|---|
-| Stepped export / brackets | Method 4's 17:56 decision: instead of an all-or-nothing SOC threshold, the peak export limit scales with battery headroom (≥80% → 5kW down to 60-65% → 1kW, below that → 0). One evaluation, then the night runs unattended. |
+| Stepped export / brackets | Method 4's 17:56 decision: instead of an all-or-nothing SOC threshold, the peak export limit scales with battery headroom (80%+ gets 5kW, down through 3/2/1kW, below 60% gets nothing). One evaluation, then the night runs unattended. |
 | Floor guard | The mid-window anomaly catch. If battery SOC crosses below `zero_hero_floor_guard_soc` during the peak window, export is forced to 0 immediately. Tuned to sit *below* every planned bracket trajectory - it firing means something is genuinely wrong, not that the plan is aggressive. |
 | Trickle | A deliberately gentle (default 8A) EV top-up from the house battery outside the free and peak windows, gated behind the car's trickle target and both battery reserve layers. The opposite of "charge as fast as possible" - it's "sip only what the house won't miss". |
 | Dynamic backstop | The computed reserve floor behind the trickle: 10% + your overnight house consumption expressed as a % of the battery. The helper floor is policy; the backstop is arithmetic. Both must clear before a trickle amp flows. |
