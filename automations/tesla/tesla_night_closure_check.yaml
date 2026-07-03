@@ -64,8 +64,12 @@ conditions:
 
 actions:
   - variables:
+      # namespace() is load-bearing here: a plain {% set %} inside a for
+      # loop is scoped to that loop iteration in Jinja2 and silently
+      # discards the append - the doors would never make it into the
+      # message. Classic gotcha; verified against HA's template engine.
       open_items: >-
-        {% set items = [] %}
+        {% set ns = namespace(items=[]) %}
         {% set doors = {
           'binary_sensor.yourcar_front_driver_door': 'Driver door',
           'binary_sensor.yourcar_front_passenger_door': 'Passenger door',
@@ -77,13 +81,13 @@ actions:
           'binary_sensor.yourcar_rear_passenger_window': 'Rear passenger window'
         } %}   {# EDIT: same entity IDs as the conditions above #}
         {% for e, n in doors.items() %}
-          {% if is_state(e, 'on') %}{% set items = items + [n] %}{% endif %}
+          {% if is_state(e, 'on') %}{% set ns.items = ns.items + [n] %}{% endif %}
         {% endfor %}
-        {% if is_state('cover.yourcar_frunk', 'open') %}{% set items = items + ['Frunk'] %}{% endif %}
-        {% if is_state('cover.yourcar_trunk', 'open') %}{% set items = items + ['Trunk'] %}{% endif %}
-        {% if is_state('cover.yourcar_windows', 'open') %}{% set items = items + ['Windows (vented)'] %}{% endif %}
-        {% if is_state('lock.yourcar_lock', 'unlocked') %}{% set items = items + ['UNLOCKED'] %}{% endif %}
-        {{ items | join(', ') }}
+        {% if is_state('cover.yourcar_frunk', 'open') %}{% set ns.items = ns.items + ['Frunk'] %}{% endif %}
+        {% if is_state('cover.yourcar_trunk', 'open') %}{% set ns.items = ns.items + ['Trunk'] %}{% endif %}
+        {% if is_state('cover.yourcar_windows', 'open') %}{% set ns.items = ns.items + ['Windows (vented)'] %}{% endif %}
+        {% if is_state('lock.yourcar_lock', 'unlocked') %}{% set ns.items = ns.items + ['UNLOCKED'] %}{% endif %}
+        {{ ns.items | join(', ') }}
   - action: notify.mobile_app_your_device_name   # EDIT: your notify service
     data:
       title: "Tesla Not Secure"
