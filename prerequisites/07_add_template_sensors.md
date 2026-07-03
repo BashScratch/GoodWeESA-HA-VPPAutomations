@@ -98,7 +98,8 @@ Once the config is valid:
 Go to **Developer Tools > States** and search for `zero_hero`. You should see:
 
 - `sensor.zero_hero_session_export` - value should be `0.0` outside peak; will show real kWh during peak.
-- `sensor.zero_hero_session_profit` - same; shows AUD during peak.
+- `sensor.zero_hero_export_price` - the current feed-in rate. Should read your base rate between 4pm and 11pm, your super rate 6-9pm, and `0.00` overnight and through the morning (GloBird pays nothing for feed-in from 11pm to 4pm).
+- `sensor.zero_hero_session_profit` - same as session export; shows AUD during peak.
 
 If the sensors show `unavailable`, the most common cause is the `# EDIT:` placeholder for `sensor.goodwe_meter_total_energy_export` is wrong. Fix and reload.
 
@@ -115,6 +116,6 @@ The whole point. Add the sensors to a dashboard card:
 - Template sensors added to either `templates.yaml` or `configuration.yaml`.
 - `# EDIT:` placeholder replaced with your real total-export sensor.
 - HA config validates clean.
-- Both `sensor.zero_hero_session_export` and `sensor.zero_hero_session_profit` visible in Dev Tools > States.
+- `sensor.zero_hero_session_export`, `sensor.zero_hero_export_price`, and `sensor.zero_hero_session_profit` visible in Dev Tools > States.
 
 Next: [SEMS+ TOU schedule (Method 4 only)](./08_sems_tou_schedule.md) or skip to [First-run checklist](./09_first_run_checklist.md).

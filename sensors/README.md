@@ -4,8 +4,9 @@ Template sensors can't be set up via the HA UI - they need to live in your confi
 
 ## What's here
 
-- **`globird_zero_hero_sensors.yaml`** - two template sensors:
+- **`globird_zero_hero_sensors.yaml`** - three template sensors:
   - `sensor.zero_hero_session_export` - live kWh exported during the current peak window.
+  - `sensor.zero_hero_export_price` - what a kWh of export earns you *right now*. GloBird's feed-in is heavily time-of-day dependent: super rate 6-9pm (until the cap fills), base rate 4pm-11pm, and **$0.00 from 11pm to 4pm** - that overnight dead zone is 17 hours of the day and catches out anyone modelling feed-in as a flat rate. See the comment block in the file for why this matters to dispatch decisions.
   - `sensor.zero_hero_session_profit` - live AUD earned during the current peak window, including the daily credit.
 - **`goodwe_polarity_fix.yaml`** - template sensor that corrects the active-power sign on firmware revisions that report it inverted. Optional. See the file header for how to tell if you need it.
 - **`goodwe_voltage_statistics.yaml`** - five `statistics` platform sensors that summarise grid voltage over 1-hour and 24-hour windows (min, max, mean). Pairs with [`../automations/advanced/grid_voltage_sag_alert.yaml`](../automations/advanced/grid_voltage_sag_alert.yaml) for the historical-graph half of the diagnostic picture.
