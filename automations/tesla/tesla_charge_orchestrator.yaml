@@ -1,0 +1,467 @@
+alias: "Tesla: Charge Orchestrator"
+description: >
+  Master-gated Tesla charge control around the Zero Hero windows.
+
+  Free window 11:00-14:00: charge at dynamic amps - full amps unless the house
+  battery is projected to miss its own window target by 14:00, in which case
+  the car gets only the surplus, tiered 32/24/16/8A (DC solar counts toward
+  the battery's budget). Re-evaluated at 12:00 and 13:00.
+
+  14:00: stop - or hand over to trickle amps if the car is still below its
+  trickle target and the house battery clears both reserve layers. 16:00:
+  hard stop for peak. 23:00 (and on plug-in outside the free/peak windows):
+  trickle from the house battery while car < target AND battery > helper
+  floor AND battery > computed overnight backstop. Live cutoff triggers stop
+  the trickle the moment either boundary is crossed.
+
+  The override boolean suspends all charge control; it auto-clears at 23:00
+  and on unplug. Every car command is guarded (only sent when the state
+  actually differs) to minimise Tesla API calls. This automation never
+  touches the inverter - the ESA/Zero Hero automation is a separate system.
+mode: queued
+max: 10
+
+# =============================================================================
+# REQUIRES: Teslemetry (paid) for all yourcar_* entities. The Wall Connector
+# integration alone is read-only and cannot drive any of this.
+#
+# REQUIRED HELPERS (create via Settings > Helpers - see the README's table
+# for ranges and starting values):
+#   input_boolean.tesla_orchestrator_enabled   - master switch (create OFF)
+#   input_boolean.tesla_charge_override        - suspend-control toggle (off)
+#   input_number.tesla_charge_limit_target     - car charge limit % (90; LFP packs can run 100)
+#   input_number.tesla_freewindow_max_amps     - free-window ceiling (32)
+#   input_number.tesla_house_batt_window_target - house battery SOC the window must still reach (55)
+#   input_number.tesla_trickle_soc_target      - car SOC the trickle stops at (50)
+#   input_number.tesla_trickle_batt_floor      - house battery floor for trickling (50)
+#   input_number.tesla_trickle_amps            - trickle current (8)
+#   input_number.tesla_overnight_house_kwh     - your evening-to-11am house consumption (16)
+#
+# EDIT MAP: replace `yourcar` with your car's Teslemetry slug everywhere,
+# plus the GoodWe sensors and site constants flagged below.
+# =============================================================================
+
+triggers:
+  - trigger: time
+    at: "11:00:00"   # EDIT: free window start (Zero Hero: 11:00)
+    id: window_start
+  - trigger: time
+    at: "12:00:00"
+    id: amp_eval_12
+  - trigger: time
+    at: "13:00:00"
+    id: amp_eval_13
+  - trigger: time
+    at: "14:00:00"   # EDIT: free window end
+    id: window_end
+  - trigger: time
+    at: "16:00:00"   # EDIT: peak import window start (Zero Hero: 16:00)
+    id: peak_start
+  - trigger: time
+    at: "23:00:00"   # EDIT: peak import window end
+    id: trickle_start
+  - trigger: state
+    entity_id: binary_sensor.yourcar_charge_cable   # EDIT: your car's charge cable sensor
+    to: "on"
+    id: plug_in
+  - trigger: state
+    entity_id: binary_sensor.yourcar_charge_cable   # EDIT: same
+    to: "off"
+    id: unplugged
+  # Live trickle cutoffs - crossing triggers, so they fire the moment the
+  # boundary is breached rather than waiting for a scheduled evaluation.
+  - trigger: numeric_state
+    entity_id: sensor.goodwe_battery_state_of_charge   # EDIT: your house battery SOC sensor
+    below: input_number.tesla_trickle_batt_floor
+    id: batt_floor
+  - trigger: numeric_state
+    entity_id: sensor.yourcar_battery_level   # EDIT: your car's battery level sensor
+    above: input_number.tesla_trickle_soc_target
+    id: car_target
+
+conditions:
+  # Master switch. Everything in this automation commands the car, so the
+  # whole thing stages behind the switch. Create it OFF; flip it on only
+  # after a full day of clean traces.
+  - condition: state
+    entity_id: input_boolean.tesla_orchestrator_enabled
+    state: "on"
+
+actions:
+  - choose:
+
+      # ==========================================================
+      # UNPLUGGED - clear the override. An override is a statement
+      # about THIS charging session; pulling the cable ends it.
+      # ==========================================================
+      - conditions:
+          - condition: trigger
+            id: unplugged
+        sequence:
+          - action: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.tesla_charge_override
+
+      # ==========================================================
+      # FREE WINDOW START (11:00, or plug-in during the window)
+      # Set the charge limit, compute dynamic amps, start charging.
+      # Every command is guarded: only sent if the car's state
+      # actually differs from what we want (API-call minimisation).
+      # ==========================================================
+      - conditions:
+          - condition: or
+            conditions:
+              - condition: trigger
+                id: window_start
+              - condition: and
+                conditions:
+                  - condition: trigger
+                    id: plug_in
+                  - condition: time
+                    after: "11:00:00"
+                    before: "13:55:00"
+          - condition: state
+            entity_id: device_tracker.yourcar_location   # EDIT: your car's device tracker
+            state: home
+          - condition: state
+            entity_id: binary_sensor.yourcar_charge_cable   # EDIT
+            state: "on"
+          - condition: state
+            entity_id: input_boolean.tesla_charge_override
+            state: "off"
+        sequence:
+          - variables:
+              # ------------------------------------------------------
+              # DYNAMIC AMPS. Highest current the site can give the car
+              # without the house battery missing its window target.
+              #
+              # EDIT the four site constants:
+              #   grid_cap   - your grid import cap in kW (14.1 = QLD
+              #                single-phase 63A supply; check yours)
+              #   kw_per_amp - kW drawn per amp of car charging at your
+              #                nominal voltage (0.235 = 235V single-phase)
+              #   batt_kwh   - house battery usable kWh
+              #   batt_max_kw - house battery max charge rate in kW
+              #
+              # Logic: project the house battery's 14:00 SOC assuming the
+              # car takes max amps (battery gets remaining grid headroom
+              # + DC solar, capped at its own charge ceiling, at ~95%
+              # efficiency). If the projection clears the target, the car
+              # gets max amps. Otherwise compute the grid power the
+              # battery NEEDS, hand the car the remainder, rounded down
+              # to a 32/24/16/8A tier so re-evals don't thrash the
+              # charger with odd values.
+              # ------------------------------------------------------
+              amps_calc: >-
+                {% set grid_cap = 14.1 %}
+                {% set kw_per_amp = 0.235 %}
+                {% set batt_kwh = 48 %}
+                {% set batt_max_kw = 10 %}
+                {% set batt = states('sensor.goodwe_battery_state_of_charge')|float(0) %}
+                {% set target = states('input_number.tesla_house_batt_window_target')|float(55) %}
+                {% set house = states('sensor.goodwe_house_consumption')|float(600)/1000 %}
+                {% set pv = states('sensor.goodwe_pv_power_total')|float(0)/1000 %}
+                {% set maxamps = states('input_number.tesla_freewindow_max_amps')|int(32) %}
+                {% set hours = [((today_at('14:00') - now()).total_seconds()/3600), 0.25]|max %}
+                {% set batt_kw = [batt_max_kw, grid_cap - house - (maxamps*kw_per_amp) + pv]|min %}
+                {% set projected = batt + batt_kw*hours*0.95/batt_kwh*100 %}
+                {% if projected >= target %}{{ maxamps }}
+                {% else %}
+                {% set need_kw = (target-batt)/100*batt_kwh/hours/0.95 %}
+                {% set allow = (grid_cap - house + pv - need_kw)/kw_per_amp %}
+                {% if allow >= 32 %}{% set tier = 32 %}
+                {% elif allow >= 24 %}{% set tier = 24 %}
+                {% elif allow >= 16 %}{% set tier = 16 %}
+                {% else %}{% set tier = 8 %}{% endif %}
+                {{ [tier, maxamps]|min }}
+                {% endif %}
+          - if:
+              - condition: template
+                value_template: >-
+                  {{ states('number.yourcar_charge_limit')|int(0) !=
+                     states('input_number.tesla_charge_limit_target')|int(90) }}
+            then:
+              - action: number.set_value
+                target:
+                  entity_id: number.yourcar_charge_limit   # EDIT: your car's charge limit entity
+                data:
+                  value: "{{ states('input_number.tesla_charge_limit_target')|int(90) }}"
+          - if:
+              - condition: template
+                value_template: "{{ states('number.yourcar_charge_current')|int(0) != amps_calc|int }}"
+            then:
+              - action: number.set_value
+                target:
+                  entity_id: number.yourcar_charge_current   # EDIT: your car's charge current entity
+                data:
+                  value: "{{ amps_calc|int }}"
+          - if:
+              - condition: template
+                value_template: >-
+                  {{ states('sensor.yourcar_charging') != 'charging' and
+                     states('sensor.yourcar_battery_level')|int(100) <
+                     states('input_number.tesla_charge_limit_target')|int(90) }}
+            then:
+              - action: switch.turn_on
+                target:
+                  entity_id: switch.yourcar_charge   # EDIT: your car's charge switch
+
+      # ==========================================================
+      # MID-WINDOW RE-EVALUATIONS (12:00, 13:00)
+      # Solar and house load move; recompute the amps. Only touches
+      # the current, and only if the car is actually charging.
+      # ==========================================================
+      - conditions:
+          - condition: trigger
+            id:
+              - amp_eval_12
+              - amp_eval_13
+          - condition: state
+            entity_id: device_tracker.yourcar_location   # EDIT
+            state: home
+          - condition: state
+            entity_id: input_boolean.tesla_charge_override
+            state: "off"
+          - condition: template
+            value_template: "{{ states('sensor.yourcar_charging') == 'charging' }}"
+        sequence:
+          - variables:
+              # Same formula as window_start - keep the two in sync when
+              # you edit the site constants.
+              amps_calc: >-
+                {% set grid_cap = 14.1 %}
+                {% set kw_per_amp = 0.235 %}
+                {% set batt_kwh = 48 %}
+                {% set batt_max_kw = 10 %}
+                {% set batt = states('sensor.goodwe_battery_state_of_charge')|float(0) %}
+                {% set target = states('input_number.tesla_house_batt_window_target')|float(55) %}
+                {% set house = states('sensor.goodwe_house_consumption')|float(600)/1000 %}
+                {% set pv = states('sensor.goodwe_pv_power_total')|float(0)/1000 %}
+                {% set maxamps = states('input_number.tesla_freewindow_max_amps')|int(32) %}
+                {% set hours = [((today_at('14:00') - now()).total_seconds()/3600), 0.25]|max %}
+                {% set batt_kw = [batt_max_kw, grid_cap - house - (maxamps*kw_per_amp) + pv]|min %}
+                {% set projected = batt + batt_kw*hours*0.95/batt_kwh*100 %}
+                {% if projected >= target %}{{ maxamps }}
+                {% else %}
+                {% set need_kw = (target-batt)/100*batt_kwh/hours/0.95 %}
+                {% set allow = (grid_cap - house + pv - need_kw)/kw_per_amp %}
+                {% if allow >= 32 %}{% set tier = 32 %}
+                {% elif allow >= 24 %}{% set tier = 24 %}
+                {% elif allow >= 16 %}{% set tier = 16 %}
+                {% else %}{% set tier = 8 %}{% endif %}
+                {{ [tier, maxamps]|min }}
+                {% endif %}
+          - if:
+              - condition: template
+                value_template: "{{ states('number.yourcar_charge_current')|int(0) != amps_calc|int }}"
+            then:
+              - action: number.set_value
+                target:
+                  entity_id: number.yourcar_charge_current   # EDIT
+                data:
+                  value: "{{ amps_calc|int }}"
+
+      # ==========================================================
+      # FREE WINDOW END (14:00) - stop, or hand over to trickle.
+      # If the car still wants charge AND the house battery clears
+      # both reserve layers (helper floor + computed overnight
+      # backstop), drop to trickle amps instead of stopping - the
+      # 14:00-16:00 shoulder gap is cheap house-battery time.
+      # ==========================================================
+      - conditions:
+          - condition: trigger
+            id: window_end
+          - condition: state
+            entity_id: device_tracker.yourcar_location   # EDIT
+            state: home
+          - condition: state
+            entity_id: input_boolean.tesla_charge_override
+            state: "off"
+          - condition: template
+            value_template: "{{ states('sensor.yourcar_charging') == 'charging' }}"
+        sequence:
+          - if:
+              - condition: template
+                value_template: >-
+                  {{ states('sensor.yourcar_battery_level')|float(0) >=
+                       states('input_number.tesla_trickle_soc_target')|float(50)
+                     or states('sensor.goodwe_battery_state_of_charge')|float(0) <=
+                       states('input_number.tesla_trickle_batt_floor')|float(50)
+                     or not (states('sensor.goodwe_battery_state_of_charge')|float(0) >
+                       (10 + states('input_number.tesla_overnight_house_kwh')|float(16)/48*100)) }}
+                     {# EDIT: the /48 is your house battery's usable kWh - keep in sync
+                        with batt_kwh above. If you have a learned/forecast overnight
+                        consumption sensor, swap the tesla_overnight_house_kwh helper
+                        for it here and in the trickle branch below. #}
+            then:
+              - action: switch.turn_off
+                target:
+                  entity_id: switch.yourcar_charge   # EDIT
+            else:
+              - if:
+                  - condition: template
+                    value_template: >-
+                      {{ states('number.yourcar_charge_current')|int(0) !=
+                         states('input_number.tesla_trickle_amps')|int(8) }}
+                then:
+                  - action: number.set_value
+                    target:
+                      entity_id: number.yourcar_charge_current   # EDIT
+                    data:
+                      value: "{{ states('input_number.tesla_trickle_amps')|int(8) }}"
+
+      # ==========================================================
+      # PEAK START (16:00) - hard stop. The peak blocker automation
+      # is the belt-and-braces for charging that starts LATER in the
+      # window; this catches a charge already running at 16:00.
+      # ==========================================================
+      - conditions:
+          - condition: trigger
+            id: peak_start
+          - condition: state
+            entity_id: input_boolean.tesla_charge_override
+            state: "off"
+          - condition: state
+            entity_id: device_tracker.yourcar_location   # EDIT
+            state: home
+          - condition: template
+            value_template: "{{ states('sensor.yourcar_charging') == 'charging' }}"
+        sequence:
+          - action: switch.turn_off
+            target:
+              entity_id: switch.yourcar_charge   # EDIT
+
+      # ==========================================================
+      # TRICKLE EVALUATION (23:00, or plug-in outside free/peak)
+      # Gentle top-up from the house battery, quadruple-guarded:
+      # car below target, battery above the helper floor, battery
+      # above the computed overnight backstop, not already charging.
+      # The backstop = 10% + your overnight house consumption as a
+      # percentage of the battery - i.e. "even after trickling, the
+      # battery must still carry the house to the 11:00 free window
+      # with 10% to spare".
+      # ==========================================================
+      - conditions:
+          - condition: or
+            conditions:
+              - condition: trigger
+                id: trickle_start
+              - condition: and
+                conditions:
+                  - condition: trigger
+                    id: plug_in
+                  - condition: or
+                    conditions:
+                      - condition: time
+                        after: "23:00:00"
+                        before: "10:45:00"
+                      - condition: time
+                        after: "14:00:00"
+                        before: "16:00:00"
+        sequence:
+          # 23:00 doubles as the override's expiry.
+          - if:
+              - condition: trigger
+                id: trickle_start
+            then:
+              - action: input_boolean.turn_off
+                target:
+                  entity_id: input_boolean.tesla_charge_override
+          - if:
+              - condition: state
+                entity_id: device_tracker.yourcar_location   # EDIT
+                state: home
+              - condition: state
+                entity_id: binary_sensor.yourcar_charge_cable   # EDIT
+                state: "on"
+              - condition: state
+                entity_id: input_boolean.tesla_charge_override
+                state: "off"
+              - condition: numeric_state
+                entity_id: sensor.yourcar_battery_level   # EDIT
+                below: input_number.tesla_trickle_soc_target
+              - condition: numeric_state
+                entity_id: sensor.goodwe_battery_state_of_charge   # EDIT
+                above: input_number.tesla_trickle_batt_floor
+              - condition: template
+                value_template: >-
+                  {{ states('sensor.goodwe_battery_state_of_charge')|float(0) >
+                     (10 + states('input_number.tesla_overnight_house_kwh')|float(16)/48*100) }}
+                  {# EDIT: /48 = your battery's usable kWh, as above #}
+              - condition: template
+                value_template: "{{ states('sensor.yourcar_charging') != 'charging' }}"
+            then:
+              - if:
+                  - condition: template
+                    value_template: >-
+                      {{ states('number.yourcar_charge_current')|int(0) !=
+                         states('input_number.tesla_trickle_amps')|int(8) }}
+                then:
+                  - action: number.set_value
+                    target:
+                      entity_id: number.yourcar_charge_current   # EDIT
+                    data:
+                      value: "{{ states('input_number.tesla_trickle_amps')|int(8) }}"
+              - action: switch.turn_on
+                target:
+                  entity_id: switch.yourcar_charge   # EDIT
+
+      # ==========================================================
+      # LIVE CUTOFF: house battery hit the trickle floor.
+      # Crossing trigger - stops the trickle the moment it happens,
+      # not at the next scheduled evaluation. Only acts inside the
+      # trickle windows so it can't interfere with free-window
+      # charging (which draws grid, not battery).
+      # ==========================================================
+      - conditions:
+          - condition: trigger
+            id: batt_floor
+          - condition: template
+            value_template: "{{ states('sensor.yourcar_charging') == 'charging' }}"
+          - condition: or
+            conditions:
+              - condition: time
+                after: "23:00:00"
+                before: "10:45:00"
+              - condition: time
+                after: "14:00:00"
+                before: "16:00:00"
+        sequence:
+          - action: switch.turn_off
+            target:
+              entity_id: switch.yourcar_charge   # EDIT
+          - action: notify.mobile_app_your_device_name   # EDIT: your notify service
+            data:
+              title: Tesla Trickle Stopped
+              message: >-
+                House battery hit its floor
+                ({{ states('sensor.goodwe_battery_state_of_charge') }}%) -
+                trickle stopped, overnight reserve protected.
+
+      # ==========================================================
+      # LIVE CUTOFF: car reached the trickle target.
+      # The amps check keeps this from killing a deliberate manual
+      # full-rate charge - it only stops charges running at trickle
+      # current.
+      # ==========================================================
+      - conditions:
+          - condition: trigger
+            id: car_target
+          - condition: template
+            value_template: "{{ states('sensor.yourcar_charging') == 'charging' }}"
+          - condition: or
+            conditions:
+              - condition: time
+                after: "23:00:00"
+                before: "10:45:00"
+              - condition: time
+                after: "14:00:00"
+                before: "16:00:00"
+          - condition: template
+            value_template: >-
+              {{ states('number.yourcar_charge_current')|int(0) <=
+                 states('input_number.tesla_trickle_amps')|int(8) + 1 }}
+        sequence:
+          - action: switch.turn_off
+            target:
+              entity_id: switch.yourcar_charge   # EDIT
