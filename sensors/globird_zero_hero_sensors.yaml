@@ -11,8 +11,8 @@
 # REQUIRED HELPERS (create via Settings > Helpers > Number):
 #   input_boolean.zero_hero_enabled         - master on/off toggle
 #   input_number.zero_hero_export_start     - internal session tracker (set by automation)
-#   input_number.zero_hero_rate_super       - super export rate $/kWh (e.g. 0.15)
-#   input_number.zero_hero_rate_base        - base export rate $/kWh  (e.g. 0.06)
+#   input_number.zero_hero_rate_super       - super export rate $/kWh (e.g. 0.10)
+#   input_number.zero_hero_rate_base        - base export rate $/kWh  (e.g. 0.02)
 #   input_number.zero_hero_rate_credit      - daily zero-grid credit $  (e.g. 1.00)
 #   input_number.zero_hero_super_cap        - kWh cap for super rate  (10 old plan / 15 new plan)
 #
@@ -46,8 +46,8 @@
       icon: mdi:currency-usd
       state: >
         {% set kwh_sold   = states('sensor.zero_hero_session_export') | float(0) %}
-        {% set rate_super = states('input_number.zero_hero_rate_super') | float(0.15) %}
-        {% set rate_base  = states('input_number.zero_hero_rate_base')  | float(0.06) %}
+        {% set rate_super = states('input_number.zero_hero_rate_super') | float(0.10) %}
+        {% set rate_base  = states('input_number.zero_hero_rate_base')  | float(0.02) %}
         {% set credit     = states('input_number.zero_hero_rate_credit') | float(1.00) %}
         {% set super_cap  = states('input_number.zero_hero_super_cap')   | float(10) %}
         {% set super_kwh  = [kwh_sold, super_cap] | min %}

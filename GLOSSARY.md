@@ -67,8 +67,8 @@ The Method 3 automation in this guide uses `"Charge"`, `"Discharge"`, and `"Auto
 |---|---|---|
 | 11:00-14:00 period where grid electricity costs nothing | "ZEROCHARGE" period / "Off-peak Usage" in your bill | Free window |
 | 18:00-21:00 period where export earns a premium (older grandfathered plans end at 20:00) | "Super Export Window" / "ZEROHERO Window" | Peak window |
-| High export rate during peak (e.g. $0.15/kWh total on QLD ZEROHERO, Apr 2026) | "ZEROWASTEDSOLAR" / "Super Export" | Super rate |
-| Export rate outside peak but within 4pm-11pm (e.g. $0.05/kWh on QLD, Apr 2026) | "Solar/GenerationFeedin(4pm-11pm)" | Base rate |
+| High export rate during peak (e.g. $0.10/kWh total on QLD ZEROHERO, Jul 2026) | "ZEROWASTEDSOLAR" / "Super Export" | Super rate |
+| Export rate outside peak but within 4pm-11pm (e.g. $0.02/kWh on QLD, Jul 2026) | "Solar/GenerationFeedin(4pm-11pm)" | Base rate |
 | Daily credit for not importing during the peak window | "ZEROHERO" credit | Daily credit |
 | kWh threshold above which super rate stops | "Super Export Threshold" / "Super Export Cap" | Super cap (15 kWh current; 10 kWh on older grandfathered plans) |
 | Import threshold to retain the Zero-Grid credit | "ZEROHERO Threshold" | 0.03 kWh/hour per current GloBird key conditions = ~0.09 kWh (90 Wh) total across the 3-hour peak window |
@@ -76,7 +76,7 @@ The Method 3 automation in this guide uses `"Charge"`, `"Discharge"`, and `"Auto
 
 ### Note on the super export rate structure
 
-GloBird structures the super rate as: **base rate (4pm-11pm feed-in) + Super Export top-up = total super rate**. For QLD ZEROHERO as of April 2026 this is $0.05 base + $0.10 top-up = $0.15 total. For the purposes of automation, you only care about the *total rate you receive* during peak ($0.15 in this example) vs what you receive once you've exceeded the cap ($0.05 same-window, $0.00 after 11pm). The helpers in these automations store and use the total figures. **Rates vary by state and review date** (GloBird reviews on 1 Jan and 1 Jul). Check your current welcome pack for what you're actually on.
+GloBird structures the super rate as: **base rate (4pm-11pm feed-in) + Super Export top-up = total super rate**. For QLD ZEROHERO as of the 1 July 2026 rate review this is $0.02 base + $0.08 top-up = $0.10 total. For the purposes of automation, you only care about the *total rate you receive* during peak ($0.10 in this example) vs what you receive once you've exceeded the cap ($0.02 same-window, $0.00 after 11pm). The helpers in these automations store and use the total figures. **Rates vary by state and review date** (GloBird reviews on 1 Jan and 1 Jul - the July 2026 review cut the QLD feed-in rates noticeably, so don't assume last quarter's numbers still hold). Check your current welcome pack for what you're actually on.
 
 ### Note on ZEROLIMIT (Critical Peak) and GoodWe
 

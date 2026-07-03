@@ -14,8 +14,8 @@ max: 5
 # REQUIRED HELPERS (create these in HA before use):
 #   input_boolean.zero_hero_enabled               - master toggle
 #   input_number.zero_hero_export_start           - tracks export kWh at peak start
-#   input_number.zero_hero_rate_super             - GloBird super export rate $/kWh (e.g. 0.15)
-#   input_number.zero_hero_rate_base              - GloBird base export rate $/kWh (e.g. 0.05)
+#   input_number.zero_hero_rate_super             - GloBird super export rate $/kWh (e.g. 0.10)
+#   input_number.zero_hero_rate_base              - GloBird base export rate $/kWh (e.g. 0.02)
 #   input_number.zero_hero_rate_credit            - GloBird daily zero-grid credit (e.g. 1.00)
 #   input_number.zero_hero_super_cap              - kWh cap for super rate (15 current, 10 older plan)
 #   input_number.zero_hero_eco_charge_power       - free-window charge magnitude (see UNIT-TRAP below)
@@ -255,8 +255,8 @@ actions:
                     {% set end_exp    = states('sensor.goodwe_meter_total_energy_export') | float(0) %}
                     {% set kwh_sold   = [(end_exp - start_exp), 0] | max | round(2) %}
 
-                    {% set rate_super = states('input_number.zero_hero_rate_super') | float(0.15) %}
-                    {% set rate_base  = states('input_number.zero_hero_rate_base')  | float(0.05) %}
+                    {% set rate_super = states('input_number.zero_hero_rate_super') | float(0.10) %}
+                    {% set rate_base  = states('input_number.zero_hero_rate_base')  | float(0.02) %}
                     {% set credit     = states('input_number.zero_hero_rate_credit') | float(1.00) %}
                     {% set super_cap  = states('input_number.zero_hero_super_cap')   | float(15) %}
 
