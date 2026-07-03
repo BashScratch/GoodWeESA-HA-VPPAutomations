@@ -265,7 +265,16 @@ actions:
                     {% set profit     = ((super_kwh * rate_super) + (base_kwh * rate_base)) | round(2) %}
                     {% set total      = (profit + credit) | round(2) %}
 
-                    Exported {{ kwh_sold }} kWh to grid. Revenue: ${{ '%.2f' | format(profit) }}
+                    {# Rate labels render from the helpers too, so the message
+                       stays honest when GloBird moves the rates - no stale
+                       hard-coded cent values. %g drops trailing zeros. #}
+                    {% set sup_c  = '%g' | format(rate_super * 100) %}
+                    {% set base_c = '%g' | format(rate_base * 100) %}
+
+                    Exported {{ kwh_sold }} kWh to grid: {{ super_kwh | round(2) }} kWh
+                    @ {{ sup_c }}c super{% if base_kwh > 0 %} + {{ base_kwh | round(2) }} kWh
+                    @ {{ base_c }}c base{% endif %}.
+                    Revenue: ${{ '%.2f' | format(profit) }}
                     + ${{ '%.2f' | format(credit) }} daily credit
                     = ${{ '%.2f' | format(total) }}. Goodnight.
               - action: input_number.set_value
