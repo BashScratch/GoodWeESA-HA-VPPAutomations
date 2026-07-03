@@ -123,7 +123,7 @@ If the charge slot didn't fire - battery isn't charging during the window - chec
 
 We say this in the strategy README and we'll say it again here. Method 2 (and any operation-mode change in Method 3) **deletes both your TOU slots** ([Whirlpool thread "GoodWe ESA - Setting export TOU with SOC limit"](https://forums.whirlpool.net.au/thread/9n111qlk)). The first time HA writes "Eco mode" or "General mode" to `select.goodwe_inverter_operation_mode`, your carefully-set TOU configuration is gone.
 
-If you're running Method 4, your YAML in HA should never touch the operation mode - and the [Method 4 automation in this repo](../../automations/globird/method4_hybrid/globird_zero_hero.yaml) is designed exactly that way. Don't add additional automations that change `select.goodwe_inverter_operation_mode` while you're on Method 4.
+If you're running Method 4, your YAML in HA should never touch the operation mode - and the [Method 4 automation in this repo](../automations/globird/method4_hybrid/globird_zero_hero.yaml) is designed exactly that way. Don't add additional automations that change `select.goodwe_inverter_operation_mode` while you're on Method 4.
 
 ## What you should have at the end of this guide
 

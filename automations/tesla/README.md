@@ -10,7 +10,7 @@ An optional layer on top of the GloBird Zero Hero setup for households that char
 - A working Zero Hero setup from this repo (any HA method). The peak blocker keys off `input_boolean.zero_hero_enabled`, and the savings sensors read the `globird_*` rate helpers from the [cost-tracking sensors](../../sensors/globird_cost_tracking.yaml).
 - Optionally, the Tesla Wall Connector integration for the energy meter (feeds the savings tracker) and guest-car detection.
 
-> **Entity naming:** Teslemetry names entities after your car. These files use `yourcar` as the placeholder (`sensor.yourcar_battery_level`, `switch.yourcar_charge`, ...) - replace it everywhere with your car's actual slug (Developer Tools > States, search your car's name). Every reference carries an `# EDIT:` marker as usual.
+> **Entity naming:** Teslemetry names entities after your car. These files use `yourcar` as the placeholder (`sensor.yourcar_battery_level`, `switch.yourcar_charge`, ...) - do a **find-and-replace-all of `yourcar`** with your car's actual slug (Developer Tools > States, search your car's name) before pasting; that covers every reference including the ones inside message templates, where we don't repeat `# EDIT:` markers. The GoodWe sensors and site constants carry `# EDIT:` markers as usual - check the GoodWe ones for `_2` suffixes like everywhere else in this repo.
 
 ## The strategy in one paragraph
 

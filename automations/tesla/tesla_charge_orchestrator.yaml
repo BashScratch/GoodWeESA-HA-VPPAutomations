@@ -143,6 +143,10 @@ actions:
               #   batt_kwh   - house battery usable kWh
               #   batt_max_kw - house battery max charge rate in kW
               #
+              # EDIT also: the three goodwe_* sensors inside this template
+              # (battery SOC, house consumption, PV power) - like everywhere
+              # in this repo, your install may have them _2-suffixed.
+              #
               # Logic: project the house battery's 14:00 SOC assuming the
               # car takes max amps (battery gets remaining grid headroom
               # + DC solar, capped at its own charge ceiling, at ~95%
