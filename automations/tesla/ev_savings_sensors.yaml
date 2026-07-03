@@ -1,0 +1,79 @@
+# EV Savings Tracker - utility meters + template sensors
+#
+# Answers "what is free-window EV charging actually worth?" three ways:
+# dollars saved today/this month vs charging at the shoulder rate, and a
+# weekly petrol-equivalent figure for the "what would this cost in a
+# petrol car?" conversation.
+#
+# TWO HOMES IN YOUR CONFIG (like sensors/goodwe_voltage_statistics.yaml,
+# these are split across different top-level keys):
+#   - the `utility_meter:` block merges into your existing utility_meter:
+#     section (create one at top level if you don't have it)
+#   - the `- sensor:` block joins your `template:` section / templates.yaml
+# Utility meters only appear after a FULL RESTART (not a template reload).
+#
+# REQUIRED ENTITIES:
+#   sensor.tesla_wall_connector_energy - lifetime kWh through the Wall
+#     Connector (native TWC integration). Counts EVERY car that plugs in,
+#     including guests - see tesla_guest_car_detection.yaml.
+#   sensor.yourcar_odometer - Teslemetry, DISABLED BY DEFAULT. Enable it:
+#     Settings > Devices & services > Teslemetry > entities > search
+#     "odometer" > enable. It registers a value on the car's next wake.
+#
+# REQUIRED HELPERS (from the Tesla README's table + cost tracking):
+#   input_number.tesla_efficiency_kwh_100km  - your car's real consumption (13)
+#   input_number.ice_fuel_consumption        - comparison petrol car L/100km (5.0)
+#   input_number.ulp_price_per_litre         - current unleaded price (1.85)
+#   input_number.globird_import_shoulder     - shoulder rate (from
+#     sensors/globird_cost_tracking.yaml's helper set; 0.385 fallback)
+#
+# WHY SHOULDER RATE: the free-window kWh would otherwise have been charged
+# at shoulder (nobody deliberately charges at peak). Valuing them at peak
+# would flatter the number; shoulder is the honest counterfactual.
+
+# --- merge these keys into your existing `utility_meter:` block ---
+utility_meter:
+  ev_charge_daily:
+    source: sensor.tesla_wall_connector_energy   # EDIT: your TWC energy sensor
+    name: "EV Charge Daily"
+    cycle: daily
+  ev_charge_monthly:
+    source: sensor.tesla_wall_connector_energy   # EDIT: same
+    name: "EV Charge Monthly"
+    cycle: monthly
+  ev_km_weekly:
+    source: sensor.yourcar_odometer   # EDIT: your car's odometer (enable it first - see header)
+    name: "EV KM Weekly"
+    cycle: weekly
+
+# --- append inside your existing `template:` section ---
+template:
+  - sensor:
+      - name: "EV Charging Savings (Today)"
+        unique_id: ev_charging_savings_today
+        unit_of_measurement: "AUD"
+        device_class: monetary
+        state: >
+          {{ (states('sensor.ev_charge_daily') | float(0) *
+              states('input_number.globird_import_shoulder') | float(0.385)) | round(2) }}
+
+      - name: "EV Charging Savings (Monthly)"
+        unique_id: ev_charging_savings_monthly
+        unit_of_measurement: "AUD"
+        device_class: monetary
+        state: >
+          {{ (states('sensor.ev_charge_monthly') | float(0) *
+              states('input_number.globird_import_shoulder') | float(0.385)) | round(2) }}
+
+      # km driven this week x what a petrol car would have burnt to do
+      # them. Not a savings figure (the EV kWh weren't free unless you
+      # charged in the window) - it's the like-for-like running-cost
+      # comparison people actually ask for.
+      - name: "EV Weekly Petrol Equivalent"
+        unique_id: ev_weekly_petrol_equivalent
+        unit_of_measurement: "AUD"
+        device_class: monetary
+        state: >
+          {{ (states('sensor.ev_km_weekly') | float(0) *
+              states('input_number.ice_fuel_consumption') | float(5.0) / 100 *
+              states('input_number.ulp_price_per_litre') | float(1.85)) | round(2) }}

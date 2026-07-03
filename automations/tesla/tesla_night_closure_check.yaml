@@ -1,0 +1,94 @@
+alias: "Tesla: Night Closure Check"
+description: >
+  22:00: if the car is home and anything is open or unlocked (doors,
+  windows, frunk, trunk, lock), send one notification listing exactly
+  what. Silent when the car is secure. Time the trigger to match your
+  house's night-arming routine if you have one. Notification only - not
+  master-gated.
+mode: single
+
+# =============================================================================
+# Teslemetry exposes each door/window as a binary_sensor and frunk/trunk/
+# windows as covers. If any entity here doesn't exist on your install
+# (varies slightly by model year), delete both its condition line and its
+# entry in the open_items map below.
+# =============================================================================
+
+triggers:
+  - trigger: time
+    at: "22:00:00"   # EDIT: your nightly check time
+    id: night_check
+
+conditions:
+  - condition: state
+    entity_id: device_tracker.yourcar_location   # EDIT: your car's device tracker
+    state: home
+  - condition: or
+    conditions:
+      - condition: state
+        entity_id: binary_sensor.yourcar_front_driver_door   # EDIT (and the 7 below): your car's door/window sensors
+        state: "on"
+      - condition: state
+        entity_id: binary_sensor.yourcar_front_passenger_door
+        state: "on"
+      - condition: state
+        entity_id: binary_sensor.yourcar_rear_driver_door
+        state: "on"
+      - condition: state
+        entity_id: binary_sensor.yourcar_rear_passenger_door
+        state: "on"
+      - condition: state
+        entity_id: binary_sensor.yourcar_front_driver_window
+        state: "on"
+      - condition: state
+        entity_id: binary_sensor.yourcar_front_passenger_window
+        state: "on"
+      - condition: state
+        entity_id: binary_sensor.yourcar_rear_driver_window
+        state: "on"
+      - condition: state
+        entity_id: binary_sensor.yourcar_rear_passenger_window
+        state: "on"
+      - condition: state
+        entity_id: cover.yourcar_frunk   # EDIT
+        state: open
+      - condition: state
+        entity_id: cover.yourcar_trunk   # EDIT
+        state: open
+      - condition: state
+        entity_id: cover.yourcar_windows   # EDIT
+        state: open
+      - condition: state
+        entity_id: lock.yourcar_lock   # EDIT
+        state: unlocked
+
+actions:
+  - variables:
+      open_items: >-
+        {% set items = [] %}
+        {% set doors = {
+          'binary_sensor.yourcar_front_driver_door': 'Driver door',
+          'binary_sensor.yourcar_front_passenger_door': 'Passenger door',
+          'binary_sensor.yourcar_rear_driver_door': 'Rear driver door',
+          'binary_sensor.yourcar_rear_passenger_door': 'Rear passenger door',
+          'binary_sensor.yourcar_front_driver_window': 'Driver window',
+          'binary_sensor.yourcar_front_passenger_window': 'Passenger window',
+          'binary_sensor.yourcar_rear_driver_window': 'Rear driver window',
+          'binary_sensor.yourcar_rear_passenger_window': 'Rear passenger window'
+        } %}   {# EDIT: same entity IDs as the conditions above #}
+        {% for e, n in doors.items() %}
+          {% if is_state(e, 'on') %}{% set items = items + [n] %}{% endif %}
+        {% endfor %}
+        {% if is_state('cover.yourcar_frunk', 'open') %}{% set items = items + ['Frunk'] %}{% endif %}
+        {% if is_state('cover.yourcar_trunk', 'open') %}{% set items = items + ['Trunk'] %}{% endif %}
+        {% if is_state('cover.yourcar_windows', 'open') %}{% set items = items + ['Windows (vented)'] %}{% endif %}
+        {% if is_state('lock.yourcar_lock', 'unlocked') %}{% set items = items + ['UNLOCKED'] %}{% endif %}
+        {{ items | join(', ') }}
+  - action: notify.mobile_app_your_device_name   # EDIT: your notify service
+    data:
+      title: "Tesla Not Secure"
+      message: "Check the car: {{ open_items }}."
+      data:
+        push:
+          sound:
+            name: default

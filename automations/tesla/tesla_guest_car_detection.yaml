@@ -1,0 +1,57 @@
+alias: "Tesla: Guest Car Detection"
+description: >
+  Fires when a vehicle connects to the Wall Connector but it is NOT your
+  car (your car unplugged, or not home) - a friend's EV, or someone
+  helping themselves. Informational only: the Gen 3 Wall Connector is
+  read-only to HA, so charging cannot be blocked remotely - the TWC's own
+  access setting is the only real control. Guest energy will land in the
+  EV utility meters (known skew in the savings figures). Notification
+  only - not master-gated.
+mode: single
+
+# =============================================================================
+# REQUIRES: the Tesla Wall Connector integration (native, local) for
+# binary_sensor.tesla_wall_connector_vehicle_connected. This is the one
+# automation in this folder that works WITHOUT Teslemetry - though without
+# it you lose the "is it my car?" half of the logic.
+# =============================================================================
+
+triggers:
+  - trigger: state
+    entity_id: binary_sensor.tesla_wall_connector_vehicle_connected   # EDIT: your TWC connected sensor
+    to: "on"
+    id: twc_connect
+
+conditions:
+  # "Not my car" = my car's cable is disconnected, or my car isn't home.
+  - condition: or
+    conditions:
+      - condition: state
+        entity_id: binary_sensor.yourcar_charge_cable   # EDIT: your car's charge cable sensor
+        state: "off"
+      - condition: not
+        conditions:
+          - condition: state
+            entity_id: device_tracker.yourcar_location   # EDIT: your car's device tracker
+            state: home
+
+actions:
+  - action: notify.mobile_app_your_device_name   # EDIT: your notify service
+    data:
+      title: "Unknown Car on Charger"
+      message: >-
+        A vehicle just plugged into the Wall Connector but it isn't your
+        Tesla ({{ states('device_tracker.yourcar_location') }}, cable
+        {{ states('binary_sensor.yourcar_charge_cable') }}). Free power
+        11am-2pm; other times it draws battery/grid. HA can't block the
+        TWC - check cameras if unexpected.
+      data:
+        push:
+          sound:
+            name: default
+        # Optional deep link to a dashboard - point it at your camera view,
+        # or delete the actions block entirely.
+        actions:
+          - action: URI
+            title: Check Cameras
+            uri: /lovelace/cameras   # EDIT: your camera dashboard path
