@@ -26,7 +26,7 @@ If you already know you want HA, skip this and go to [Method 4 (Hybrid)](../meth
 
 Two TOU schedule slots in SEMS+:
 
-- **Charge slot:** 11:00-14:00. The inverter charges the battery toward your Charge Cut-off SOC target from the grid (free during the Zero Hero window) and from any solar that's available.
+- **Charge slot:** 11:00-13:55. The inverter charges the battery toward your Charge Cut-off SOC target from the grid (free during the Zero Hero window) and from any solar that's available. End the slot at 13:55 rather than 14:00: the inverter takes roughly 30 seconds to wind down a full-rate grid charge, and ending at 14:00 sharp pushes that tail past the free window onto shoulder rates - every day. Five minutes early costs nothing (the battery's normally full and holding by then).
 - **Discharge slot:** 18:00-21:00 (or 18:00-20:00 on older Zero Hero plans). The inverter discharges the battery into your house and out to the grid, capped at the discharge power you set.
 
 That's the whole automation. Outside those windows the inverter sits in self-consumption (use solar first, fill from battery, import from grid only if needed).

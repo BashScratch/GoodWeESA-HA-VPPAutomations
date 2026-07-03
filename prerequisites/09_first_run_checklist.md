@@ -36,7 +36,7 @@ Tick each line before enabling. If any of these are "uh, not sure", go back to t
 
 ### Method 4 only
 
-- [ ] SEMS+ TOU schedule is set up (11:00-14:00, charge, 100%, grid priority).
+- [ ] SEMS+ TOU schedule is set up (11:00-13:55, charge, 100%, grid priority - the 13:55 end is deliberate, see prereq 08).
 - [ ] Inverter is in Economic Mode (the working mode dropdown in SEMS+).
 - [ ] **No automations** touching `select.goodwe_inverter_operation_mode`.
 

@@ -37,7 +37,10 @@ max: 5
 #
 # GOODWE APP SETUP REQUIRED:
 #   In SolarGo / SEMS+, create an Economic Mode / TOU charge schedule:
-#     Time:    11:00 - 14:00
+#     Time:    11:00 - 13:55  (not 14:00 - the inverter takes ~30s to wind
+#              down after the slot ends; ending 5 min early keeps the
+#              ramp-down inside the free window instead of billing the
+#              tail at shoulder rates. See prereq 08.)
 #     Target:  100% SOC
 #     Source:  Grid (high priority)
 #   This replaces the HA fast_charging_switch approach and correctly holds the

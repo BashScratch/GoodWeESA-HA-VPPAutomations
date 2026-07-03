@@ -214,7 +214,7 @@ Use the community-maintained GoodWe Experimental integration (HACS) to send Ener
 
 ### [Method 4: Hybrid General Mode (recommended)](./method4_hybrid/)
 
-The free charging window is handled natively by a GoodWe **TOU** schedule set directly in the SEMS+ app (11:00-14:00, target 100% SOC, grid priority). The firmware blends grid AC and solar DC to charge at up to 13.5kW and holds at 100% once the target is hit - no HA intervention in the free window.
+The free charging window is handled natively by a GoodWe **TOU** schedule set directly in the SEMS+ app (11:00-13:55, target 100% SOC, grid priority - the slot ends 5 minutes before the window does so the inverter's wind-down doesn't bill at shoulder rates). The firmware blends grid AC and solar DC to charge at up to 13.5kW and holds at 100% once the target is hit - no HA intervention in the free window.
 
 HA handles the smart layer: at 17:56 it evaluates SOC once and sets a stepped export limit scaled to the battery's headroom (5kW down to 1kW by SOC bracket, or 0 below the bottom bracket), a floor guard kills export if SOC craters mid-window, and a nightly profit notification lands at peak end.
 

@@ -44,7 +44,7 @@ Add a new schedule entry:
 | Setting | Value |
 |---|---|
 | **Start time** | `11:00` |
-| **End time** | `14:00` |
+| **End time** | `13:55` (not 14:00 - see below) |
 | **Action / Mode** | **Charge** |
 | **SOC target** | `100%` (charge to full) |
 | **Power source** | **Grid** (high priority) - or "Grid + PV" if your version separates them |
@@ -54,7 +54,8 @@ Add a new schedule entry:
 Save the slot.
 
 > **Why these specific settings?**
-> - **11:00-14:00** matches the GloBird Zero Hero free window. If you're on a different free-window plan (some VPP variants are 10-13 or noon-3), adjust to match.
+> - **11:00-13:55, not 11:00-14:00.** The free window runs to 14:00, but the inverter doesn't stop on a dime - it takes roughly 30 seconds to wind down a full-rate grid charge after the slot ends. End the slot at 14:00:00 sharp and that ramp-down tail lands *after* the free window, billed at the shoulder rate ($0.385/kWh). Pulling at 10kW+, even half a minute of overrun is measurable, and it happens every single day. Ending at 13:55 puts the entire wind-down inside the free window. The cost of the missing five minutes is nothing: on any normal day the battery hit 100% long before 13:55, and the slot was just holding.
+> - **11:00 start** matches the GloBird Zero Hero free window. If you're on a different free-window plan (some VPP variants are 10-13 or noon-3), adjust both ends to match - keeping the ~5-minute early cut-off before the window closes.
 > - **Charge to 100%** because LFP chemistry tolerates regular full charges and the BMS calibrates itself at the top end. Charging to less than 100% leaves money on the table during peak. (See the strategy guide's "Free window" section for detail and citation.)
 > - **Grid priority** so the inverter prefers grid power for the charge (which is free during this window) and uses solar as a top-up. The opposite priority would consume your solar first and only top up from grid if solar wasn't enough - fine, but you'd export less.
 
@@ -86,7 +87,7 @@ Method 4's HA automation has its own time triggers. Here's the full picture acro
 |---|---|---|
 | 00:01 | Midnight reset (export tracker zeroed, fast-charge switch turned off as safety) | HA |
 | 11:00 | Charge TOU slot starts (battery charges to 100% from grid + solar blended) | Inverter firmware |
-| 14:00 | Charge TOU slot ends | Inverter firmware |
+| 13:55 | Charge TOU slot ends (5 min early so the inverter's ~30s wind-down stays inside the free window) | Inverter firmware |
 | 17:56 | Pre-peak guard check (HA reads SOC, decides to arm export limit or block) | HA |
 | 18:00 | Discharge TOU slot starts (inverter willing to discharge at full output) | Inverter firmware |
 | 21:00 | Discharge TOU slot ends | Inverter firmware |
@@ -127,7 +128,7 @@ If you're running Method 4, your YAML in HA should never touch the operation mod
 ## What you should have at the end of this guide
 
 - SEMS+ set to TOU mode.
-- A daily 11:00-14:00 **charge** slot, target 100% SOC, grid priority.
+- A daily 11:00-13:55 **charge** slot, target 100% SOC, grid priority.
 - A daily 18:00-21:00 (or 18:00-20:00) **discharge** slot at 100% inverter power.
 - Verified both slots fire (watch battery SOC climb during free, watch grid export during peak).
 - No HA automations touching operation mode.
