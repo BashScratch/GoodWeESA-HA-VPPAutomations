@@ -88,6 +88,20 @@ If you want to chase this opportunistically, the technique is: watch AEMO spot p
 
 ---
 
+## Terms this guide's automations introduce
+
+A few concepts recur across the Method 4 YAML and the [Tesla add-on](./automations/tesla/) that aren't GoodWe's, GloBird's, or HA's vocabulary - they're ours:
+
+| Term | Meaning |
+|---|---|
+| Stepped export / brackets | Method 4's 17:56 decision: instead of an all-or-nothing SOC threshold, the peak export limit scales with battery headroom (≥80% → 5kW down to 60-65% → 1kW, below that → 0). One evaluation, then the night runs unattended. |
+| Floor guard | The mid-window anomaly catch. If battery SOC crosses below `zero_hero_floor_guard_soc` during the peak window, export is forced to 0 immediately. Tuned to sit *below* every planned bracket trajectory - it firing means something is genuinely wrong, not that the plan is aggressive. |
+| Trickle | A deliberately gentle (default 8A) EV top-up from the house battery outside the free and peak windows, gated behind the car's trickle target and both battery reserve layers. The opposite of "charge as fast as possible" - it's "sip only what the house won't miss". |
+| Dynamic backstop | The computed reserve floor behind the trickle: 10% + your overnight house consumption expressed as a % of the battery. The helper floor is policy; the backstop is arithmetic. Both must clear before a trickle amp flows. |
+| Override | The Tesla add-on's one-tap "Charge Anyway" state. Suspends the peak blocker and orchestrator for the current session only - auto-clears at 23:00 or on unplug. An override is a statement about *this* charge, never a persistent setting. |
+
+---
+
 ## Home Assistant helper and entity types
 
 | Term used in YAML / docs | What it actually is |
