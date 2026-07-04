@@ -6,6 +6,8 @@ Current focus: **GloBird Zero Hero**. The repo is structured so other providers 
 
 This is a work in progress. Things will change. Read the disclaimer at the bottom before wiring any of this into a live inverter.
 
+**On a different VPP plan?** This repo only covers GloBird Zero Hero because that's what I'm on - but the structure is built to take more providers (Amber, Energy Locals, OVO, whatever). If you've worked out the windows/rates/quirks for another plan and want to write it up in this style, PRs are welcome. See [Contributing](#contributing-issues-suggestions) below for how a new provider folder should be shaped.
+
 ---
 
 ## Not using Home Assistant?
@@ -130,7 +132,17 @@ This is why Method 4 splits responsibility the way it does: the SEMS+ TOU discha
 
 ## Contributing, issues, suggestions
 
-Open an issue on GitHub. If you're on a different VPP plan and want to add guides, PRs welcome - the structure under `automations/` is deliberately provider-scoped so new providers can land in their own folder.
+Open an issue on GitHub for bugs, corrections, or "this entity doesn't exist any more" reports.
+
+**Adding a new VPP provider?** PRs welcome. The repo is deliberately structured so a new plan slots in without touching GloBird's files:
+
+- **New automations** go in their own folder: `automations/{provider}/` (e.g. `automations/amber/`), mirroring how `automations/globird/` and `automations/tesla/` are laid out - a strategy README explaining the plan's windows and rates, then per-method subfolders if the plan needs more than one approach.
+- **New template sensors** go in `sensors/`, named after the plan (`amber_shift_sensors.yaml` or similar) - see the note in [sensors/README.md](./sensors/README.md#adding-support-for-other-providers).
+- **Match the existing voice**: practical over academic, plain about trade-offs, every `# EDIT:` marker pointing at a real entity (not an invented one). The [GLOSSARY](./GLOSSARY.md) and any of the GloBird docs are the style reference.
+- **Cite your sources.** If a rate, window, or inverter behaviour claim comes from your welcome pack, a forum thread, or a manufacturer datasheet, link it - this repo tries to back its numbers rather than assert them.
+- Doesn't need to be perfect or complete on the first pass - a Method-1-equivalent app-only baseline for a new provider is a useful contribution on its own, same as this repo started with GloBird.
+
+If you're not sure whether something fits, open an issue first and we can figure out the shape together before you write a folder's worth of YAML.
 
 ---
 
