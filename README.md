@@ -148,7 +148,7 @@ If you're not sure whether something fits, open an issue first and we can figure
 
 ## If this saved you time (optional)
 
-If this guide helped and you're not on GloBird yet, you can sign up via my referral link and we both get $50 credit: <https://quote.globirdenergy.com.au/quote?pcode=refer&ref=UGBIN4>. Completely optional - the guide and all the YAML in this repo work exactly the same whether you use the link or not. No pressure either way; I'm working on these automations for myself anyway, and I kept seeing the same questions come up in the GoodWe ESA group, so I figured I'd write the lot up in one place.
+If this guide helped and you're not on GloBird yet, you can sign up via my referral link and we both get $50 credit: <https://quote.globirdenergy.com.au/quote?pcode=refer&ref=NCTBIC>. Completely optional - the guide and all the YAML in this repo work exactly the same whether you use the link or not. No pressure either way; I'm working on these automations for myself anyway, and I kept seeing the same questions come up in the GoodWe ESA group, so I figured I'd write the lot up in one place.
 
 ---
 
