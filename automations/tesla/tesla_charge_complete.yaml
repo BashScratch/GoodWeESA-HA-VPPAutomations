@@ -1,0 +1,27 @@
+alias: "Tesla: Charge Complete"
+description: >
+  Notifies the moment home charging finishes (charging state reaches
+  'complete') with the final SOC and the session's energy - no waiting
+  for the 14:05 window summary to find out how it went. Notification
+  only - not master-gated.
+mode: single
+
+triggers:
+  - trigger: state
+    entity_id: sensor.yourcar_charging   # EDIT: your car's charging state sensor
+    to: complete
+    id: done
+
+conditions:
+  - condition: state
+    entity_id: device_tracker.yourcar_location   # EDIT: your car's device tracker
+    state: home
+
+actions:
+  - action: notify.mobile_app_your_device_name   # EDIT: your notify service
+    data:
+      title: Tesla Charged
+      message: >-
+        Finished at {{ states('sensor.yourcar_battery_level')|round(0) }}%
+        (+{{ states('sensor.yourcar_charge_energy_added')|float(0)|round(1) }} kWh
+        this session).
