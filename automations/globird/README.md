@@ -394,3 +394,5 @@ Two community projects already do this and both can drive a GoodWe ESA via the e
 
 Neither is maintained by this repo and neither has GloBird-specific recipes - for Zero Hero's fixed windows the gain is small, and Method 3 is simpler. But if you find yourself wanting the automation to react to *forecast* rather than *clock time*, that's where to go next.
 
+A third contender is coming from GoodWe itself: an announced **AI mode for SEMS+**. Per the brochure, it forecasts next-day PV from weather APIs and history, learns your household's load pattern, and re-optimises the battery's charge/discharge strategy hourly against your tariff curves - Predbat-shaped functionality with no HA at all, which would make it the natural first stop for Method 1 users who outgrow fixed windows. As of August 2026 it's announced but not released, and everything shown is dynamic-tariff-focused, so the same caveat applies as for Predbat and EMHASS: on Zero Hero's fixed windows the ceiling for any optimiser is low - the windows don't move, so there isn't much for an hourly re-planner to out-think. We'll evaluate it against the methods here when it lands.
+
