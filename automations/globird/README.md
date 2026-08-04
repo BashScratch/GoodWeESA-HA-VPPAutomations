@@ -54,7 +54,7 @@ If you'd rather stay deliberately conservative on any battery size, set your TOU
 
 ### Peak window (6:00 PM - 9:00 PM)
 
-Grid import is expensive. GloBird offers two stacked rewards during this window: a **Super Export top-up** that pays $0.10/kWh total for the first 15 kWh exported (current cap; older plan grandparents will see a 10 kWh cap with an 8pm end time instead of 9pm), and a daily **Zero-Grid credit** of $1.00 if your imports during the peak window stay below the threshold (0.03 kWh/hour per the current GloBird key-conditions document, which works out to roughly 0.09 kWh / 90 Wh total across the 3-hour window - a tolerance for inverter standby and brief loads, not a zero-import requirement). All rates quoted here are the QLD ZEROHERO rates effective 1 July 2026; **rates and thresholds vary by state and review date (GloBird reviews on 1 Jan and 1 Jul each year)** - check your own welcome pack or the current GloBird ZEROHERO terms for what applies to you. The July 2026 review is a good example of why the rates live in helpers: feed-in dropped from $0.15/$0.05 to $0.10/$0.02 while peak import climbed - four number edits in the HA UI, zero YAML changes.
+Grid import is expensive. GloBird offers two stacked rewards during this window: a **Super Export top-up** that pays $0.10/kWh total for the first 15 kWh exported (current cap; older plan grandparents will see a 10 kWh cap with an 8pm end time instead of 9pm), and a daily **Zero-Grid credit** of $1.00 if your imports during the peak window stay below the threshold (0.03 kWh per clock hour, per the current GloBird key-conditions document - note it's a per-hour cap assessed from meter interval data, so one bad hour forfeits the credit even if the other two were clean. It's a tolerance for inverter standby and brief loads, not a zero-import requirement). All rates quoted here are the QLD ZEROHERO rates effective 1 July 2026; **rates and thresholds vary by state and review date (GloBird reviews on 1 Jan and 1 Jul each year)** - check your own welcome pack or the current GloBird ZEROHERO terms for what applies to you. The July 2026 review is a good example of why the rates live in helpers: feed-in dropped from $0.15/$0.05 to $0.10/$0.02 while peak import climbed - four number edits in the HA UI, zero YAML changes.
 
 For context on what self-consumption pays vs Super Export, here are the QLD ZEROHERO rates from that same pack:
 
@@ -81,7 +81,7 @@ So **the most valuable thing a battery can do at peak is cover household load** 
 
 To pick a method, you need to know two things about how the inverter responds when HA sends commands.
 
-**1. HA can only command the AC side.** The GoodWe ESA's 10kW model (GW9.999K-EHA-G20) can charge the battery at up to **13.5kW** when the firmware combines grid AC and solar DC simultaneously. This is published spec - see GoodWe's official ESA Series datasheet, "Max. Charging Power" row ([GoodWe ESA Series datasheet PDF, V2.1 April 2026](https://admin.goodwe.com/Api/downloadFile?id=3448&mid=60&type=2)). The inverter's nominal AC power is 9.999kW; the extra ~3.5kW comes from solar DC bypassing the AC stage and going directly to the battery via the MPPTs. The HA-facing API only exposes AC-side controls (Eco Mode, fast-charging switch, EMS power limit), so a HA-driven charge tops out around 10kW. A SEMS+ TOU schedule, by contrast, lets the firmware orchestrate both inputs and gives you the full 13.5kW. Community confirmation of the same effect: Whirlpool thread "Goodwe ESA maximum charge rate?", explanation by user **nutttr** with confirmation from **Zerosignal** ([thread link](https://forums.whirlpool.net.au/thread/9kppp8k2)).
+**1. HA can only command the AC side.** The GoodWe ESA's 10kW model (GW9.999K-EHA-G20) can charge the battery at up to **13.5kW** when the firmware combines grid AC and solar DC simultaneously. This is published spec - see GoodWe's official ESA Series datasheet, "Max. Charging Power" row ([GoodWe ESA Series single-phase datasheet PDF, V2.1 June 2026](https://www.goodwe.com.au/Ftp/EN/Downloads/Datasheet/GW_ESA-3-10kW_Datasheet-AU.pdf)). The inverter's nominal AC power is 9.999kW; the extra ~3.5kW comes from solar DC bypassing the AC stage and going directly to the battery via the MPPTs. The HA-facing API only exposes AC-side controls (Eco Mode, fast-charging switch, EMS power limit), so a HA-driven charge tops out around 10kW. A SEMS+ TOU schedule, by contrast, lets the firmware orchestrate both inputs and gives you the full 13.5kW. Community confirmation of the same effect: Whirlpool thread "Goodwe ESA maximum charge rate?", explanation by user **nutttr** with confirmation from **Zerosignal** ([thread link](https://forums.whirlpool.net.au/thread/9kppp8k2)).
 
 The throughput gap (10kW vs 13.5kW) matters most if you have a large battery (around 48kWh and up) where 30kWh in 3 hours doesn't fill it, or if you're charging an EV during the free window. With concurrent EV charging the architecture detail matters: the battery prefers DC (solar), so AC capacity can be redirected to the EV while the battery still gets full charge from PV. On a smaller battery (say 13.5kWh) with no EV, you'll be at 100% well before 14:00 either way, so the gap is largely academic.
 
@@ -99,16 +99,16 @@ GoodWe publishes two ESA datasheets - one for single-phase, one for three-phase.
 
 ### Single-phase ESA - charge rates by model
 
-From the official [ESA Series single-phase datasheet, V2.1 April 2026](https://admin.goodwe.com/Api/downloadFile?id=3448&mid=60&type=2):
+From the official [ESA Series 3-10kW single-phase datasheet, V2.1 June 2026 AU edition](https://www.goodwe.com.au/Ftp/EN/Downloads/Datasheet/GW_ESA-3-10kW_Datasheet-AU.pdf) (charging figures unchanged from the April sheet this guide previously cited; the June revision adds a max-discharge column):
 
-| ESA model | Nominal AC | Max battery charging power |
-|---|---|---|
-| GW3K-EHA-G20 (3kW) | 3.0kW | 4.5kW |
-| GW3.6K-EHA-G20 (3.6kW) | 3.6kW | 5.4kW |
-| GW5K-EHA-G20 (5kW) | 5.0kW | 7.5kW |
-| GW6K-EHA-G20 (6kW) | 6.0kW | 9.0kW |
-| GW8K-EHA-G20 (8kW) | 8.0kW | 12.0kW |
-| **GW9.999K-EHA-G20 (10kW)** | **9.999kW** | **13.5kW** |
+| ESA model | Nominal AC | Max battery charging power | Max battery discharging power |
+|---|---|---|---|
+| GW3K-EHA-G20 (3kW) | 3.0kW | 4.5kW | 3.3kW |
+| GW3.6K-EHA-G20 (3.6kW) | 3.6kW | 5.4kW | 3.96kW |
+| GW5K-EHA-G20 (5kW) | 5.0kW | 7.5kW | 5.5kW |
+| GW6K-EHA-G20 (6kW) | 6.0kW | 9.0kW | 6.6kW |
+| GW8K-EHA-G20 (8kW) | 8.0kW | 12.0kW | 8.8kW |
+| **GW9.999K-EHA-G20 (10kW)** | **9.999kW** | **13.5kW** | **11.0kW** |
 
 Note the 1.35x multiplier between nominal AC and max charging power. That gap is the AC+DC blending headroom: the firmware can charge from grid (limited by AC) AND from PV (over the DC bus) simultaneously to reach the higher number. **This is the throughput advantage Method 4 unlocks**, because Method 4 delegates the charge to the native SEMS+ TOU schedule which can orchestrate both inputs. HA-driven charging (Methods 2 and 3) only commands the AC side and tops out at the nominal AC figure.
 
@@ -116,7 +116,7 @@ Firmware on older inverters may need pushing. A few community reports describe t
 
 ### Three-phase ESA - charge rates by model
 
-From the official [ESA Series 5-30kW three-phase datasheet, V2.1 June 2026](https://en.goodwe.com/Ftp/EN/Downloads/Datasheet/GW_ESA-5-30kW_Datasheet-EN.pdf) (the June revision supersedes the April sheet this guide previously cited; charging figures are unchanged, two models are new, and a max-discharge column now appears):
+From the official [ESA Series 5-30kW three-phase datasheet, V2.1 June 2026 AU edition](https://www.goodwe.com.au/Ftp/EN/Downloads/Datasheet/GW_ESA-5-30kW_Datasheet-AU.pdf) (the June revision supersedes the April sheet this guide previously cited; charging figures are unchanged and a max-discharge column now appears):
 
 | ESA model | Nominal AC | Max battery charging power | Max battery discharging power |
 |---|---|---|---|
@@ -124,19 +124,28 @@ From the official [ESA Series 5-30kW three-phase datasheet, V2.1 June 2026](http
 | GW6K-ETA-G20 (6kW) | 6.0kW | 6.0kW | 6.6kW |
 | GW8K-ETA-G20 (8kW) | 8.0kW | 8.0kW | 8.8kW |
 | GW9.999K-ETA-G20 (10kW) | 9.999kW | 10.0kW | 11.0kW |
-| GW10K-ETA-G20 (10kW, new) | 10.0kW | 10.0kW | 11.0kW |
 | GW12K-ETA-G20 (12kW) | 12.0kW | 12.0kW | 13.2kW |
 | GW15K-ETA-G20 (15kW) | 15.0kW | 15.0kW | 16.5kW |
 | GW20K-ETA-G20 (20kW) | 20.0kW | 20.0kW | 22.0kW |
 | GW25K-ETA-G20 (25kW) | 25.0kW | 25.0kW | 27.5kW |
 | GW29.999K-ETA-G20 (30kW) | 29.999kW | 30.0kW | 33.0kW |
-| GW30K-ETA-G20 (30kW, new) | 30.0kW | 30.0kW | 33.0kW |
+
+(The EU edition of the same sheet adds GW10K and GW30K variants; they're not in the AU edition, so they're not in this table. If one turns up on an Australian quote anyway, its figures match the 9.999K/29.999K rows.)
 
 **Three-phase ESAs still don't have the AC+DC blending headroom on the charge side.** Max charging equals nominal AC across the entire range, June 2026 revision included. So if you're on a three-phase ESA, **the throughput advantage Method 4 has on single-phase doesn't apply to you** - HA-driven charging and TOU-scheduled charging both top out at the same number.
 
-What HAS moved in the June sheet is the **discharge** side: battery-side max discharge is now listed at 110% of nominal AC (11kW on the 10kW model, 33kW on the 30kW). Before you get excited about extra peak export - the AC grid port is still capped at nominal, so that 10% doesn't cross your meter. It's DC-side headroom for conversion losses and simultaneous backup-port loads. Grid export maths for Zero Hero are unchanged.
+New in the June sheets - and this applies to **both** phases, not just three-phase: battery-side max **discharge** is now listed at 110% of nominal AC (11kW on either 10kW model, 33kW on the 30kW). Before you get excited about extra peak export - the AC grid port is still capped at nominal, so that 10% doesn't cross your meter. It's DC-side headroom for conversion losses and simultaneous backup-port loads. Grid export maths for Zero Hero are unchanged.
 
 The June sheet also repositions the three-phase ESA as an all-in-one (inverter + stacked battery modules in one enclosure, up to 12 modules / 108kWh), adds G21 variants of the familiar 5.1/8.3kWh Lynx D modules, and introduces new 6.0/9.0kWh modules (5.8/8.7kWh usable, rated at 10,000+ cycles vs the 8,000+ of the D-G20/G21 series). The warranty-throughput table earlier in this guide is built on the D-series modules' 3 MWh-per-kWh terms; if you're quoted the new 6.0/9.0 modules, check their warranty document before applying that math - the cycle rating differs, so the throughput terms may too.
+
+### AC-coupled ESA - a different animal for the throughput story
+
+GoodWe now also sells **AC-coupled** ESA ranges in both phases (July 2026 datasheets: [single-phase 3-10kW](https://www.goodwe.com.au/Ftp/EN/Downloads/Datasheet/GW_ESA-3-10kW-AC-Coupled_Datasheet-AU.pdf), [three-phase 5-30kW](https://www.goodwe.com.au/Ftp/EN/Downloads/Datasheet/GW_ESA-5-30kW-AC-Coupled_Datasheet-AU.pdf)) - battery-plus-inverter units with **no PV input**, designed to retrofit alongside an existing solar inverter. You can spot them by the model suffix: **BHA-G20** (single-phase) and **BTA-G20** (three-phase), versus the hybrids' EHA/ETA.
+
+The critical spec: **AC-coupled max charging equals nominal AC on every model, single-phase included** (the 10kW BHA charges at 9.999kW, not 13.5kW). There are no MPPTs, so there is no DC leg to blend - the 13.5kW story physically cannot apply. If you're on (or quoted) an AC-coupled ESA:
+
+- Method 4's throughput advantage doesn't exist for you, on either phase. Pick your method on the other grounds: precise grid-export control, TOU schedule preservation, and the HA smart layer.
+- Everything else in this guide works the same - TOU charge slot in the free window, export-limit control at peak, all the helpers and sensors. Your existing PV inverter exports independently of the ESA; the meter still sees the sum, so the profit tracking (which reads the meter) stays honest.
 
 **The per-phase trap.** A "15kW three-phase inverter" is effectively three separate 5kW inverters in a trench coat - one per phase. The 15kW headline number is the sum, not what any single phase can deliver. So during the discharge window, if one of your phases is drawing more than 5kW (e.g. a high-load circuit on phase A while phases B and C are idle), the inverter cannot push the other phases' spare capacity across to make up the difference - it'll start pulling from the grid on the busy phase instead. On Zero Hero that means a brief peak-window grid import, which forfeits the daily $1 Zero-Grid credit.
 
@@ -153,6 +162,8 @@ Just don't expect a 35% throughput bump from switching from app-only to Method 4
 ### Naming tip
 
 You can spot single-phase vs three-phase by the **middle letter** of the suffix: single-phase ESAs are `E**H**A-G20` (e.g. GW9.999K-EHA-G20), three-phase are `E**T**A-G20` (e.g. GW9.999K-ETA-G20). Same length, same `A-G20` ending - it's the H vs T that tells you which you're looking at. The H is for "Home" (single-phase residential) and the T is for "Three-phase".
+
+The **first** letter of the suffix now matters too: `E` marks the hybrid ranges (PV inputs on board), `B` marks the AC-coupled battery-only ranges - `BHA-G20` single-phase, `BTA-G20` three-phase. One letter is the difference between "can blend to 13.5kW" and "cannot blend at all" (see the AC-coupled section above), so check it on any quote before applying this guide's throughput reasoning.
 
 ### Modbus TCP
 

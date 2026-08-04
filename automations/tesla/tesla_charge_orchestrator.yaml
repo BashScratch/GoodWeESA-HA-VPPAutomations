@@ -143,9 +143,29 @@ actions:
               #   batt_kwh   - house battery usable kWh
               #   batt_max_kw - house battery max charge rate in kW
               #
-              # EDIT also: the three goodwe_* sensors inside this template
-              # (battery SOC, house consumption, PV power) - like everywhere
-              # in this repo, your install may have them _2-suffixed.
+              # EDIT also: the sensors inside this template. The goodwe_*
+              # ones (battery SOC, PV power) may be _2-suffixed on your
+              # install. The house-consumption sensor deserves special
+              # attention: it MUST exclude the EV charger's draw.
+              #
+              # WHY (learned the hard way on a live install): the GoodWe
+              # integration's house-consumption sensor counts everything
+              # behind the meter - including the car charger. Feed that
+              # into this formula and it throttles the car in response to
+              # the car's own draw: car ramps to 32A, "house" load jumps
+              # ~7kW, the next re-eval sees no headroom and cuts the car
+              # to 8A, load drops, the eval after restores 32A... If you
+              # don't have a native excl-EV sensor, build a one-line
+              # template sensor: whole-house W minus your Wall Connector
+              # power W, floored at 0.
+              #
+              # The maxcap lines guard a Tesla quirk: the charge-current
+              # entity's max attribute varies with the session pilot
+              # (charger, adapter, car state). Writing 32 into an entity
+              # currently ranged 0-16 hard-errors and kills the script
+              # run. Clamp every write to the live max; the <5 check
+              # falls back to 32 when the attribute is unknown (car
+              # asleep).
               #
               # Logic: project the house battery's 14:00 SOC assuming the
               # car takes max amps (battery gets remaining grid headroom
@@ -163,13 +183,15 @@ actions:
                 {% set batt_max_kw = 10 %}
                 {% set batt = states('sensor.goodwe_battery_state_of_charge')|float(0) %}
                 {% set target = states('input_number.tesla_house_batt_window_target')|float(55) %}
-                {% set house = states('sensor.goodwe_house_consumption')|float(600)/1000 %}
+                {% set house = states('sensor.house_consumption_excl_ev')|float(600)/1000 %}
                 {% set pv = states('sensor.goodwe_pv_power_total')|float(0)/1000 %}
                 {% set maxamps = states('input_number.tesla_freewindow_max_amps')|int(32) %}
+                {% set maxcap = state_attr('number.yourcar_charge_current', 'max')|int(32) %}
+                {% if maxcap < 5 %}{% set maxcap = 32 %}{% endif %}
                 {% set hours = [((today_at('14:00') - now()).total_seconds()/3600), 0.25]|max %}
                 {% set batt_kw = [batt_max_kw, grid_cap - house - (maxamps*kw_per_amp) + pv]|min %}
                 {% set projected = batt + batt_kw*hours*0.95/batt_kwh*100 %}
-                {% if projected >= target %}{{ maxamps }}
+                {% if projected >= target %}{{ [maxamps, maxcap]|min }}
                 {% else %}
                 {% set need_kw = (target-batt)/100*batt_kwh/hours/0.95 %}
                 {% set allow = (grid_cap - house + pv - need_kw)/kw_per_amp %}
@@ -177,7 +199,7 @@ actions:
                 {% elif allow >= 24 %}{% set tier = 24 %}
                 {% elif allow >= 16 %}{% set tier = 16 %}
                 {% else %}{% set tier = 8 %}{% endif %}
-                {{ [tier, maxamps]|min }}
+                {{ [tier, maxamps, maxcap]|min }}
                 {% endif %}
           - if:
               - condition: template
@@ -185,11 +207,15 @@ actions:
                   {{ states('number.yourcar_charge_limit')|int(0) !=
                      states('input_number.tesla_charge_limit_target')|int(90) }}
             then:
+              # continue_on_error on every car command: a write the car
+              # rejects (asleep, range changed mid-session) must never
+              # abort the run and block the charge-ON action below it.
               - action: number.set_value
                 target:
                   entity_id: number.yourcar_charge_limit   # EDIT: your car's charge limit entity
                 data:
                   value: "{{ states('input_number.tesla_charge_limit_target')|int(90) }}"
+                continue_on_error: true
           - if:
               - condition: template
                 value_template: "{{ states('number.yourcar_charge_current')|int(0) != amps_calc|int }}"
@@ -199,6 +225,7 @@ actions:
                   entity_id: number.yourcar_charge_current   # EDIT: your car's charge current entity
                 data:
                   value: "{{ amps_calc|int }}"
+                continue_on_error: true
           - if:
               - condition: template
                 value_template: >-
@@ -209,6 +236,7 @@ actions:
               - action: switch.turn_on
                 target:
                   entity_id: switch.yourcar_charge   # EDIT: your car's charge switch
+                continue_on_error: true
 
       # ==========================================================
       # MID-WINDOW RE-EVALUATIONS (12:00, 13:00)
@@ -239,13 +267,15 @@ actions:
                 {% set batt_max_kw = 10 %}
                 {% set batt = states('sensor.goodwe_battery_state_of_charge')|float(0) %}
                 {% set target = states('input_number.tesla_house_batt_window_target')|float(55) %}
-                {% set house = states('sensor.goodwe_house_consumption')|float(600)/1000 %}
+                {% set house = states('sensor.house_consumption_excl_ev')|float(600)/1000 %}
                 {% set pv = states('sensor.goodwe_pv_power_total')|float(0)/1000 %}
                 {% set maxamps = states('input_number.tesla_freewindow_max_amps')|int(32) %}
+                {% set maxcap = state_attr('number.yourcar_charge_current', 'max')|int(32) %}
+                {% if maxcap < 5 %}{% set maxcap = 32 %}{% endif %}
                 {% set hours = [((today_at('14:00') - now()).total_seconds()/3600), 0.25]|max %}
                 {% set batt_kw = [batt_max_kw, grid_cap - house - (maxamps*kw_per_amp) + pv]|min %}
                 {% set projected = batt + batt_kw*hours*0.95/batt_kwh*100 %}
-                {% if projected >= target %}{{ maxamps }}
+                {% if projected >= target %}{{ [maxamps, maxcap]|min }}
                 {% else %}
                 {% set need_kw = (target-batt)/100*batt_kwh/hours/0.95 %}
                 {% set allow = (grid_cap - house + pv - need_kw)/kw_per_amp %}
@@ -253,7 +283,7 @@ actions:
                 {% elif allow >= 24 %}{% set tier = 24 %}
                 {% elif allow >= 16 %}{% set tier = 16 %}
                 {% else %}{% set tier = 8 %}{% endif %}
-                {{ [tier, maxamps]|min }}
+                {{ [tier, maxamps, maxcap]|min }}
                 {% endif %}
           - if:
               - condition: template
@@ -264,6 +294,7 @@ actions:
                   entity_id: number.yourcar_charge_current   # EDIT
                 data:
                   value: "{{ amps_calc|int }}"
+                continue_on_error: true
 
       # ==========================================================
       # FREE WINDOW END (14:00) - stop, or hand over to trickle.
@@ -301,6 +332,7 @@ actions:
               - action: switch.turn_off
                 target:
                   entity_id: switch.yourcar_charge   # EDIT
+                continue_on_error: true
             else:
               - if:
                   - condition: template
@@ -312,7 +344,12 @@ actions:
                     target:
                       entity_id: number.yourcar_charge_current   # EDIT
                     data:
-                      value: "{{ states('input_number.tesla_trickle_amps')|int(8) }}"
+                      # Clamped to the entity's live max - see the maxcap
+                      # note in the dynamic-amps comment block.
+                      value: >-
+                        {{ [states('input_number.tesla_trickle_amps')|int(8),
+                            state_attr('number.yourcar_charge_current', 'max')|int(32)]|min }}
+                    continue_on_error: true
 
       # ==========================================================
       # PEAK START (16:00) - hard stop. The peak blocker automation
@@ -334,6 +371,7 @@ actions:
           - action: switch.turn_off
             target:
               entity_id: switch.yourcar_charge   # EDIT
+            continue_on_error: true
 
       # ==========================================================
       # TRICKLE EVALUATION (23:00, or plug-in outside free/peak)
@@ -405,10 +443,16 @@ actions:
                     target:
                       entity_id: number.yourcar_charge_current   # EDIT
                     data:
-                      value: "{{ states('input_number.tesla_trickle_amps')|int(8) }}"
+                      # Clamped to the entity's live max - see the maxcap
+                      # note in the dynamic-amps comment block.
+                      value: >-
+                        {{ [states('input_number.tesla_trickle_amps')|int(8),
+                            state_attr('number.yourcar_charge_current', 'max')|int(32)]|min }}
+                    continue_on_error: true
               - action: switch.turn_on
                 target:
                   entity_id: switch.yourcar_charge   # EDIT
+                continue_on_error: true
 
       # ==========================================================
       # LIVE CUTOFF: house battery hit the trickle floor.
@@ -434,6 +478,7 @@ actions:
           - action: switch.turn_off
             target:
               entity_id: switch.yourcar_charge   # EDIT
+            continue_on_error: true
           - action: notify.mobile_app_your_device_name   # EDIT: your notify service
             data:
               title: Tesla Trickle Stopped
@@ -469,3 +514,4 @@ actions:
           - action: switch.turn_off
             target:
               entity_id: switch.yourcar_charge   # EDIT
+            continue_on_error: true

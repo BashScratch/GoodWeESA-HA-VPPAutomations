@@ -28,9 +28,10 @@ The car charges **free** 11:00-14:00, as hard as the site can bear without sabot
 | File | What it does | Master-gated? |
 |---|---|---|
 | [`tesla_charge_orchestrator.yaml`](./tesla_charge_orchestrator.yaml) | The brain: free-window dynamic amps, 14:00 handover, 16:00 stop, 23:00 trickle evaluation, live cutoffs | Yes |
-| [`tesla_peak_charge_blocker.yaml`](./tesla_peak_charge_blocker.yaml) | Stops any charging that starts during 16:00-23:00; actionable notification with one-tap override | Yes |
+| [`tesla_peak_charge_blocker.yaml`](./tesla_peak_charge_blocker.yaml) | Hard-stops charging that starts during the 6-9pm credit window (one-tap override); heads-up notification only for the rest of the peak-rate window | Yes |
 | [`tesla_override_handler.yaml`](./tesla_override_handler.yaml) | Handles the "Charge Anyway" tap: sets the override boolean and restarts charging | Yes |
 | [`tesla_free_window_reminder.yaml`](./tesla_free_window_reminder.yaml) | 10:45 "plug in now" nudge - only when the car is home, unplugged, and actually low | No (notify-only) |
+| [`tesla_charge_complete.yaml`](./tesla_charge_complete.yaml) | The moment charging finishes: final SOC + session kWh | No (notify-only) |
 | [`tesla_window_summary.yaml`](./tesla_window_summary.yaml) | 14:05 result: kWh added, ~km gained, $ saved vs shoulder rate | No (notify-only) |
 | [`tesla_night_closure_check.yaml`](./tesla_night_closure_check.yaml) | 22:00: doors/windows/frunk/trunk/lock check, lists exactly what's open | No (notify-only) |
 | [`tesla_guest_car_detection.yaml`](./tesla_guest_car_detection.yaml) | A car plugged into the Wall Connector that isn't yours | No (notify-only) |
@@ -81,11 +82,16 @@ At 11:00 (and re-evaluated at 12:00 and 13:00), the orchestrator computes the hi
 
 The formula carries four site constants flagged `# EDIT:` in the YAML: your grid import cap (`14.1` kW default - single-phase QLD supply), kW-per-amp at your nominal voltage (`0.235` = 235V single-phase), your house battery's usable kWh (`48`) and its max charge rate (`10` kW). Get these right or the projection is fiction. DC-coupled solar counts toward the battery's budget because it doesn't compete with the car for grid headroom - that's the AC+DC blending story from the [strategy guide](../globird/README.md) working in your favour again.
 
+Two hard-won lessons from live running are baked into the formula:
+
+- **The house-load sensor must exclude the EV charger.** The GoodWe integration's house-consumption sensor counts everything behind the meter, car included. Feed that in and the orchestrator throttles the car in response to the car's own draw - a feedback loop that oscillates between full amps and the bottom tier every re-evaluation. If your integration doesn't expose an excl-EV figure, build a one-line template sensor (whole-house watts minus Wall Connector watts, floored at 0) and point the formula at it. The YAML uses `sensor.house_consumption_excl_ev` as the placeholder to make the requirement impossible to miss.
+- **Every amp write is clamped to the entity's live `max` attribute.** Tesla varies the charge-current entity's range with the session pilot (charger, adapter, car state) - a `32` written into an entity currently ranged 0-16 hard-errors and kills the script run. The clamp (with a fallback for when the car's asleep and the attribute is unknown) plus `continue_on_error` on every car command means a rejected write can never block the charge-ON action behind it.
+
 ## Install order
 
 1. Create the 13 helpers. **Both toggles off.**
 2. Add [`ev_savings_sensors.yaml`](./ev_savings_sensors.yaml) to your config (`utility_meter:` keys merge into any existing block; template sensors join your `template:` section). Enable the odometer entity if you want the km meter - Teslemetry ships it disabled (Settings > Devices & services > Teslemetry > entities > enable `sensor.yourcar_odometer`). **Full restart** (utility meters need it).
-3. Paste the seven automations, replacing every `# EDIT:` (car slug, GoodWe sensors, notify services).
+3. Paste the eight automations, replacing every `# EDIT:` (car slug, GoodWe sensors, notify services). The orchestrator additionally needs a house-consumption sensor that **excludes the EV charger** - see the dynamic-amps section above.
 4. Watch one full day with the master switch off. The notification-only automations run immediately (they're harmless); the three car-commanding ones will show "condition not met" traces.
 5. Flip `input_boolean.tesla_orchestrator_enabled` on. Watch the first live window. Rollback = flip it off.
 

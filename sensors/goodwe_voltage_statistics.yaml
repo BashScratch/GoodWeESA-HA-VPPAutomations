@@ -27,7 +27,7 @@
 - platform: statistics
   name: "GoodWe Grid Voltage 1h Min"
   unique_id: goodwe_grid_voltage_1h_min
-  entity_id: sensor.goodwe_on_grid_l1_voltage_2   # EDIT: your grid voltage sensor
+  entity_id: sensor.goodwe_meter_l1_voltage   # EDIT: your grid voltage sensor
   state_characteristic: value_min
   max_age:
     hours: 1
@@ -36,7 +36,7 @@
 - platform: statistics
   name: "GoodWe Grid Voltage 1h Max"
   unique_id: goodwe_grid_voltage_1h_max
-  entity_id: sensor.goodwe_on_grid_l1_voltage_2   # EDIT: same sensor as above
+  entity_id: sensor.goodwe_meter_l1_voltage   # EDIT: same sensor as above
   state_characteristic: value_max
   max_age:
     hours: 1
@@ -45,7 +45,7 @@
 - platform: statistics
   name: "GoodWe Grid Voltage 24h Min"
   unique_id: goodwe_grid_voltage_24h_min
-  entity_id: sensor.goodwe_on_grid_l1_voltage_2   # EDIT: same sensor as above
+  entity_id: sensor.goodwe_meter_l1_voltage   # EDIT: same sensor as above
   state_characteristic: value_min
   max_age:
     hours: 24
@@ -54,7 +54,7 @@
 - platform: statistics
   name: "GoodWe Grid Voltage 24h Max"
   unique_id: goodwe_grid_voltage_24h_max
-  entity_id: sensor.goodwe_on_grid_l1_voltage_2   # EDIT: same sensor as above
+  entity_id: sensor.goodwe_meter_l1_voltage   # EDIT: same sensor as above
   state_characteristic: value_max
   max_age:
     hours: 24
@@ -63,7 +63,7 @@
 - platform: statistics
   name: "GoodWe Grid Voltage 24h Mean"
   unique_id: goodwe_grid_voltage_24h_mean
-  entity_id: sensor.goodwe_on_grid_l1_voltage_2   # EDIT: same sensor as above
+  entity_id: sensor.goodwe_meter_l1_voltage   # EDIT: same sensor as above
   state_characteristic: mean
   max_age:
     hours: 24

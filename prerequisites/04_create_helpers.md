@@ -63,34 +63,32 @@ A simple [Entities card](https://www.home-assistant.io/dashboards/entities/) lis
 
 ## Step 6 - Create the Utility Meter helper (only if installing the Zero-Grid Credit watchdog)
 
-The Zero-Grid Credit watchdog ([`automations/globird/zero_grid_credit_watchdog.yaml`](../automations/globird/zero_grid_credit_watchdog.yaml)) needs a Utility Meter helper to track grid imports during the 18:00-21:00 peak window. Without this helper the watchdog will trigger on a sensor that doesn't exist and never fire. Skip this step if you're not installing that automation.
+The Zero-Grid Credit watchdog ([`automations/globird/zero_grid_credit_watchdog.yaml`](../automations/globird/zero_grid_credit_watchdog.yaml)) needs a Utility Meter helper that tracks grid import **per clock hour** - because that's how GloBird's threshold is written ("0.03 kWh/Hour") and how it's assessed from your meter data. Without this helper the watchdog will trigger on a sensor that doesn't exist and never fire. Skip this step if you're not installing that automation.
 
 From the Helpers page, click **Create helper** > pick **Utility Meter** > fill in:
 
 | Field | Value |
 |---|---|
-| **Name** | `Zero Hero Peak Grid Import` (HA will derive entity ID `sensor.zero_hero_peak_grid_import`) |
-| **Input sensor** | `sensor.goodwe_total_energy_import` (or your equivalent - check Developer Tools > States if you have a `_2` suffix on this sensor) |
-| **Meter reset cycle** | `Daily` |
-| **Cycle offset (days/hours/minutes)** | `0 days, 18 hours, 0 minutes` so it resets at the start of the peak window |
-| **Tariffs** | Leave empty - this isn't a multi-tariff meter, just a daily-resetting accumulator |
+| **Name** | `Zero Hero Grid Import Hourly` (HA will derive entity ID `sensor.zero_hero_grid_import_hourly`) |
+| **Input sensor** | `sensor.goodwe_meter_total_energy_import` (or your equivalent - and use the **meter** import sensor, not the inverter's `goodwe_total_energy_import`. The credit is settled from meter data at your NMI, and the two counters genuinely diverge - the same meter-vs-inverter split as the export side in [Guide 07](./07_add_template_sensors.md).) |
+| **Meter reset cycle** | `Hourly` |
+| **Cycle offset** | None - the plan's cap is per clock hour |
+| **Tariffs** | Leave empty |
 | **Periodically reset** | On (default) |
 
 Click **Create**.
 
-After creation you'll have `sensor.zero_hero_peak_grid_import` on the States page. Outside the peak window it should read `0` (or close to it - it accumulates from 18:00 each day and zeroes again at the next 18:00). During peak, it climbs as you import.
+After creation you'll have `sensor.zero_hero_grid_import_hourly` on the States page. It climbs whenever you import from the grid and zeroes at the top of every hour. On a healthy Zero Hero evening it should sit at (or a whisker above) `0` through the whole peak window.
 
-The watchdog automation also needs `input_number.zero_hero_credit_alert_threshold` (a regular Number helper, default value `25`, unit `Wh`) - create it via the Number flow in Step 2 the same way as the other helpers. The watchdog's YAML header has the full details and tuning guidance for both.
+The watchdog automation also needs `input_number.zero_hero_credit_alert_threshold` (a regular Number helper: min `0`, max `0.03`, step `0.005`, unit `kWh`, starting value `0.02`) - create it via the Number flow in Step 2 the same way as the other helpers. The watchdog's YAML header has the full tuning guidance for both.
 
 If you'd rather configure via `configuration.yaml` instead of the UI, the equivalent YAML block is:
 
 ```yaml
 utility_meter:
-  zero_hero_peak_grid_import:
-    source: sensor.goodwe_total_energy_import   # EDIT: your import sensor
-    cycle: daily
-    offset:
-      hours: 18
+  zero_hero_grid_import_hourly:
+    source: sensor.goodwe_meter_total_energy_import   # EDIT: your METER import sensor
+    cycle: hourly
 ```
 
 ## Common gotchas

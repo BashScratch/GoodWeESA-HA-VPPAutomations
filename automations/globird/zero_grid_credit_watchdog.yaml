@@ -2,75 +2,68 @@ alias: "GoodWe ESA: Zero Hero Daily Credit Watchdog"
 description: >
   GloBird's Zero-Grid daily credit (~$1) is forfeit if peak-window grid
   imports exceed the ZEROHERO Threshold, stated in the current welcome
-  pack as "0.03 kWh/Hour". That's an average power of 30W across the
-  6pm-9pm peak window. The most natural reading: total imports during
-  the full 3-hour window must not exceed 0.03 kWh/hour x 3 hours =
-  0.09 kWh (90 Wh). It's a tolerance, not a zero-import requirement -
-  a fridge compressor cycling on briefly is fine; the kettle plus the
-  dryer plus the oven all on at once, blowing past your inverter's
-  discharge cap, is not. This automation watches accumulated grid
-  import during the full 3-hour window and fires an actionable
-  notification once you cross your alert threshold, giving you a
-  chance to turn off heavy loads before you actually approach
-  GloBird's 0.09 kWh limit.
+  pack as "0.03 kWh/Hour". Note the unit: it's a PER-HOUR cap, assessed
+  from your meter's interval data - not a single budget for the whole
+  window. So this watchdog measures exactly what the bill measures: grid
+  import in the current clock hour, via an hourly-cycling utility meter.
+  It fires an early warning once the hour's import crosses your alert
+  threshold (default 0.02 kWh, two-thirds of the limit), giving you a
+  chance to shed heavy loads before the hour is actually lost.
 
-  REQUIRES a utility_meter helper that resets daily at 18:00 and tracks
-  grid imports during the peak window. See the helpers block below.
+  The cap is a tolerance, not a zero-import requirement - a fridge
+  compressor cycling on briefly is fine; the kettle plus the dryer plus
+  the oven all on at once, blowing past your inverter's discharge cap,
+  is not. Most likely to fire on skip-export nights when the battery
+  started low, or when a load spike exceeds the inverter's output.
 
 mode: single
 
 # =============================================================================
 # REQUIRED HELPERS / CONFIG (create these before enabling):
 #
-#   1. utility_meter.zero_hero_peak_grid_import   (config-level - see notes below)
-#      - Source sensor: sensor.goodwe_total_energy_import (or your equivalent)
-#      - Cycle: daily
-#      - Offset: 18:00 (so it resets at the start of the peak window)
+#   1. utility_meter -> sensor.zero_hero_grid_import_hourly
+#      - Source: sensor.goodwe_meter_total_energy_import (or your equivalent -
+#        use the METER import sensor, not the inverter's total_energy_import.
+#        The credit is settled from meter data at your NMI, and the two
+#        sensors genuinely diverge; same meter-vs-inverter story as the
+#        export side, see sensors/README.md.)
+#      - Cycle: hourly (no offset - the plan's cap is per clock hour)
 #
 #   2. input_number.zero_hero_credit_alert_threshold
-#      - Min 0, max 1000, step 1, unit Wh
+#      - Min 0, max 0.03, step 0.005, unit kWh
 #      - Note: HA's helper UI doesn't have an "initial value" field. Create
-#        the helper, then set its value to 25 from the helper page.
-#      - Starting value to set: 25 (Wh - alerts you when 25Wh of grid import has
-#        accumulated during peak. GloBird's current ZEROHERO key conditions
-#        give the threshold as 0.03 kWh/hour, which on the natural reading
-#        means 0.09 kWh total (90 Wh) across the full 3-hour 6pm-9pm window.
-#        25 Wh accumulated gives you a clear heads-up well before that
-#        limit. Note: GloBird's wording is slightly ambiguous - it could
-#        also be read as a per-hour cap of 30 Wh/hour - so the 25 Wh
-#        default is conservative under either interpretation. If yours
-#        keeps tripping at 25 Wh on uneventful nights, raise it; if you
-#        want earlier warning, lower it. Source: GloBird ZEROHERO welcome
-#        pack, current at time of writing - check your own welcome pack
-#        for what applies to your plan.)
+#        the helper, then set its value from the helper page.
+#      - Starting value to set: 0.02 (kWh imported in the current clock hour.
+#        GloBird's limit is 0.03 kWh/hour; alerting at 0.02 gives you a
+#        real warning margin while ignoring ordinary standby wobble. If it
+#        keeps tripping on uneventful nights, you're either genuinely close
+#        to the limit or your meter sensor is noisy - check the history
+#        before raising it. Source: GloBird ZEROHERO welcome pack, current
+#        at time of writing - check your own pack.)
 #
-# Note on utility_meter setup: the simplest way is via the HA UI:
-#   Settings > Devices & services > Helpers > Create Helper > Utility Meter
-#     Source: your goodwe_total_energy_import sensor
-#     Reset cycle: daily
-#     Cycle offset: 0:18 (HH:MM in some HA versions, or use 18:00:00 in YAML)
-#
-# If you'd rather configure via YAML, add to configuration.yaml:
+# Utility meter setup via the UI: Settings > Devices & services > Helpers >
+# Create Helper > Utility Meter, source = your meter import sensor, reset
+# cycle = hourly. Or in configuration.yaml:
 #   utility_meter:
-#     zero_hero_peak_grid_import:
-#       source: sensor.goodwe_total_energy_import   # EDIT: your import sensor
-#       cycle: daily
-#       offset:
-#         hours: 18
+#     zero_hero_grid_import_hourly:
+#       source: sensor.goodwe_meter_total_energy_import   # EDIT: your METER import sensor
+#       cycle: hourly
 # =============================================================================
 
 triggers:
+  # The hourly meter resets to 0 at the top of each clock hour, so this
+  # crossing trigger re-arms every hour of the window - each billed hour
+  # gets its own warning.
   - trigger: numeric_state
-    entity_id: sensor.zero_hero_peak_grid_import   # EDIT: your utility_meter entity (HA names it from the helper)
+    entity_id: sensor.zero_hero_grid_import_hourly   # EDIT: your utility_meter entity (HA names it from the helper)
     above: input_number.zero_hero_credit_alert_threshold
 
 conditions:
-  # Only act during the peak window. The utility_meter resets at 18:00 so the
-  # number can only climb during peak; this condition is belt-and-braces in
-  # case the meter logic is misconfigured.
+  # 17:56 start matches the ESA arming margin; 21:01 covers the full final
+  # billed hour of the window.
   - condition: time
-    after: "18:00:00"
-    before: "21:00:00"   # EDIT: change to 20:00 if your peak window ends at 20:00
+    after: "17:56:00"
+    before: "21:01:00"   # EDIT: change to 20:01 if your peak window ends at 20:00
   - condition: state
     entity_id: input_boolean.zero_hero_enabled   # don't fire when Zero Hero is disabled
     state: "on"
@@ -80,16 +73,11 @@ actions:
     data:
       title: Zero Hero Daily Credit at Risk
       message: >-
-        {{ states('sensor.zero_hero_peak_grid_import') | float(0) | round(0) }}Wh
-        of grid import accumulated so far this peak window. GloBird's
-        ZEROHERO threshold is 0.03 kWh/hour (around 0.09 kWh / 90 Wh total
-        across the 3-hour window) - turn off heavy loads now to stay under
-        and keep tonight's $1 credit.
+        Grid import this hour is
+        {{ states('sensor.zero_hero_grid_import_hourly') | float(0) | round(3) }} kWh
+        during peak (GloBird's limit is 0.03 kWh/hour). Battery may be
+        running low or a heavy load is outrunning the inverter - shed
+        loads now to keep tonight's $1 credit.
       data:
-        # iOS actionable notification - tap to mute the warning for tonight
-        # or escalate. Adjust action identifiers to your dashboard.
-        actions:
-          - action: ZERO_HERO_MUTE_CREDIT_WARNING
-            title: Mute warning tonight
         push:
           interruption-level: time-sensitive
