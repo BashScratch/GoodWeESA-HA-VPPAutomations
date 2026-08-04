@@ -75,6 +75,8 @@ Add a second schedule entry. This one tells the inverter "during peak, you're al
 
 Save the slot.
 
+> **On the per-slot Discharge SOC limit:** recent SEMS+ made this field genuinely enforce on most installs (it was a non-functional preview through mid-2026). For Method 4, **keep it low anyway** - a high in-app floor would fight HA's stepped brackets and floor guard, which are making a smarter version of the same decision from live SOC. The in-app floor is the right tool for [Method 1 (app-only)](../automations/globird/method1_app_only/) users; here it's just the last line of defence under HA's logic.
+
 > **Critical concept: "discharge power" in SEMS+ TOU means *total inverter output*, not grid-export specifically.** A 10% setting on a 10kW inverter means 1kW total (house load + grid combined), not 1kW to the grid. That's why we set discharge power to 100% here and let HA's `number.goodwe_grid_export_limit` (set by the YAML's stepped SOC brackets - 5kW down to 1kW depending on battery headroom) be the precise grid-export lever. The inverter's full output covers house load *plus* the armed export rate to the grid.
 
 > **Why a discharge slot at all?** Without it, the inverter is in self-consumption during peak. That works - the battery covers house load and the export limit caps grid export - but the inverter's output is then effectively capped at house demand. With the discharge slot at 100%, the inverter is willing to push house-load + 5kW to the grid in parallel, which is what you want during a peak window.

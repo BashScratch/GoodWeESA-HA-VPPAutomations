@@ -4,12 +4,12 @@
 
 > **Heads up: the GoodWe app is a moving target.** SEMS+ and SolarGo are evolving quickly, with new fields and menu reorganisations appearing in most releases. We try to keep these instructions current, but a screen we describe might already have an extra field, a renamed label, or a different layout by the time you open it. If a step here doesn't match what you see in the app, it's almost always a recent app update rather than a fundamental change to the inverter - check the GoodWe ESA Facebook group or the Whirlpool thread for the current state, then come back and the rest of the guide will still apply.
 >
-> **Specific moving pieces worth knowing about (as of 18 May 2026):** recent SEMS+ releases (paired with recent battery firmware) have started showing two new fields in the TOU **Time Period** dialog. Both are **visible in the UI but not editable / not yet functional** - GoodWe is rolling them out and the consensus from community reports is that the fields appear as a preview but don't enforce anything yet. Wide rollout (with the fields actually working) is expected within the next month. Until then, the older app-only paths below remain the right way to go.
+> **Specific moving pieces worth knowing about (updated August 2026):** recent SEMS+ releases (paired with recent battery firmware) added two new fields to the TOU **Time Period** dialog. One has now landed; one is still a preview.
 >
-> 1. **Export Power Limit (per TOU period).** A toggle plus a watts value that, once functional, will pin the grid-export rate for that specific TOU window. When it lands, this is the field that will replace the installer-menu **Soft Power Limit** workaround (the "Andrew Palmer approach", covered later in this README) - same outcome, no installer password, set inside the TOU dialog where it belongs. **Not editable today**, so keep using the Soft Power Limit setup for now. We'll update this guide when the field becomes usable.
-> 2. **Discharge SOC limit (per TOU discharge slot).** A per-window floor that, once functional, would sit inside the TOU dialog itself - separate from the system-wide Battery Protection menu (see Step 5 below) which is the battery's last-resort floor where the inverter stops discharging and starts importing from the grid in any operating mode. The new TOU field is a different concept: it would let you say "stop the TOU discharge at 30% but still let the battery cover overnight household load down to the Battery Protection floor below that". Currently visible in the dialog on some installs but not editable; community reports are mixed about when (and on which installs) it'll start enforcing. Watch for it but don't rely on it yet.
+> 1. **Discharge SOC limit (per TOU discharge slot) - NOW LIVE for most installs.** A per-window floor, set inside the TOU dialog itself - separate from the system-wide Battery Protection menu (see Step 4 below), which remains the battery's last-resort floor where the inverter stops discharging and starts importing from the grid in any operating mode. The TOU field is a different concept: it lets you say "stop the TOU discharge at 40% but still let the battery cover overnight household load down to the Battery Protection floor below that". As of August 2026 the field is editable and enforcing on the majority of app/firmware combinations - Step 3 below covers how to set it. If yours still shows it greyed out, you're on the tail of the rollout; the Battery Protection floor keeps doing the job in the meantime.
+> 2. **Export Power Limit (per TOU period) - still visible-but-not-editable.** A toggle plus a watts value that, once functional, will pin the grid-export rate for that specific TOU window. When it lands, this is the field that will replace the installer-menu **Soft Power Limit** workaround (the "Andrew Palmer approach", covered later in this README) - same outcome, no installer password, set inside the TOU dialog where it belongs. The rollout has been slower than the community expected (we said "next month" back in May; it's August and the field still doesn't enforce). Keep using the Soft Power Limit setup for now. We'll update this guide when the field becomes usable.
 >
-> Battery Protection remains your universal floor regardless of how the new TOU fields behave when they go live.
+> Battery Protection remains your universal floor regardless of the TOU fields.
 
 The simplest possible Zero Hero setup. Everything happens in the GoodWe SEMS+ app (or SolarGo if that's what you've already got working). No Home Assistant, no HACS, no helpers, no YAML. The inverter's firmware does the work; you check the results in the app.
 
@@ -64,7 +64,7 @@ Save the slot.
 
 ### Step 3 - Create the discharge slot
 
-Switch to the **Discharge** tab in the same TOU dialog. As of writing the discharge tab only exposes one knob you can actually change - **Discharge Power** as a percentage of inverter capacity. There's no SOC floor in the TOU dialog itself (the SOC floor is set separately in the **Battery Protection** menu in SEMS+ - see Step 4 below). The fields:
+Switch to the **Discharge** tab in the same TOU dialog. The fields:
 
 | Field | Value |
 |---|---|
@@ -72,12 +72,17 @@ Switch to the **Discharge** tab in the same TOU dialog. As of writing the discha
 | **End Time** | `21:00` (or `20:00` on older Zero Hero plans) |
 | **Repeat** | All months, all days |
 | **Discharge Power** | Percentage of inverter capacity. See "Discharge power, the gotcha" below for how to pick a value. |
+| **Discharge SOC limit** (if editable on your install) | The SOC where this slot's discharge stops. Pick the level that still carries your overnight household load through to the 11:00 free window - `30-40%` is a sensible starting zone on a mid-sized battery; raise it if you wake up flat, lower it if you're consistently arriving at 11:00 with charge to spare. This is the same reserve thinking the HA methods automate. |
 
-If your version of SEMS+ shows extra fields in this dialog (Export Power Limit, Discharge SOC limit, Rated Current of the Incoming Circuit Breaker), see the callout at the top of this README. Those fields are appearing in the UI on recent app/firmware combinations but aren't editable yet; treat them as previews of features coming in the next month or so. For now, set Discharge Power as in the table above and use the Soft Power Limit section further down for precise grid export.
+The Discharge SOC limit is the newer of the two rollout fields from the callout at the top - editable on most installs as of August 2026. It stops the *TOU discharge* at your chosen level while the battery keeps covering house load below it, down to the Battery Protection floor (Step 4). If it's still greyed out on your install, skip it - Battery Protection alone was how this guide worked until mid-2026 and it still does the job, just without the per-window nuance.
+
+If your dialog also shows **Export Power Limit** or **Rated Current of the Incoming Circuit Breaker**, see the callout at the top: Export Power Limit is still a non-functional preview, so set Discharge Power as in the table above and use the Soft Power Limit section further down for precise grid export.
 
 ### Step 4 - Set the SOC floor in Battery Protection
 
-In SEMS+, separately from the TOU dialog, find the **Battery Protection** (or similar) menu. This is where you set the SOC at which the inverter stops discharging and starts pulling from the grid to cover house load. A reasonable starting point is `20-30%` - leaves some headroom for overnight household use after the peak window.
+In SEMS+, separately from the TOU dialog, find the **Battery Protection** (or similar) menu. This is where you set the SOC at which the inverter stops discharging and starts pulling from the grid to cover house load - in *any* operating mode, TOU or otherwise. A reasonable starting point is `20-30%`.
+
+If you've set the per-slot Discharge SOC limit in Step 3, the two floors stack: the TOU limit stops the peak-window discharge first (say 40%), then the battery keeps covering household load down to this Battery Protection floor (say 20%) overnight. Set Battery Protection *below* your TOU limit or the TOU limit never gets a say.
 
 When the battery hits this floor during peak discharge, the inverter switches to importing from the grid to cover any remaining house load. That import will cost you the Zero-Grid daily credit if it happens during the peak window, so set the floor high enough that you don't run out before peak ends.
 
@@ -91,7 +96,7 @@ Watch the next free window:
 Watch the next peak window:
 
 - Battery SOC drops as the inverter discharges into the house and grid.
-- Discharge stops when SOC hits the Battery Protection floor.
+- Discharge stops when SOC hits your TOU Discharge SOC limit (if set), or the Battery Protection floor otherwise.
 
 That's it. The inverter handles the rest day after day.
 
@@ -152,7 +157,7 @@ Method 1 with the Soft Power Limit gets you:
 
 What you still don't get without HA:
 
-- **Pre-peak SOC guard.** If the battery is short on charge going into peak, the inverter still discharges down to the Battery Protection floor and then starts importing from the grid at peak rates. Method 4 blocks discharge to the grid entirely on low-SOC days, preserving what charge is left for the house. Method 1 can't decide "today's not the day, skip peak export".
+- **A *dynamic* pre-peak SOC guard.** The new in-TOU Discharge SOC limit gives you a static floor for the peak window, which softens this gap considerably - the discharge now stops where you tell it to. What it still can't do is look at the battery at 17:56 and make a decision: Method 4 scales the export rate to the day's actual headroom (5kW on a full battery, 1kW on a marginal one, nothing on a bad day) and can skip a night entirely. A static floor exports at full rate right up until it hits the wall; the stepped decision never gets near the wall.
 - **Notifications and profit reporting.** No nightly summary of what you exported and earned.
 - **Helper-tunable rates.** If GloBird changes the super rate, you don't have a one-tap UI for adjusting calculations.
 
@@ -167,7 +172,7 @@ If you've enabled Modbus TCP on the inverter (see [prereq 01](../../../prerequis
 This method gets you the basic charge-during-free / discharge-during-peak cycle, which is most of the value. But there are real things HA adds that the app alone can't:
 
 - **Precise grid-export control during peak.** SEMS+ pins total inverter output; HA's `number.goodwe_grid_export_limit` pins grid export specifically. With Zero Hero's "first 15kWh at 10c, rest at 2c" structure (July 2026 QLD rates), hitting the cap precisely matters. The Soft Power Limit workaround above closes this gap from inside the app at the cost of an installer-password trip. (When GoodWe finishes the in-TOU Export Power Limit rollout - see the callout at the top - this gap will close natively in the consumer app and the Soft Power Limit detour won't be needed.)
-- **Dynamic SOC guard.** SEMS+ will discharge down to the Battery Protection floor regardless of conditions. If the battery's at 40% going into peak because the free-window charge didn't fill it (cloudy day, late free-window start, etc.), it'll discharge to the floor and then buy grid power at peak rates to cover the rest. HA can decide "today's not the day, skip peak export" based on live SOC at 17:56.
+- **Dynamic SOC guard.** SEMS+ now gives you *static* floors (the per-slot TOU Discharge SOC limit, plus Battery Protection underneath) - but a floor set in June doesn't know it's a cloudy Tuesday in August. If the battery's at 45% going into peak because the free-window charge didn't fill it, a static floor still discharges at full rate until it hits the limit. HA reads the actual SOC at 17:56 and decides how hard to export tonight - or whether to bother at all.
 - **Profit notifications.** SEMS+ shows you what charged and discharged but doesn't compute "you exported X kWh tonight at the super rate, plus the daily credit, total $Y." HA does that and pushes it to your phone each evening.
 - **Helper-tunable rates.** When GloBird adjusts the super rate or daily credit (it happens), updating SEMS+ tariff configuration is fiddly. With HA the rates live in number helpers you can edit from the dashboard in two clicks.
 
@@ -185,7 +190,7 @@ If they don't, this method is fine. You're getting most of the Zero Hero benefit
 - **Inverter clock drift.** GoodWe inverters can drift a few minutes per week. If your clock drifts and your TOU charge slot fires from 11:04 to 14:04 instead of 11:00 to 14:00, you've lost ~7% of the free window. Check the inverter clock against your phone's clock periodically and resync via the app if needed. Methods 2-4 include an HA automation that does this daily.
 - **Firmware availability for the 13.5kW combined-charging capability.** On the single-phase 10kW ESA, the firmware that combines grid AC and solar DC for 13.5kW battery charging has been rolling out from around April 2026. Some firmware releases have it, some don't, and some users have had to ask GoodWe Level 2 support for a standalone push. If you're seeing your battery cap at ~10kW during the free window despite plenty of solar, this is the likely cause.
 - **Plan rate changes.** GloBird occasionally adjusts the super rate, base rate, or daily credit. Check your latest bill and your plan documents periodically.
-- **No safety-net SOC guard.** If your battery is going into peak with limited charge (cloudy day, free window cut short, etc.), this method will discharge down to the Battery Protection floor (set in the Battery Protection menu of SEMS+, not the TOU dialog) and then start importing from the grid at peak rates to cover any remaining demand. There's no "skip peak today" logic. HA methods add that.
+- **No adaptive SOC logic.** The per-slot Discharge SOC limit (now live for most installs) and the Battery Protection floor both protect the battery with *fixed* numbers. On a day the battery goes into peak with limited charge (cloudy day, free window cut short), the discharge still runs at full rate until it hits your floor - and if house demand continues past that point during the window, the grid imports that follow cost the daily credit. There's no "skip peak today" or "export gently tonight" logic. HA methods add that.
 - **Soft Power Limit isn't dynamic.** If you decide to change your peak export rate (e.g. you want 1.5kW instead of 2kW for a few days), it's a manual trip into the SolarGo installer menu each time. With Method 4, the export limit lives in a HA helper you can edit from the dashboard in two clicks (or via automation if you want it to vary by day of week, weather forecast, etc.). Most users set the Soft Power Limit and forget; if you want to tune it often, that's a real tradeoff to consider. (Once the in-TOU Export Power Limit field becomes editable, the same dynamic-tuning gap will apply to it - one TOU edit per change.)
 
 ## Method 1 with Soft Power Limit vs Method 4 - they're closer than you'd think
