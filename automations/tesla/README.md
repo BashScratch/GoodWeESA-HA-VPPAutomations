@@ -81,6 +81,11 @@ At 11:00 (and re-evaluated at 12:00 and 13:00), the orchestrator computes the hi
 
 The formula carries four site constants flagged `# EDIT:` in the YAML: your grid import cap (`14.1` kW default - single-phase QLD supply), kW-per-amp at your nominal voltage (`0.235` = 235V single-phase), your house battery's usable kWh (`48`) and its max charge rate (`10` kW). Get these right or the projection is fiction. DC-coupled solar counts toward the battery's budget because it doesn't compete with the car for grid headroom - that's the AC+DC blending story from the [strategy guide](../globird/README.md) working in your favour again.
 
+Two hard-won lessons from live running are baked into the formula:
+
+- **The house-load sensor must exclude the EV charger.** The GoodWe integration's house-consumption sensor counts everything behind the meter, car included. Feed that in and the orchestrator throttles the car in response to the car's own draw - a feedback loop that oscillates between full amps and the bottom tier every re-evaluation. If your integration doesn't expose an excl-EV figure, build a one-line template sensor (whole-house watts minus Wall Connector watts, floored at 0) and point the formula at it. The YAML uses `sensor.house_consumption_excl_ev` as the placeholder to make the requirement impossible to miss.
+- **Every amp write is clamped to the entity's live `max` attribute.** Tesla varies the charge-current entity's range with the session pilot (charger, adapter, car state) - a `32` written into an entity currently ranged 0-16 hard-errors and kills the script run. The clamp (with a fallback for when the car's asleep and the attribute is unknown) plus `continue_on_error` on every car command means a rejected write can never block the charge-ON action behind it.
+
 ## Install order
 
 1. Create the 13 helpers. **Both toggles off.**
