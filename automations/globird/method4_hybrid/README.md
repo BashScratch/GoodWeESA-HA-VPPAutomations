@@ -6,7 +6,7 @@ This is the recommended method. The GoodWe app handles the free-window charge vi
 
 ## Why this beats Method 2 - the throughput point
 
-The GoodWe ESA 10kW model (GW9.999K-EHA-G20) can charge the battery at up to **13.5kW** when the firmware combines grid AC and solar DC simultaneously. This is the published spec - see GoodWe's official ESA Series datasheet ([V2.1 April 2026 PDF](https://admin.goodwe.com/Api/downloadFile?id=3448&mid=60&type=2)), "Max. Charging Power" row. Home Assistant can only command the AC side via Eco Mode or the fast-charging switch, so a HA-driven charge tops out at the inverter's nominal AC ceiling - about **10kW**.
+The GoodWe ESA 10kW hybrid model (GW9.999K-EHA-G20) can charge the battery at up to **13.5kW** when the firmware combines grid AC and solar DC simultaneously. This is the published spec - see GoodWe's official ESA Series datasheet ([V2.1 June 2026 PDF](https://www.goodwe.com.au/Ftp/EN/Downloads/Datasheet/GW_ESA-3-10kW_Datasheet-AU.pdf)), "Max. Charging Power" row. (Hybrid EHA models only - the AC-coupled BHA range has no PV input and charges at nominal AC; see the [strategy guide's AC-coupled section](../#ac-coupled-esa---a-different-animal-for-the-throughput-story).) Home Assistant can only command the AC side via Eco Mode or the fast-charging switch, so a HA-driven charge tops out at the inverter's nominal AC ceiling - about **10kW**.
 
 That sounds small until you do the maths against a three-hour free window: 10kW for 3 hours equals 30kWh, vs 13.5kW for 3 hours equals 40.5kWh. About a third more energy banked for free, every day. Over a year, that's nontrivial.
 
