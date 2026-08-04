@@ -116,21 +116,27 @@ Firmware on older inverters may need pushing. A few community reports describe t
 
 ### Three-phase ESA - charge rates by model
 
-From the official [ESA Series three-phase datasheet, V2.1 April 2026](https://admin.goodwe.com/Api/downloadFile?id=4072&mid=60&type=2):
+From the official [ESA Series 5-30kW three-phase datasheet, V2.1 June 2026](https://en.goodwe.com/Ftp/EN/Downloads/Datasheet/GW_ESA-5-30kW_Datasheet-EN.pdf) (the June revision supersedes the April sheet this guide previously cited; charging figures are unchanged, two models are new, and a max-discharge column now appears):
 
-| ESA model | Nominal AC | Max battery charging power |
-|---|---|---|
-| GW5K-ETA-G20 (5kW) | 5.0kW | 5.0kW |
-| GW6K-ETA-G20 (6kW) | 6.0kW | 6.0kW |
-| GW8K-ETA-G20 (8kW) | 8.0kW | 8.0kW |
-| GW9.999K-ETA-G20 (10kW) | 9.999kW | 10.0kW |
-| GW12K-ETA-G20 (12kW) | 12.0kW | 12.0kW |
-| GW15K-ETA-G20 (15kW) | 15.0kW | 15.0kW |
-| GW20K-ETA-G20 (20kW) | 20.0kW | 20.0kW |
-| GW25K-ETA-G20 (25kW) | 25.0kW | 25.0kW |
-| GW29.999K-ETA-G20 (30kW) | 29.999kW | 30.0kW |
+| ESA model | Nominal AC | Max battery charging power | Max battery discharging power |
+|---|---|---|---|
+| GW5K-ETA-G20 (5kW) | 5.0kW | 5.0kW | 5.5kW |
+| GW6K-ETA-G20 (6kW) | 6.0kW | 6.0kW | 6.6kW |
+| GW8K-ETA-G20 (8kW) | 8.0kW | 8.0kW | 8.8kW |
+| GW9.999K-ETA-G20 (10kW) | 9.999kW | 10.0kW | 11.0kW |
+| GW10K-ETA-G20 (10kW, new) | 10.0kW | 10.0kW | 11.0kW |
+| GW12K-ETA-G20 (12kW) | 12.0kW | 12.0kW | 13.2kW |
+| GW15K-ETA-G20 (15kW) | 15.0kW | 15.0kW | 16.5kW |
+| GW20K-ETA-G20 (20kW) | 20.0kW | 20.0kW | 22.0kW |
+| GW25K-ETA-G20 (25kW) | 25.0kW | 25.0kW | 27.5kW |
+| GW29.999K-ETA-G20 (30kW) | 29.999kW | 30.0kW | 33.0kW |
+| GW30K-ETA-G20 (30kW, new) | 30.0kW | 30.0kW | 33.0kW |
 
-**Three-phase ESAs don't have the AC+DC blending headroom.** Max charging equals nominal AC across the entire range. So if you're on a three-phase ESA, **the throughput advantage Method 4 has on single-phase doesn't apply to you** - HA-driven charging and TOU-scheduled charging both top out at the same number.
+**Three-phase ESAs still don't have the AC+DC blending headroom on the charge side.** Max charging equals nominal AC across the entire range, June 2026 revision included. So if you're on a three-phase ESA, **the throughput advantage Method 4 has on single-phase doesn't apply to you** - HA-driven charging and TOU-scheduled charging both top out at the same number.
+
+What HAS moved in the June sheet is the **discharge** side: battery-side max discharge is now listed at 110% of nominal AC (11kW on the 10kW model, 33kW on the 30kW). Before you get excited about extra peak export - the AC grid port is still capped at nominal, so that 10% doesn't cross your meter. It's DC-side headroom for conversion losses and simultaneous backup-port loads. Grid export maths for Zero Hero are unchanged.
+
+The June sheet also repositions the three-phase ESA as an all-in-one (inverter + stacked battery modules in one enclosure, up to 12 modules / 108kWh), adds G21 variants of the familiar 5.1/8.3kWh Lynx D modules, and introduces new 6.0/9.0kWh modules (5.8/8.7kWh usable, rated at 10,000+ cycles vs the 8,000+ of the D-G20/G21 series). The warranty-throughput table earlier in this guide is built on the D-series modules' 3 MWh-per-kWh terms; if you're quoted the new 6.0/9.0 modules, check their warranty document before applying that math - the cycle rating differs, so the throughput terms may too.
 
 **The per-phase trap.** A "15kW three-phase inverter" is effectively three separate 5kW inverters in a trench coat - one per phase. The 15kW headline number is the sum, not what any single phase can deliver. So during the discharge window, if one of your phases is drawing more than 5kW (e.g. a high-load circuit on phase A while phases B and C are idle), the inverter cannot push the other phases' spare capacity across to make up the difference - it'll start pulling from the grid on the busy phase instead. On Zero Hero that means a brief peak-window grid import, which forfeits the daily $1 Zero-Grid credit.
 
