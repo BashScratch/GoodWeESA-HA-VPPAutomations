@@ -116,21 +116,27 @@ Firmware on older inverters may need pushing. A few community reports describe t
 
 ### Three-phase ESA - charge rates by model
 
-From the official [ESA Series three-phase datasheet, V2.1 April 2026](https://admin.goodwe.com/Api/downloadFile?id=4072&mid=60&type=2):
+From the official [ESA Series 5-30kW three-phase datasheet, V2.1 June 2026](https://en.goodwe.com/Ftp/EN/Downloads/Datasheet/GW_ESA-5-30kW_Datasheet-EN.pdf) (the June revision supersedes the April sheet this guide previously cited; charging figures are unchanged, two models are new, and a max-discharge column now appears):
 
-| ESA model | Nominal AC | Max battery charging power |
-|---|---|---|
-| GW5K-ETA-G20 (5kW) | 5.0kW | 5.0kW |
-| GW6K-ETA-G20 (6kW) | 6.0kW | 6.0kW |
-| GW8K-ETA-G20 (8kW) | 8.0kW | 8.0kW |
-| GW9.999K-ETA-G20 (10kW) | 9.999kW | 10.0kW |
-| GW12K-ETA-G20 (12kW) | 12.0kW | 12.0kW |
-| GW15K-ETA-G20 (15kW) | 15.0kW | 15.0kW |
-| GW20K-ETA-G20 (20kW) | 20.0kW | 20.0kW |
-| GW25K-ETA-G20 (25kW) | 25.0kW | 25.0kW |
-| GW29.999K-ETA-G20 (30kW) | 29.999kW | 30.0kW |
+| ESA model | Nominal AC | Max battery charging power | Max battery discharging power |
+|---|---|---|---|
+| GW5K-ETA-G20 (5kW) | 5.0kW | 5.0kW | 5.5kW |
+| GW6K-ETA-G20 (6kW) | 6.0kW | 6.0kW | 6.6kW |
+| GW8K-ETA-G20 (8kW) | 8.0kW | 8.0kW | 8.8kW |
+| GW9.999K-ETA-G20 (10kW) | 9.999kW | 10.0kW | 11.0kW |
+| GW10K-ETA-G20 (10kW, new) | 10.0kW | 10.0kW | 11.0kW |
+| GW12K-ETA-G20 (12kW) | 12.0kW | 12.0kW | 13.2kW |
+| GW15K-ETA-G20 (15kW) | 15.0kW | 15.0kW | 16.5kW |
+| GW20K-ETA-G20 (20kW) | 20.0kW | 20.0kW | 22.0kW |
+| GW25K-ETA-G20 (25kW) | 25.0kW | 25.0kW | 27.5kW |
+| GW29.999K-ETA-G20 (30kW) | 29.999kW | 30.0kW | 33.0kW |
+| GW30K-ETA-G20 (30kW, new) | 30.0kW | 30.0kW | 33.0kW |
 
-**Three-phase ESAs don't have the AC+DC blending headroom.** Max charging equals nominal AC across the entire range. So if you're on a three-phase ESA, **the throughput advantage Method 4 has on single-phase doesn't apply to you** - HA-driven charging and TOU-scheduled charging both top out at the same number.
+**Three-phase ESAs still don't have the AC+DC blending headroom on the charge side.** Max charging equals nominal AC across the entire range, June 2026 revision included. So if you're on a three-phase ESA, **the throughput advantage Method 4 has on single-phase doesn't apply to you** - HA-driven charging and TOU-scheduled charging both top out at the same number.
+
+What HAS moved in the June sheet is the **discharge** side: battery-side max discharge is now listed at 110% of nominal AC (11kW on the 10kW model, 33kW on the 30kW). Before you get excited about extra peak export - the AC grid port is still capped at nominal, so that 10% doesn't cross your meter. It's DC-side headroom for conversion losses and simultaneous backup-port loads. Grid export maths for Zero Hero are unchanged.
+
+The June sheet also repositions the three-phase ESA as an all-in-one (inverter + stacked battery modules in one enclosure, up to 12 modules / 108kWh), adds G21 variants of the familiar 5.1/8.3kWh Lynx D modules, and introduces new 6.0/9.0kWh modules (5.8/8.7kWh usable, rated at 10,000+ cycles vs the 8,000+ of the D-G20/G21 series). The warranty-throughput table earlier in this guide is built on the D-series modules' 3 MWh-per-kWh terms; if you're quoted the new 6.0/9.0 modules, check their warranty document before applying that math - the cycle rating differs, so the throughput terms may too.
 
 **The per-phase trap.** A "15kW three-phase inverter" is effectively three separate 5kW inverters in a trench coat - one per phase. The 15kW headline number is the sum, not what any single phase can deliver. So during the discharge window, if one of your phases is drawing more than 5kW (e.g. a high-load circuit on phase A while phases B and C are idle), the inverter cannot push the other phases' spare capacity across to make up the difference - it'll start pulling from the grid on the busy phase instead. On Zero Hero that means a brief peak-window grid import, which forfeits the daily $1 Zero-Grid credit.
 
@@ -138,7 +144,7 @@ If you're on a three-phase ESA and finding the credit gets blown despite your ba
 
 Method 4 is still the recommended approach on three-phase, just for different reasons. You still get:
 
-- Precise grid-export control via `number.goodwe_grid_export_limit` (Methods 1 with its app-only baseline TOU, Method 2, and Method 3 all set total discharge, which is imprecise; Method 1 closes the gap via Andrew Palmer's installer-menu Soft Power Limit setup, and recent SEMS+ versions are starting to show an Export Power Limit field per TOU period natively but it isn't editable yet, with wider rollout expected within the next month).
+- Precise grid-export control via `number.goodwe_grid_export_limit` (Methods 1 with its app-only baseline TOU, Method 2, and Method 3 all set total discharge, which is imprecise; Method 1 closes the gap via Andrew Palmer's installer-menu Soft Power Limit setup, and SEMS+ shows an Export Power Limit field per TOU period that's still visible-but-not-editable as of August 2026 - the rollout has run well past the community's original expectations).
 - Your SEMS+ TOU schedule isn't deleted by HA mode changes.
 - The HA smart layer (SOC guard, profit notifications, helper-tunable rates) is unchanged.
 
@@ -176,7 +182,7 @@ The simplest possible setup. Two TOU schedule slots in SEMS+ (charge during free
 - Pro: The inverter's firmware does the orchestration. Charge can hit the full 13.5kW (single-phase 10kW model, AC+DC blended) since it's a native TOU schedule.
 - Pro: Nothing to break, nothing to maintain.
 - Con: Discharge "power" is total inverter output, not grid-export specifically. Your grid export drifts with house load.
-- Con: No dynamic SOC guard. If your battery is short on charge going into peak, the inverter still discharges to its SOC floor and you start buying grid power at peak rates to cover the rest.
+- Con: SOC protection is static only. Recent SEMS+ gives most installs a per-slot Discharge SOC limit in the TOU dialog (a genuine improvement - see the Method 1 README), but it's a fixed floor: on a poorly-charged day the inverter still discharges at full rate until it hits the number, and it can't decide to sit a night out. The HA methods make that call live at 17:56.
 - Con: No notifications, no profit reporting.
 - Con: Static schedule - doesn't react to anything.
 
@@ -224,7 +230,7 @@ HA handles the smart layer: at 17:56 it evaluates SOC once and sets a stepped ex
 - Pro: Native firmware handles the "charge then hold" behaviour correctly.
 - Pro: Never touches operation mode from HA - your TOU schedule is safe.
 - Pro: Inherits the HA smart-layer benefits (SOC guard, dynamic export limit, notifications, profit calc, tunable rates).
-- Pro: `number.goodwe_grid_export_limit` is precise grid-export control (not "total discharge" like Methods 1, 2, and 3). If house load varies, your grid-export number stays the same (provided the inverter has the headroom to cover both house and grid simultaneously). Method 1 closes this gap via Andrew Palmer's Soft Power Limit installer-menu setup; recent SEMS+ versions are starting to show an Export Power Limit field per TOU period natively but it isn't editable yet (visible-but-not-editable preview, GoodWe expects wider rollout in the next month).
+- Pro: `number.goodwe_grid_export_limit` is precise grid-export control (not "total discharge" like Methods 1, 2, and 3). If house load varies, your grid-export number stays the same (provided the inverter has the headroom to cover both house and grid simultaneously). Method 1 closes this gap via Andrew Palmer's Soft Power Limit installer-menu setup; SEMS+'s in-TOU Export Power Limit field remains a visible-but-not-editable preview as of August 2026 (its sibling, the per-slot Discharge SOC limit, DID go live for most installs - so the rollout machinery works, it's just slow).
 - Pro: **Mostly insulated from firmware changes.** Uses the native HA integration's documented entities plus the GoodWe app's own TOU feature, both of which GoodWe maintains. Less exposed to breakage than Method 3's experimental-register approach.
 - Caveat: Method 4 still writes to the inverter's persistent storage twice daily via `number.goodwe_grid_export_limit`. Less flash exposure than Method 2 (4 writes/day), but more than Method 3 (zero, since EMS targets RAM). If you specifically want zero flash writes, Method 3 is the right pick. For most users the throughput advantage of Method 4 outweighs this; see Method 4's README for the write-cycle math.
 - Pro/Con: One small experimental-only dependency. The midnight reset turns off `switch.goodwe_fast_charging_switch` as a safety net (legacy from when an earlier version of this automation used the fast-charge switch as the primary charging mechanism; now that the charge is owned by TOU, this line just catches the case where someone manually flipped the switch on and forgot). That entity only exists with the HACS integration; on a native-only install the action errors silently and the rest of the automation continues (the YAML uses `continue_on_error: true`). So Method 4 *will* run native-only, you just lose one belt-and-braces line of safety.
@@ -238,7 +244,7 @@ HA handles the smart layer: at 17:56 it evaluates SOC once and sets a stepped ex
 
 Three recommendations cover most cases. Method 2 exists for completeness but isn't recommended over the other three (it has the heaviest flash-write footprint and Method 4 dominates it on every other axis).
 
-- **[Method 1: App-only](./method1_app_only/)** if you don't want to run Home Assistant at all. With Andrew Palmer's Soft Power Limit setup it gets you precise grid export and Zero-Grid credit preservation without any HA. The simplest path; nothing to maintain beyond two TOU slots in SEMS+ plus the one-time Soft Power Limit configuration. A solid choice if HA isn't already in your life. (Recent SEMS+ versions are starting to surface an Export Power Limit field directly in the TOU dialog that will eventually replace the Soft Power Limit detour, currently visible-but-not-editable, wider rollout expected in the next month.)
+- **[Method 1: App-only](./method1_app_only/)** if you don't want to run Home Assistant at all. With Andrew Palmer's Soft Power Limit setup it gets you precise grid export and Zero-Grid credit preservation without any HA. The simplest path; nothing to maintain beyond two TOU slots in SEMS+ plus the one-time Soft Power Limit configuration. A solid choice if HA isn't already in your life - and it got genuinely better in mid-2026: the TOU dialog's per-slot Discharge SOC limit is now editable on most installs, giving app-only users a proper peak-window floor without HA. (The Export Power Limit field that will eventually replace the Soft Power Limit detour is still visible-but-not-editable as of August 2026.)
 
 - **[Method 4: Hybrid](./method4_hybrid/)** for most people who want the happy middle ground. The things HA is good at (SOC guard, notifications, profit calc, tunable rates) layered on top of the inverter doing the heavy lifting via TOU schedules. Charges at the full 13.5kW (single-phase 10kW model) thanks to firmware-managed AC+DC blending. The default recommendation for most Zero Hero users.
 
@@ -387,4 +393,6 @@ Two community projects already do this and both can drive a GoodWe ESA via the e
 - **[EMHASS](https://github.com/davidusb-geek/emhass)** - linear-programming optimisation for PV/load/price scheduling, more configurable but a heavier setup.
 
 Neither is maintained by this repo and neither has GloBird-specific recipes - for Zero Hero's fixed windows the gain is small, and Method 3 is simpler. But if you find yourself wanting the automation to react to *forecast* rather than *clock time*, that's where to go next.
+
+A third contender is coming from GoodWe itself: an announced **AI mode for SEMS+**. Per the brochure, it forecasts next-day PV from weather APIs and history, learns your household's load pattern, and re-optimises the battery's charge/discharge strategy hourly against your tariff curves - Predbat-shaped functionality with no HA at all, which would make it the natural first stop for Method 1 users who outgrow fixed windows. As of August 2026 it's announced but not released, and everything shown is dynamic-tariff-focused, so the same caveat applies as for Predbat and EMHASS: on Zero Hero's fixed windows the ceiling for any optimiser is low - the windows don't move, so there isn't much for an hourly re-planner to out-think. We'll evaluate it against the methods here when it lands.
 

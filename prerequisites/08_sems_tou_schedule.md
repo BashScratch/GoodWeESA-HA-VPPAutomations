@@ -4,7 +4,7 @@ If you're going with **Method 4 (Hybrid)** - which we recommend - the free-windo
 
 This is the bit of Method 4 that makes the throughput case work on **single-phase ESAs** (model number ending in EHA-G20). The inverter combines grid AC and solar DC together to charge at up to 13.5kW on the 10kW model, which HA can't ask for. The 13.5kW number is from GoodWe's own [ESA Series single-phase datasheet, V2.1 April 2026](https://admin.goodwe.com/Api/downloadFile?id=3448&mid=60&type=2) - "Max. Charging Power" row for the GW9.999K-EHA-G20. Smaller single-phase models have proportionally lower ceilings (5kW model = 7.5kW, 8kW model = 12kW). Community confirmation: Whirlpool thread "Goodwe ESA maximum charge rate?" by user nutttr with confirmation from Zerosignal (<https://forums.whirlpool.net.au/thread/9kppp8k2>).
 
-**Three-phase ESAs (model number ending in ETA-G20) don't get the throughput boost.** Per the [three-phase datasheet, V2.1 April 2026](https://admin.goodwe.com/Api/downloadFile?id=4072&mid=60&type=2), max charging power equals nominal AC across the whole range. You should still set up the TOU schedules below for the other Method 4 benefits (precise grid-export control, your TOU survives, the HA smart-layer at peak), just don't expect a 35% charge-rate bump.
+**Three-phase ESAs (model number ending in ETA-G20) don't get the throughput boost.** Per the [three-phase datasheet, V2.1 June 2026](https://en.goodwe.com/Ftp/EN/Downloads/Datasheet/GW_ESA-5-30kW_Datasheet-EN.pdf), max charging power equals nominal AC across the whole range (re-confirmed in the June revision, which also added the GW10K and GW30K models). You should still set up the TOU schedules below for the other Method 4 benefits (precise grid-export control, your TOU survives, the HA smart-layer at peak), just don't expect a 35% charge-rate bump.
 
 If you're using **Method 2 or Method 3**, skip this guide. You don't need TOU schedules because HA's controlling the inverter directly.
 
@@ -74,6 +74,8 @@ Add a second schedule entry. This one tells the inverter "during peak, you're al
 | **Enabled** | Yes |
 
 Save the slot.
+
+> **On the per-slot Discharge SOC limit:** recent SEMS+ made this field genuinely enforce on most installs (it was a non-functional preview through mid-2026). For Method 4, **keep it low anyway** - a high in-app floor would fight HA's stepped brackets and floor guard, which are making a smarter version of the same decision from live SOC. The in-app floor is the right tool for [Method 1 (app-only)](../automations/globird/method1_app_only/) users; here it's just the last line of defence under HA's logic.
 
 > **Critical concept: "discharge power" in SEMS+ TOU means *total inverter output*, not grid-export specifically.** A 10% setting on a 10kW inverter means 1kW total (house load + grid combined), not 1kW to the grid. That's why we set discharge power to 100% here and let HA's `number.goodwe_grid_export_limit` (set by the YAML's stepped SOC brackets - 5kW down to 1kW depending on battery headroom) be the precise grid-export lever. The inverter's full output covers house load *plus* the armed export rate to the grid.
 

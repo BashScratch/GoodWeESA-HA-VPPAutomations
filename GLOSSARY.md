@@ -145,7 +145,7 @@ Since Method 4 splits responsibility between the GoodWe app and HA, here is an e
 |---|---|---|
 | Charge battery during free window (11-14) | GoodWe app (Economic Mode / TOU schedule) | Native firmware charges to 100% and holds. HA's `fast_charging_switch` exits forced-charge mode when the SOC target is met and the inverter reverts to self-consumption, which means the battery starts discharging into household load (including any EV that's plugged in) during the rest of the free window - the opposite of what you want when grid is free. TOU prevents that. |
 | Hold battery at 100% after charge target is reached | GoodWe app (Economic Mode / TOU schedule) | Same reason as above |
-| Check SOC before arming peak export | HA | Requires live sensor reading and conditional logic - the app cannot do this |
+| Check SOC before arming peak export | HA | Requires live sensor reading and conditional logic. The app's newer per-slot TOU Discharge SOC limit is a static floor - useful, but not a decision made from tonight's actual battery state |
 | Enforce export wattage limit during peak | HA (`number.goodwe_grid_export_limit`) | Dynamic - HA can block export entirely if SOC is too low, or restore it if a previous session left it at 0 |
 | Report nightly profit | HA notification | Uses helper-stored rates and a session kWh delta calculation |
 | Discharge battery during peak | GoodWe app (Economic Mode / TOU discharge schedule) or inverter self-consumption | Either works - a SEMS+ TOU discharge schedule is more explicit, but self-consumption will also draw the battery down during peak |
