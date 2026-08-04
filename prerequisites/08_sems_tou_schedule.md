@@ -12,7 +12,7 @@ If you're using **Method 2 or Method 3**, skip this guide. You don't need TOU sc
 
 GoodWe has two apps:
 
-- **SolarGo** - the older consumer app. Still where some low-level functions live (notably, where Mitch had to enable Modbus TCP - see [prereq 01](./01_enable_modbus_on_inverter.md)).
+- **SolarGo** - the older consumer app. Still where some low-level functions live (notably, enabling Modbus TCP - see [prereq 01](./01_enable_modbus_on_inverter.md)).
 - **SEMS+** - the newer end-user app and installer portal. GoodWe is migrating consumer features into SEMS+ from SolarGo, so this is where TOU setup now lives for most current installs.
 
 **Use SEMS+ for TOU setup.** If you've previously set up TOU in SolarGo, the schedule may still be visible there but SEMS+ is where new features land and where TOU controls have the most polish. If you're on an older version of SEMS+ that doesn't show TOU, update the app first; if it still doesn't appear, fall back to SolarGo.

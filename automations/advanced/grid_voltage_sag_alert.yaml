@@ -1,8 +1,8 @@
 alias: "GoodWe ESA: Grid voltage sag alert"
 description: >
-  Alerts when grid voltage drops below the AS 60038 lower steady-state
-  limit (216V on a 230V nominal supply), indicating a voltage sag from
-  the network side. The mirror image of grid_voltage_soak.yaml: that
+  Alerts when grid voltage drops below the Australian lower supply
+  tolerance (AS 61000.3.100: 230V -6% = ~216V at the point of supply),
+  indicating a voltage sag from the network side. The mirror image of grid_voltage_soak.yaml: that
   one engages a dump load when voltage climbs high, this one fires a
   notification when voltage sags low. There's no protective action you
   can take from the inverter side for low voltage (it's a network
@@ -20,8 +20,8 @@ mode: single
 #
 #   input_number.voltage_sag_alert_threshold  - voltage at which to fire the
 #                                                alert. Default: 216 (V).
-#                                                AS 60038 lower steady-state
-#                                                limit (230V nominal -6%).
+#                                                AS 61000.3.100 lower supply
+#                                                tolerance (230V -6%).
 #                                                Min 200, max 225, step 1.
 #                                                Unit: V.
 #   input_number.voltage_sag_release          - voltage at which the alert
@@ -37,14 +37,21 @@ mode: single
 # =============================================================================
 
 triggers:
+  # Sensor choice matters for a SAG alert even more than for the soak:
+  # use the METER voltage sensor (sensor.goodwe_meter_l1_voltage), which
+  # reads the true grid voltage at your connection point. Do NOT use
+  # back_up_l1_voltage - that's the inverter's REGULATED backup-port
+  # output, which holds a healthy 230V precisely when the grid is
+  # misbehaving, so a sag alert watching it would sleep through every
+  # event it exists to catch.
   - trigger: numeric_state
-    entity_id: sensor.goodwe_on_grid_l1_voltage_2   # EDIT: your grid voltage sensor. On Mitch's install both sensor.goodwe_on_grid_l1_voltage_2 and sensor.goodwe_back_up_l1_voltage work; on-grid is more semantically correct since this measures grid voltage. The _2 suffix appears if you have both native and experimental integrations installed.
+    entity_id: sensor.goodwe_meter_l1_voltage   # EDIT: your meter voltage sensor (may be _2 suffixed)
     below: input_number.voltage_sag_alert_threshold
     for:
       seconds: 30   # ignore transient dips (air-con next door starting, etc.)
     id: sag_started
   - trigger: numeric_state
-    entity_id: sensor.goodwe_on_grid_l1_voltage_2   # EDIT: same sensor as above
+    entity_id: sensor.goodwe_meter_l1_voltage   # EDIT: same sensor as above
     above: input_number.voltage_sag_release
     for:
       minutes: 5   # require sustained recovery before clearing
@@ -67,7 +74,7 @@ actions:
               notification_id: grid_voltage_sag
               message: >-
                 Grid voltage dropped to
-                {{ states('sensor.goodwe_on_grid_l1_voltage_2') }}V at
+                {{ states('sensor.goodwe_meter_l1_voltage') }}V at
                 {{ now().strftime('%H:%M on %d/%m/%Y') }}, below your
                 configured threshold of
                 {{ states('input_number.voltage_sag_alert_threshold') }}V.
@@ -77,7 +84,7 @@ actions:
               title: Grid Voltage Sag
               message: >-
                 Grid voltage at
-                {{ states('sensor.goodwe_on_grid_l1_voltage_2') }}V
+                {{ states('sensor.goodwe_meter_l1_voltage') }}V
                 (below {{ states('input_number.voltage_sag_alert_threshold') }}V).
 
       - conditions:
@@ -93,4 +100,4 @@ actions:
               message: >-
                 Grid voltage back above
                 {{ states('input_number.voltage_sag_release') }}V at
-                {{ states('sensor.goodwe_on_grid_l1_voltage_2') }}V.
+                {{ states('sensor.goodwe_meter_l1_voltage') }}V.

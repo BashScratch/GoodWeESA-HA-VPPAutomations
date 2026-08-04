@@ -37,7 +37,7 @@ To find the exact name:
 Common examples:
 
 - `notify.mobile_app_iphone` - iPhone with default name
-- `notify.mobile_app_mitch_iphone` - iPhone named "Mitch's iPhone"
+- `notify.mobile_app_alexs_iphone` - iPhone named "Alex's iPhone"
 - `notify.mobile_app_pixel_8` - Android Pixel 8
 
 If you've connected multiple phones, each gets its own service. You can pick the one you want to be the alert phone, or set up a notify group later that fires to all of them.
