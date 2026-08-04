@@ -102,3 +102,19 @@ If both ticked, the next guide is [Companion app for notifications](./03_install
 - **HACS download button greyed out** - your GitHub login expired. Sign out of HACS (three-dots menu) and back in.
 - **Experimental integration installs but no `ems` entities appear** - your inverter firmware may not support EMS via the experimental driver. The integration's [GitHub issues](https://github.com/mletenay/home-assistant-goodwe-inverter/issues) are the place to ask.
 - **Both integrations are fighting and entities have weird `_2` suffixes** - see [Guide 05](./05_find_your_entities.md) for how to identify which is which.
+- **Sensors connect fine but go stale or `unavailable` after hours or days** - some ESA Wi-Fi modules wedge under the integration's own polling rhythm and stop answering until the connection is prodded. A steady force-poll heartbeat has proven to stabilise this on a live install: a tiny automation that calls `homeassistant.update_entity` on one power sensor every 30 seconds keeps the Modbus session warm at a controlled cadence (this complements the "don't poll faster than 30s" advice above - the point is a *regular* rhythm, not a faster one). If you're seeing the dropouts, paste this and adjust the sensor name:
+
+  ```yaml
+  alias: "System: GoodWe Manual Polling"
+  description: Force-polls one GoodWe sensor every 30s to keep the inverter's Wi-Fi link from wedging.
+  triggers:
+    - trigger: time_pattern
+      seconds: "/30"
+  actions:
+    - action: homeassistant.update_entity
+      target:
+        entity_id: sensor.goodwe_active_power   # EDIT: any frequently-updating GoodWe power sensor (may be _2 suffixed)
+  mode: single
+  ```
+
+  Don't install it pre-emptively - if your link is stable, it's pointless traffic.
