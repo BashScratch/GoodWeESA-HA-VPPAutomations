@@ -19,6 +19,10 @@ One of the most confusing things about setting up a GoodWe ESA with Home Assista
 | EMS - direct battery charge/discharge via RAM register command | EMS (Energy Management System) | Not exposed in app | **Not exposed** | `select.goodwe_ems_mode` + `number.goodwe_ems_power_limit` |
 | Synchronise inverter clock to HA | (button) | (manual) | `button.goodwe_synchronize_inverter_clock` | Same |
 
+### Newer working modes (2026 firmware) the table doesn't cover
+
+The July 2026 [ESA user manual](https://admin.goodwe.com/Api/downloadFile?id=3105&mid=60&type=2) documents six working modes, not three: alongside Self-consumption, Backup, and TOU sit **Smart Charging (Delayed Charging)** - for export-limited connections, diverts PV that would exceed your grid-connection cap into the battery - and **Demand Control** - commercial peak-demand shaving. There's also a dedicated Off-grid mode. None of these extra modes surface in the HA integrations' `select.goodwe_inverter_operation_mode`, and none of them are used by this guide (TOU remains the mode that matters for Zero Hero) - listed here so you're not surprised when the app offers more options than the HA dropdown does. Smart Charging may interest you independently of Zero Hero if you're on a DNSP-limited export connection.
+
 ### Architecture: HACS is a layer over native, not a replacement
 
 The mletenay HACS integration is built as an **addition** to the native one. When both are installed (the standard setup for Methods 2-4), the native integration handles the read sensors and basic mode controls, and the HACS integration adds the active-control entities listed above. They don't conflict.
