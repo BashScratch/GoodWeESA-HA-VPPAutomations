@@ -32,7 +32,7 @@ Tracks how long it's been since the battery last hit 100% SOC. If 14 days pass w
 
 ### [`grid_voltage_sag_alert.yaml`](./grid_voltage_sag_alert.yaml)
 
-The mirror image of `grid_voltage_soak.yaml`. Watches grid voltage and fires a notification when it sags below your alert threshold (default 216V - AS 60038 lower steady-state limit for a 230V nominal supply). Releases at a hysteresis threshold (default 220V) once voltage has been sustained above it for 5 minutes. There's no inverter-side protective action for low voltage (it's a network problem upstream), but you can record it and report it to your distributor if it becomes a pattern.
+The mirror image of `grid_voltage_soak.yaml`. Watches grid voltage and fires a notification when it sags below your alert threshold (default 216V - the AS 61000.3.100 lower supply tolerance, 230V -6%). Releases at a hysteresis threshold (default 220V) once voltage has been sustained above it for 5 minutes. There's no inverter-side protective action for low voltage (it's a network problem upstream), but you can record it and report it to your distributor if it becomes a pattern.
 
 **When to use:** you suspect your local supply is weak (brownouts during high-demand evenings, lights dimming when the heat pump kicks in, repeated low-voltage warnings from the inverter), and you want a record.
 
@@ -52,14 +52,13 @@ A correctness fix, not a feature. Some GoodWe ARM firmware revisions report acti
 
 **When to use:** your `sensor.goodwe_active_power` shows the wrong sign convention.
 
-## Future additions parked
+## Formerly parked, now shipped
 
-A few automations and sensors have been sketched in the project's plan but not yet implemented. They'll land in a future pass:
+Earlier versions of this page listed a few sketched-but-unbuilt ideas. Every one of them has since landed, mostly in bigger forms than the sketches imagined - pointers so you don't go looking for them here:
 
-- **Zero-Grid Credit watchdog** ([`../globird/zero_grid_credit_watchdog.yaml`](../globird/zero_grid_credit_watchdog.yaml) - needs the `utility_meter` helper set up before it works; see [prereq 04 Step 6](../../prerequisites/04_create_helpers.md#step-6---create-the-utility-meter-helper-only-if-installing-the-zero-grid-credit-watchdog) for the walkthrough) - alerts you when grid import during the peak window threatens GloBird's daily Zero-Grid credit.
-- **Dynamic export limit** - template sensor that adapts the export limit to live house demand instead of a static number.
-- **EV charge ring-fencing** - binary sensor that gates EV charging on battery state and tariff window. Vendor-specific to each EV charger's API; documented in the plan but not implemented because it depends on your charger.
-- **Dynamic EV load balancing** - template sensor calculating available grid headroom and pushing the value to your EV charger's API. Same vendor-dependence as ring-fencing.
+- **Zero-Grid Credit watchdog** - real and since rebuilt: [`zero_grid_credit_watchdog.yaml`](../globird/zero_grid_credit_watchdog.yaml) measures grid import per clock hour, the way GloBird actually assesses the credit. Helper walkthrough in [prereq 04 Step 6](../../prerequisites/04_create_helpers.md#step-6---create-the-utility-meter-helper-only-if-installing-the-zero-grid-credit-watchdog).
+- **Dynamic export limit** - landed as Method 4's [stepped export brackets](../globird/method4_hybrid/), which scale the limit to battery headroom at 17:56 with a mid-window floor guard. The original sketch said "adapt to live house demand", but that half turned out to be solving a non-problem: `number.goodwe_grid_export_limit` pins *grid* export regardless of house load - the inverter covers the house on top. The thing worth adapting to was battery state, and the brackets do that.
+- **EV charge ring-fencing** and **dynamic EV load balancing** - landed together as the [Tesla charge orchestration add-on](../tesla/): tariff-window gating (the peak blocker), battery-state gating (the trickle's two reserve floors), and grid-headroom-aware dynamic amps (the orchestrator's formula). The "vendor-specific" caveat from the sketch resolved as "Teslemetry, for Teslas" - the same ideas for other EV brands are the one piece still genuinely parked, and a PR porting the add-on's logic to another charger API would be very welcome (see the [top README's contributing section](../../README.md#contributing-issues-suggestions)).
 
 ## Common gotchas
 

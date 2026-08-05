@@ -40,7 +40,7 @@ triggers:
       minutes: 2   # require sustained warmth, not transients
     id: getting_hot
   - trigger: numeric_state
-    entity_id: sensor.goodwe_inverter_temperature_module
+    entity_id: sensor.goodwe_inverter_temperature_module   # EDIT: same sensor as above
     below: input_number.inverter_thermal_release
     for:
       minutes: 5   # require sustained drop before turning fan off
@@ -80,4 +80,4 @@ actions:
           # user toggled the master off mid-cycle.
           - action: switch.turn_off
             target:
-              entity_id: switch.inverter_cooling_fan
+              entity_id: switch.inverter_cooling_fan   # EDIT: same switch as above
