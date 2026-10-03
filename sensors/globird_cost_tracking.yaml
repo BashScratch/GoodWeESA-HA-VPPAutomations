@@ -14,11 +14,12 @@
 #
 # REQUIRED HELPERS (create via Settings > Helpers > Number, same flow as the
 # strategy-guide helpers; set the starting values from your welcome pack -
-# the examples are QLD ZEROHERO effective 1 July 2026):
-#   input_number.globird_import_peak      - peak import $/kWh, 16:00-23:00   (e.g. 0.506)
-#   input_number.globird_import_shoulder  - shoulder import $/kWh, all other (e.g. 0.385)
-#   input_number.globird_import_offpeak   - free-window import $/kWh, 11-14  (e.g. 0.00)
-#   input_number.globird_daily_supply     - daily supply charge $/day        (e.g. 1.738)
+# the examples are the QLD Energex ZEROHERO fact sheet effective 17 Sep 2026,
+# with the July 2026 figures older plans still carry in brackets):
+#   input_number.globird_import_peak      - peak import $/kWh, 16:00-23:00   (e.g. 0.495; older 0.506)
+#   input_number.globird_import_shoulder  - shoulder import $/kWh, all other (e.g. 0.3685; older 0.385)
+#   input_number.globird_import_offpeak   - free-window import $/kWh         (e.g. 0.00)
+#   input_number.globird_daily_supply     - daily supply charge $/day        (e.g. 1.98; older 1.738)
 # Plus one you already have from the automations:
 #   input_number.zero_hero_rate_credit    - the $1.00 daily Zero-Grid credit
 #
@@ -39,24 +40,32 @@
 - sensor:
     # ------------------------------------------------------------------
     # Import price right now, in $/kWh. Zero Hero's import structure:
-    #   11:00-14:00  free window ($0.00)
-    #   16:00-23:00  peak (e.g. $0.506)
-    #   everything else  shoulder (e.g. $0.385)
+    #   12:00-15:00  free window ($0.00) - 11:00-14:00 on older plans
+    #   16:00-23:00  peak (e.g. $0.495)
+    #   everything else  shoulder (e.g. $0.3685)
     # Note the import peak (16-23) is WIDER than the export super window
     # (18-21) - they're different things in the key conditions.
+    #
+    # The current offer only makes the FIRST 50 kWh per day free (27.5c/kWh
+    # after that). This sensor doesn't count toward that cap - it would need
+    # a daily meter on free-window imports. A big battery plus an EV can get
+    # there (10 kW of grid charging for 3 hours is 30 kWh before the car
+    # starts), so check your first bill's off-peak line if you're close.
     # ------------------------------------------------------------------
     - name: "GloBird Import Price"
       unique_id: globird_import_price
       unit_of_measurement: "AUD/kWh"
       icon: mdi:transmission-tower-import
       state: >
+        {% set free_start = 12 %}   {# EDIT: free window start hour - 11 on older plans #}
+        {% set free_end = 15 %}     {# EDIT: free window end hour - 14 on older plans #}
         {% set h = now().hour %}
-        {% if 11 <= h < 14 %}
+        {% if free_start <= h < free_end %}
           {{ states('input_number.globird_import_offpeak') | float(0.00) }}
         {% elif 16 <= h < 23 %}
-          {{ states('input_number.globird_import_peak') | float(0.506) }}
+          {{ states('input_number.globird_import_peak') | float(0.495) }}
         {% else %}
-          {{ states('input_number.globird_import_shoulder') | float(0.385) }}
+          {{ states('input_number.globird_import_shoulder') | float(0.3685) }}
         {% endif %}
 
     # ------------------------------------------------------------------
@@ -85,9 +94,9 @@
         {% set p = states('sensor.goodwe_active_power') | float(0) %}   {# EDIT: your meter active-power sensor (W, positive = export) #}
         {% set import_kw = ([-p, 0] | max) / 1000 %}
         {% set export_kw = ([p, 0] | max) / 1000 %}
-        {% set import_price = states('sensor.globird_import_price') | float(0.385) %}
+        {% set import_price = states('sensor.globird_import_price') | float(0.3685) %}
         {% set export_price = states('sensor.zero_hero_export_price') | float(0) %}
-        {% set supply = states('input_number.globird_daily_supply') | float(1.738) %}
+        {% set supply = states('input_number.globird_daily_supply') | float(1.98) %}
         {% set credit = states('input_number.zero_hero_rate_credit') | float(1.00) %}
         {{ ((import_kw * import_price)
             + (supply / 24)

@@ -69,7 +69,7 @@ The Method 3 automation in this guide uses `"Charge"`, `"Discharge"`, and `"Auto
 
 | What it means | GloBird's term | What this guide calls it |
 |---|---|---|
-| 11:00-14:00 period where grid electricity costs nothing | "ZEROCHARGE" period / "Off-peak Usage" in your bill | Free window |
+| 12:00-15:00 period (11:00-14:00 on older plans) where grid electricity costs nothing - the first 50 kWh/day only on the current offer | "ZEROCHARGE" period / "Off-peak Usage" in your bill | Free window |
 | 18:00-21:00 period where export earns a premium (older grandfathered plans end at 20:00) | "Super Export Window" / "ZEROHERO Window" | Peak window |
 | High export rate during peak (e.g. $0.10/kWh total on QLD ZEROHERO, Jul 2026) | "ZEROWASTEDSOLAR" / "Super Export" | Super rate |
 | Export rate outside peak but within 4pm-11pm (e.g. $0.02/kWh on QLD, Jul 2026) | "Solar/GenerationFeedin(4pm-11pm)" | Base rate |

@@ -54,8 +54,8 @@
     # energy earns you nothing at all - so a cost tracker, a battery
     # dispatch decision, or a "should I sell this?" gut call that assumes
     # a flat feed-in rate silently overvalues daytime export. Overnight
-    # and morning surplus is worth $0 to the grid and $0.385/kWh (the
-    # shoulder import you avoid) staying in the battery for your own use.
+    # and morning surplus is worth $0 to the grid and ~$0.37/kWh (the
+    # shoulder import you avoid - 36.85c on the current offer) staying in the battery for your own use.
     #
     # Windows match the current QLD ZEROHERO key conditions. If your plan
     # differs (older plans run super 18:00-20:00), adjust the hour checks.

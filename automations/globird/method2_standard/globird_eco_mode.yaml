@@ -1,9 +1,10 @@
 alias: "GoodWe ESA: GloBird Zero Hero (Method 2 - Standard Eco Mode)"
 description: >
   Uses the standard GoodWe integration's Eco Mode (Economic Mode) to force charging
-  at 11:00 and force exporting at 18:00. Simple, but two tradeoffs vs Method 3:
+  when the free window opens and force exporting at 18:00. Simple, but two
+  tradeoffs vs Method 4:
     1. Charges at 10kW max (HA cannot command DC + AC blended charging - for the
-       full 13.5kW you need a SEMS+ TOU schedule, which is what Method 3 uses).
+       full 13.5kW you need a SEMS+ TOU schedule, which is what Method 4 uses).
     2. Overwrites any Economic Mode / TOU schedules set in the GoodWe SolarGo/SEMS+ app.
   See automations/globird/README.md for the full method comparison.
   See GLOSSARY.md for the Eco Mode / Economic Mode / TOU naming explanation.
@@ -40,7 +41,7 @@ max: 5
 #
 # Recommended starting values for each helper:
 #
-#   zero_hero_eco_charge_power - the magnitude used for the 11:00 force-charge.
+#   zero_hero_eco_charge_power - the magnitude used for the free-window force-charge.
 #     - Percentage mode: set to 100 (charge at the inverter's full AC rate).
 #     - Watts mode: set to your inverter's nominal AC rating - e.g. 10000 for
 #       a 10kW ESA, 8000 for 8kW, 5000 for 5kW. HA can only command AC charging
@@ -59,7 +60,7 @@ max: 5
 #   and watch what the inverter actually does before scaling up.
 #
 # This automation always treats each helper as the MAGNITUDE - it sends the
-# charge helper as a negative value at 11:00 and the discharge helper as a
+# charge helper as a negative value at the free-window start and the discharge helper as a
 # positive value at 18:00.
 # -----------------------------------------------------------------------------
 # =============================================================================
@@ -68,11 +69,13 @@ triggers:
   - trigger: time
     at: "00:01:00"
     id: midnight_reset
+  # EDIT: free window. Current Zero Hero offer: 12:00-15:00. Older plans:
+  # 11:00-14:00 - check the Offpeak line on your bill.
   - trigger: time
-    at: "11:00:00"
+    at: "12:00:00"
     id: free_start
   - trigger: time
-    at: "14:00:00"
+    at: "15:00:00"
     id: free_end
   - trigger: time
     at: "17:56:00"
@@ -104,12 +107,12 @@ actions:
               value: 0
 
       # ==========================================================
-      # 11:00 AM - FORCE CHARGE (ECO / ECONOMIC MODE)
+      # FREE WINDOW START - FORCE CHARGE (ECO / ECONOMIC MODE)
       # LFP chemistry is fine to regularly fully charge - see main README.
       # "Eco mode" in HA = "Economic Mode" in the GoodWe app - see GLOSSARY.md.
       # Note: HA can only command the AC side, so charging tops out at the
       # inverter's AC limit (~10kW). For full 13.5kW (10 AC + 3.5 DC blended),
-      # use Method 3 with a SEMS+ TOU schedule instead.
+      # use Method 4 with a SEMS+ TOU schedule instead.
       # ==========================================================
       - conditions:
           - condition: trigger
@@ -136,10 +139,10 @@ actions:
                   title: Zero Hero Free Window
                   message: >-
                     Charge started. SOC {{ states('sensor.goodwe_battery_state_of_charge') }}%.
-                    Window ends 14:00.
+                    Charging until the free window closes.
 
       # ==========================================================
-      # 2:00 PM - END FREE CHARGE (BACK TO GENERAL MODE)
+      # FREE WINDOW END - BACK TO GENERAL MODE
       # ==========================================================
       - conditions:
           - condition: trigger
