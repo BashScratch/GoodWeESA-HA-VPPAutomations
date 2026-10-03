@@ -1,6 +1,6 @@
 alias: "Tesla: Free Window Reminder"
 description: >
-  SOC-aware plug-in reminder. 10:45: fires only if the car is home,
+  SOC-aware plug-in reminder. 15 min before the free window: fires only if the car is home,
   unplugged, and below the reminder threshold - no nagging when the car
   doesn't need charge. Plus a confirmation when the cable goes in during
   the window, so you know the free charge is actually happening.
@@ -14,7 +14,7 @@ mode: single
 
 triggers:
   - trigger: time
-    at: "10:45:00"   # EDIT: 15 min before your free window opens
+    at: "11:45:00"   # EDIT: 15 min before your free window opens (10:45 on older 11:00-14:00 plans)
     id: pre_window_reminder
   - trigger: state
     entity_id: binary_sensor.yourcar_charge_cable   # EDIT: your car's charge cable sensor
@@ -43,7 +43,7 @@ actions:
               title: "Free Window in 15min"
               message: >-
                 Tesla is at {{ states('sensor.yourcar_battery_level') }}% and
-                not plugged in. Connect now to charge free 11am-2pm.
+                not plugged in. Connect now to charge free in the window.
               data:
                 push:
                   sound:
@@ -53,8 +53,8 @@ actions:
           - condition: trigger
             id: car_connected_during_window
           - condition: time
-            after: "11:01:00"   # EDIT: your free window
-            before: "14:00:00"
+            after: "12:01:00"   # EDIT: your free window (11:01 on older plans)
+            before: "15:00:00"   # EDIT: 14:00 on older plans
           - condition: state
             entity_id: device_tracker.yourcar_location   # EDIT
             state: home

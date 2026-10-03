@@ -37,5 +37,5 @@ actions:
       title: Tesla Override Active
       message: >-
         Charging allowed until 23:00 (or unplug). Note: peak import costs
-        ~{{ '%g' | format(states('input_number.globird_import_peak')|float(0.506)*100) }}c/kWh
+        ~{{ '%g' | format(states('input_number.globird_import_peak')|float(0.495)*100) }}c/kWh
         and the $1 credit may be lost tonight.

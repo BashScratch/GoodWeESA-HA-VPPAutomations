@@ -2,17 +2,24 @@ alias: "Tesla: Charge Orchestrator"
 description: >
   Master-gated Tesla charge control around the Zero Hero windows.
 
-  Free window 11:00-14:00: charge at dynamic amps - full amps unless the house
-  battery is projected to miss its own window target by 14:00, in which case
-  the car gets only the surplus, tiered 32/24/16/8A (DC solar counts toward
-  the battery's budget). Re-evaluated at 12:00 and 13:00.
+  Free window (12:00-15:00 on the current Zero Hero offer, 11:00-14:00 on
+  older plans): charge at dynamic amps - full amps unless the house battery
+  is projected to miss its own window target by the window's end, in which
+  case the car gets only the surplus, tiered 32/24/16/8A (DC solar counts
+  toward the battery's budget). Re-evaluated on the hour inside the window.
 
-  14:00: stop - or hand over to trickle amps if the car is still below its
-  trickle target and the house battery clears both reserve layers. 16:00:
+  Window end: stop - or hand over to trickle amps if the car is still below
+  its trickle target and the house battery clears both reserve layers. 16:00:
   hard stop for peak. 23:00 (and on plug-in outside the free/peak windows):
   trickle from the house battery while car < target AND battery > helper
-  floor AND battery > computed overnight backstop. Live cutoff triggers stop
-  the trickle the moment either boundary is crossed.
+  floor AND battery > computed overnight backstop. From 06:00 until just
+  before the free window, a lower morning floor applies instead (the free
+  window is about to refill the house battery anyway). Live cutoff triggers
+  stop the trickle the moment a boundary is crossed.
+
+  Every turn_on waits for the car to report exactly 'stopped', settles 15s,
+  and re-checks before sending - Tesla rejects a start from any other state,
+  and cars routinely start themselves the instant a window opens.
 
   The override boolean suspends all charge control; it auto-clears at 23:00
   and on unplug. Every car command is guarded (only sent when the state
@@ -35,24 +42,30 @@ max: 10
 #   input_number.tesla_trickle_soc_target      - car SOC the trickle stops at (50)
 #   input_number.tesla_trickle_batt_floor      - house battery floor for trickling (50)
 #   input_number.tesla_trickle_amps            - trickle current (8)
-#   input_number.tesla_overnight_house_kwh     - your evening-to-11am house consumption (16)
+#   input_number.tesla_overnight_house_kwh     - your evening-to-free-window house consumption (16)
+#   input_number.tesla_morning_batt_floor      - house battery floor for trickling 06:00 to the free
+#                                                window (set equal to tesla_trickle_batt_floor to keep
+#                                                one floor all night; the reference install runs 25)
 #
+# FREE WINDOW TIMES: this file defaults to the current Zero Hero offer
+# (12:00-15:00). On an older 11:00-14:00 plan, move every time marked
+# "EDIT: free window" back one hour (and 11:45 -> 10:45, 14:55 -> 13:55).
 # EDIT MAP: replace `yourcar` with your car's Teslemetry slug everywhere,
 # plus the GoodWe sensors and site constants flagged below.
 # =============================================================================
 
 triggers:
   - trigger: time
-    at: "11:00:00"   # EDIT: free window start (Zero Hero: 11:00)
+    at: "12:00:00"   # EDIT: free window start (11:00 on older plans)
     id: window_start
   - trigger: time
-    at: "12:00:00"
-    id: amp_eval_12
+    at: "13:00:00"   # EDIT: free window, first re-evaluation
+    id: amp_eval_1
   - trigger: time
-    at: "13:00:00"
-    id: amp_eval_13
+    at: "14:00:00"   # EDIT: free window, second re-evaluation
+    id: amp_eval_2
   - trigger: time
-    at: "14:00:00"   # EDIT: free window end
+    at: "15:00:00"   # EDIT: free window end (14:00 on older plans)
     id: window_end
   - trigger: time
     at: "16:00:00"   # EDIT: peak import window start (Zero Hero: 16:00)
@@ -78,6 +91,12 @@ triggers:
     entity_id: sensor.yourcar_battery_level   # EDIT: your car's battery level sensor
     above: input_number.tesla_trickle_soc_target
     id: car_target
+  # The relaxed morning floor - only acted on 06:00 to just before the free
+  # window (see the MORNING FLOOR cutoff branch).
+  - trigger: numeric_state
+    entity_id: sensor.goodwe_battery_state_of_charge   # EDIT: your house battery SOC sensor
+    below: input_number.tesla_morning_batt_floor
+    id: batt_floor_morning
 
 conditions:
   # Master switch. Everything in this automation commands the car, so the
@@ -103,7 +122,7 @@ actions:
               entity_id: input_boolean.tesla_charge_override
 
       # ==========================================================
-      # FREE WINDOW START (11:00, or plug-in during the window)
+      # FREE WINDOW START (or plug-in during the window)
       # Set the charge limit, compute dynamic amps, start charging.
       # Every command is guarded: only sent if the car's state
       # actually differs from what we want (API-call minimisation).
@@ -118,8 +137,8 @@ actions:
                   - condition: trigger
                     id: plug_in
                   - condition: time
-                    after: "11:00:00"
-                    before: "13:55:00"
+                    after: "12:00:00"   # EDIT: free window start
+                    before: "14:55:00"   # EDIT: 5 min before free window end
           - condition: state
             entity_id: device_tracker.yourcar_location   # EDIT: your car's device tracker
             state: home
@@ -167,7 +186,7 @@ actions:
               # falls back to 32 when the attribute is unknown (car
               # asleep).
               #
-              # Logic: project the house battery's 14:00 SOC assuming the
+              # Logic: project the house battery's window-end SOC assuming the
               # car takes max amps (battery gets remaining grid headroom
               # + DC solar, capped at its own charge ceiling, at ~95%
               # efficiency). If the projection clears the target, the car
@@ -188,7 +207,7 @@ actions:
                 {% set maxamps = states('input_number.tesla_freewindow_max_amps')|int(32) %}
                 {% set maxcap = state_attr('number.yourcar_charge_current', 'max')|int(32) %}
                 {% if maxcap < 5 %}{% set maxcap = 32 %}{% endif %}
-                {% set hours = [((today_at('14:00') - now()).total_seconds()/3600), 0.25]|max %}
+                {% set hours = [((today_at('15:00') - now()).total_seconds()/3600), 0.25]|max %}   {# EDIT: free window end #}
                 {% set batt_kw = [batt_max_kw, grid_cap - house - (maxamps*kw_per_amp) + pv]|min %}
                 {% set projected = batt + batt_kw*hours*0.95/batt_kwh*100 %}
                 {% if projected >= target %}{{ [maxamps, maxcap]|min }}
@@ -226,28 +245,40 @@ actions:
                 data:
                   value: "{{ amps_calc|int }}"
                 continue_on_error: true
+          # Start only from exactly 'stopped'. Tesla rejects a start from
+          # every other state (disconnected, no_power, starting, complete),
+          # and two races are common: the car starts ITSELF the instant the
+          # window opens, and on plug-in the sensor passes through no_power
+          # for a second or two before the connector energises. Settle 15s
+          # and re-check, so a car that started on its own is left alone.
           - if:
-              - condition: template
-                value_template: >-
-                  {{ states('sensor.yourcar_charging') != 'charging' and
-                     states('sensor.yourcar_battery_level')|int(100) <
-                     states('input_number.tesla_charge_limit_target')|int(90) }}
+              - condition: state
+                entity_id: sensor.yourcar_charging   # EDIT
+                state: stopped
+              - condition: numeric_state
+                entity_id: sensor.yourcar_battery_level   # EDIT
+                below: input_number.tesla_charge_limit_target
             then:
+              - delay:
+                  seconds: 15
+              - condition: state
+                entity_id: sensor.yourcar_charging   # EDIT
+                state: stopped
               - action: switch.turn_on
                 target:
                   entity_id: switch.yourcar_charge   # EDIT: your car's charge switch
                 continue_on_error: true
 
       # ==========================================================
-      # MID-WINDOW RE-EVALUATIONS (12:00, 13:00)
+      # MID-WINDOW RE-EVALUATIONS (on the hour inside the window)
       # Solar and house load move; recompute the amps. Only touches
       # the current, and only if the car is actually charging.
       # ==========================================================
       - conditions:
           - condition: trigger
             id:
-              - amp_eval_12
-              - amp_eval_13
+              - amp_eval_1
+              - amp_eval_2
           - condition: state
             entity_id: device_tracker.yourcar_location   # EDIT
             state: home
@@ -272,7 +303,7 @@ actions:
                 {% set maxamps = states('input_number.tesla_freewindow_max_amps')|int(32) %}
                 {% set maxcap = state_attr('number.yourcar_charge_current', 'max')|int(32) %}
                 {% if maxcap < 5 %}{% set maxcap = 32 %}{% endif %}
-                {% set hours = [((today_at('14:00') - now()).total_seconds()/3600), 0.25]|max %}
+                {% set hours = [((today_at('15:00') - now()).total_seconds()/3600), 0.25]|max %}   {# EDIT: free window end #}
                 {% set batt_kw = [batt_max_kw, grid_cap - house - (maxamps*kw_per_amp) + pv]|min %}
                 {% set projected = batt + batt_kw*hours*0.95/batt_kwh*100 %}
                 {% if projected >= target %}{{ [maxamps, maxcap]|min }}
@@ -297,11 +328,15 @@ actions:
                 continue_on_error: true
 
       # ==========================================================
-      # FREE WINDOW END (14:00) - stop, or hand over to trickle.
+      # FREE WINDOW END - stop, or hand over to trickle.
       # If the car still wants charge AND the house battery clears
       # both reserve layers (helper floor + computed overnight
       # backstop), drop to trickle amps instead of stopping - the
-      # 14:00-16:00 shoulder gap is cheap house-battery time.
+      # shoulder gap before the 16:00 peak (15:00-16:00, or
+      # 14:00-16:00 on older plans) is cheap house-battery time.
+      # This handover deliberately uses the standard floor, not the
+      # morning one: the battery still has to carry the 18:00-21:00
+      # Zero-Grid credit window.
       # ==========================================================
       - conditions:
           - condition: trigger
@@ -377,11 +412,14 @@ actions:
       # TRICKLE EVALUATION (23:00, or plug-in outside free/peak)
       # Gentle top-up from the house battery, quadruple-guarded:
       # car below target, battery above the helper floor, battery
-      # above the computed overnight backstop, not already charging.
+      # above the computed overnight backstop, car stopped.
       # The backstop = 10% + your overnight house consumption as a
       # percentage of the battery - i.e. "even after trickling, the
-      # battery must still carry the house to the 11:00 free window
-      # with 10% to spare".
+      # battery must still carry the house to the free window with
+      # 10% to spare". From 06:00 until just before the free window
+      # the lower tesla_morning_batt_floor applies and the backstop
+      # is skipped - there's no night left to carry, and the free
+      # window is about to refill the battery from the grid.
       # ==========================================================
       - conditions:
           - condition: or
@@ -396,9 +434,9 @@ actions:
                     conditions:
                       - condition: time
                         after: "23:00:00"
-                        before: "10:45:00"
+                        before: "11:45:00"   # EDIT: 15 min before free window start
                       - condition: time
-                        after: "14:00:00"
+                        after: "15:00:00"   # EDIT: free window end
                         before: "16:00:00"
         sequence:
           # 23:00 doubles as the override's expiry.
@@ -422,16 +460,35 @@ actions:
               - condition: numeric_state
                 entity_id: sensor.yourcar_battery_level   # EDIT
                 below: input_number.tesla_trickle_soc_target
-              - condition: numeric_state
-                entity_id: sensor.goodwe_battery_state_of_charge   # EDIT
-                above: input_number.tesla_trickle_batt_floor
-              - condition: template
-                value_template: >-
-                  {{ states('sensor.goodwe_battery_state_of_charge')|float(0) >
-                     (10 + states('input_number.tesla_overnight_house_kwh')|float(16)/48*100) }}
-                  {# EDIT: /48 = your battery's usable kWh, as above #}
-              - condition: template
-                value_template: "{{ states('sensor.yourcar_charging') != 'charging' }}"
+              # Helper floor: the standard floor, or the lower morning
+              # floor between 06:00 and the free window.
+              - condition: or
+                conditions:
+                  - condition: numeric_state
+                    entity_id: sensor.goodwe_battery_state_of_charge   # EDIT
+                    above: input_number.tesla_trickle_batt_floor
+                  - condition: and
+                    conditions:
+                      - condition: time
+                        after: "06:00:00"
+                        before: "11:45:00"   # EDIT: 15 min before free window start
+                      - condition: numeric_state
+                        entity_id: sensor.goodwe_battery_state_of_charge   # EDIT
+                        above: input_number.tesla_morning_batt_floor
+              # Overnight backstop - skipped in the morning window.
+              - condition: or
+                conditions:
+                  - condition: time
+                    after: "06:00:00"
+                    before: "11:45:00"   # EDIT: 15 min before free window start
+                  - condition: template
+                    value_template: >-
+                      {{ states('sensor.goodwe_battery_state_of_charge')|float(0) >
+                         (10 + states('input_number.tesla_overnight_house_kwh')|float(16)/48*100) }}
+                      {# EDIT: /48 = your battery's usable kWh, as above #}
+              - condition: state
+                entity_id: sensor.yourcar_charging   # EDIT
+                state: stopped
             then:
               - if:
                   - condition: template
@@ -449,6 +506,12 @@ actions:
                         {{ [states('input_number.tesla_trickle_amps')|int(8),
                             state_attr('number.yourcar_charge_current', 'max')|int(32)]|min }}
                     continue_on_error: true
+              # Same settle-and-recheck as the free-window start.
+              - delay:
+                  seconds: 15
+              - condition: state
+                entity_id: sensor.yourcar_charging   # EDIT
+                state: stopped
               - action: switch.turn_on
                 target:
                   entity_id: switch.yourcar_charge   # EDIT
@@ -459,7 +522,8 @@ actions:
       # Crossing trigger - stops the trickle the moment it happens,
       # not at the next scheduled evaluation. Only acts inside the
       # trickle windows so it can't interfere with free-window
-      # charging (which draws grid, not battery).
+      # charging (which draws grid, not battery). The morning has
+      # its own, lower floor - see the next branch.
       # ==========================================================
       - conditions:
           - condition: trigger
@@ -470,9 +534,9 @@ actions:
             conditions:
               - condition: time
                 after: "23:00:00"
-                before: "10:45:00"
+                before: "06:00:00"
               - condition: time
-                after: "14:00:00"
+                after: "15:00:00"   # EDIT: free window end
                 before: "16:00:00"
         sequence:
           - action: switch.turn_off
@@ -486,6 +550,31 @@ actions:
                 House battery hit its floor
                 ({{ states('sensor.goodwe_battery_state_of_charge') }}%) -
                 trickle stopped, overnight reserve protected.
+
+      # ==========================================================
+      # LIVE CUTOFF: house battery hit the MORNING floor.
+      # Same idea as above, for the 06:00-to-free-window stretch.
+      # ==========================================================
+      - conditions:
+          - condition: trigger
+            id: batt_floor_morning
+          - condition: template
+            value_template: "{{ states('sensor.yourcar_charging') == 'charging' }}"
+          - condition: time
+            after: "06:00:00"
+            before: "11:45:00"   # EDIT: 15 min before free window start
+        sequence:
+          - action: switch.turn_off
+            target:
+              entity_id: switch.yourcar_charge   # EDIT
+            continue_on_error: true
+          - action: notify.mobile_app_your_device_name   # EDIT: your notify service
+            data:
+              title: Tesla Charging Stopped (Morning Floor)
+              message: >-
+                House battery hit the morning floor
+                ({{ states('sensor.goodwe_battery_state_of_charge') }}%) -
+                charging stopped. The free window will refill it.
 
       # ==========================================================
       # LIVE CUTOFF: car reached the trickle target.
@@ -502,9 +591,9 @@ actions:
             conditions:
               - condition: time
                 after: "23:00:00"
-                before: "10:45:00"
+                before: "11:45:00"   # EDIT: 15 min before free window start
               - condition: time
-                after: "14:00:00"
+                after: "15:00:00"   # EDIT: free window end
                 before: "16:00:00"
           - condition: template
             value_template: >-
