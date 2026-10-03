@@ -43,7 +43,7 @@ actions:
         A vehicle just plugged into the Wall Connector but it isn't your
         Tesla ({{ states('device_tracker.yourcar_location') }}, cable
         {{ states('binary_sensor.yourcar_charge_cable') }}). Free power
-        11am-2pm; other times it draws battery/grid. HA can't block the
+        in the free window; other times it draws battery/grid. HA can't block the
         TWC - check cameras if unexpected.
       data:
         push:

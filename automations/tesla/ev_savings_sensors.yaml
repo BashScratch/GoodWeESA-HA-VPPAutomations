@@ -25,7 +25,7 @@
 #   input_number.ice_fuel_consumption        - comparison petrol car L/100km (5.0)
 #   input_number.ulp_price_per_litre         - current unleaded price (1.85)
 #   input_number.globird_import_shoulder     - shoulder rate (from
-#     sensors/globird_cost_tracking.yaml's helper set; 0.385 fallback)
+#     sensors/globird_cost_tracking.yaml's helper set; 0.3685 fallback)
 #
 # WHY SHOULDER RATE: the free-window kWh would otherwise have been charged
 # at shoulder (nobody deliberately charges at peak). Valuing them at peak
@@ -55,7 +55,7 @@ template:
         device_class: monetary
         state: >
           {{ (states('sensor.ev_charge_daily') | float(0) *
-              states('input_number.globird_import_shoulder') | float(0.385)) | round(2) }}
+              states('input_number.globird_import_shoulder') | float(0.3685)) | round(2) }}
 
       - name: "EV Charging Savings (Monthly)"
         unique_id: ev_charging_savings_monthly
@@ -63,7 +63,7 @@ template:
         device_class: monetary
         state: >
           {{ (states('sensor.ev_charge_monthly') | float(0) *
-              states('input_number.globird_import_shoulder') | float(0.385)) | round(2) }}
+              states('input_number.globird_import_shoulder') | float(0.3685)) | round(2) }}
 
       # km driven this week x what a petrol car would have burnt to do
       # them. Not a savings figure (the EV kWh weren't free unless you

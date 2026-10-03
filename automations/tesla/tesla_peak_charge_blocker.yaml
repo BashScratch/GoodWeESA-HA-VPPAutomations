@@ -79,7 +79,7 @@ actions:
               message: >-
                 Tesla started charging during the credit window (6-9pm) -
                 charging stopped to protect the $1 credit and avoid
-                {{ '%g' | format(states('input_number.globird_import_peak')|float(0.506)*100) }}c/kWh
+                {{ '%g' | format(states('input_number.globird_import_peak')|float(0.495)*100) }}c/kWh
                 import. Tap Charge Anyway if this is deliberate.
               data:
                 actions:
@@ -112,7 +112,7 @@ actions:
               message: >-
                 Heads up: the car is charging during the peak-rate window
                 (grid import costs
-                {{ '%g' | format(states('input_number.globird_import_peak')|float(0.506)*100) }}c/kWh
+                {{ '%g' | format(states('input_number.globird_import_peak')|float(0.495)*100) }}c/kWh
                 and battery drain cuts into the evening reserve). Not
                 stopped - the hard block only covers 6-9pm. Stop it from
                 the app if unintended.

@@ -24,7 +24,7 @@ To navigate these hardware quirks we've mapped out four approaches. The first is
 
 ## Why use HA at all?
 
-A fair question. GoodWe is actively shipping firmware and app updates - the 13.5kW combined AC+DC charging capability has been rolling out via firmware from around April 2026, although availability is uneven (some users have it on the standard OTA, others have had to ask Level 2 support for a standalone firmware push, and some recent firmware releases have shipped without it - it's a mishmash). Their L2 support is responsive when contacted directly. They've also been gradually migrating consumer features from the older **SolarGo** app into the newer **SEMS+** app, so we recommend SEMS+ for new setups (SolarGo still works for everything covered in this guide if you're already comfortable there). A lot of what HA adds here (precise grid-export control during peak, conditional SOC guards, profit notifications keyed to your tariff structure) is reasonably likely to land in SEMS+ itself eventually. That's already happening in pieces: the TOU dialog's per-slot Discharge SOC limit went live for most installs in mid-2026, and GoodWe has announced a full **AI mode for SEMS+** ("AI-Optimized. Every kWh, Every Moment") - PV forecasting from weather data and history, load forecasting learned from your household's habits, and hourly rolling re-optimisation of the charge/discharge strategy against tariff curves, with its own revenue tracking. As of August 2026 that's brochure material, not a released feature, and the brochure is aimed squarely at dynamic-tariff plans - how much it offers a fixed-window plan like Zero Hero remains to be seen. When it ships, we'll test it against the methods here and report back honestly. This repo is filling a gap that exists today, not staking out a permanent moat. If GoodWe ships those features in the app, by all means use them - the goal is the energy-bill outcome plus the niceties (notifications, profit reporting, dashboards), not the HA setup as an end in itself.
+A fair question. GoodWe is actively shipping firmware and app updates - the 13.5kW combined AC+DC charging capability has been rolling out via firmware from around April 2026, although availability is uneven (some users have it on the standard OTA, others have had to ask Level 2 support for a standalone firmware push, and some recent firmware releases have shipped without it - it's a mishmash). Their L2 support is responsive when contacted directly. They've also been gradually migrating consumer features from the older **SolarGo** app into the newer **SEMS+** app, so we recommend SEMS+ for new setups (SolarGo still works for everything covered in this guide if you're already comfortable there). A lot of what HA adds here (precise grid-export control during peak, conditional SOC guards, profit notifications keyed to your tariff structure) is reasonably likely to land in SEMS+ itself eventually. That's already happening in pieces: the TOU dialog's per-slot Discharge SOC limit went live for most installs in mid-2026, and GoodWe's **AI mode for SEMS+** ("AI-Optimized. Every kWh, Every Moment") has started shipping. SEMS+ v2.8.0 (August 2026) launched it as Cloud EMS for EU ESA installs, and Australian accounts are now seeing an **intelligent mode** that builds scenes and changes inverter settings for you - PV forecasting from weather data and history, load forecasting learned from your household's habits, and re-optimisation of the charge/discharge strategy against tariff curves. We haven't tested it against the methods here yet, and the marketing is aimed squarely at dynamic-tariff plans, so how much it offers a fixed-window plan like Zero Hero remains to be seen. One caution in the meantime: because it changes inverter settings on its own, don't run it alongside any method in this repo - it could rewrite the TOU schedule Methods 1 and 4 depend on, or fight HA's writes, much like Method 2's operation-mode changes do. We'll test it and report back honestly. This repo is filling a gap that exists today, not staking out a permanent moat. If GoodWe ships those features in the app, by all means use them - the goal is the energy-bill outcome plus the niceties (notifications, profit reporting, dashboards), not the HA setup as an end in itself.
 
 Until then, the smart layer this repo provides (read live SOC, decide whether to arm peak export, set a precise grid-export wattage, calculate nightly profit, fire notifications you can act on) adds to what SolarGo and SEMS+ already do. That's the case for HA in this specific project.
 
@@ -64,6 +64,10 @@ Full explanation of each, and why Method 4 is the rounded recommendation on bala
 │   ├── tesla/                                <- optional Tesla charge orchestration (Teslemetry)
 │   └── advanced/                             <- optional advanced layer
 │       ├── README.md
+│       ├── battery_soc_cap_manager.yaml      <- SOC cap + fortnightly calibration charge
+│       ├── battery_set_soc_cap_script.yaml   <- its verify-the-write script
+│       ├── grid_outage_response.yaml         <- load shedding when the grid drops
+│       ├── grid_voltage_sag_alert.yaml
 │       ├── grid_voltage_soak.yaml
 │       ├── inverter_thermal_management.yaml
 │       └── lfp_calibration_charge.yaml
@@ -78,7 +82,7 @@ Full explanation of each, and why Method 4 is the rounded recommendation on bala
 ```
 
 ### General automations (only if you're on Methods 2-4 - Method 1 is app-only and has no HA automations)
-- **[EV Free Window Reminder](./automations/ev_free_window_reminder.yaml)** - pings you at 10:45 if the EV isn't plugged in yet, so you don't miss the free window.
+- **[EV Free Window Reminder](./automations/ev_free_window_reminder.yaml)** - pings you 15 minutes before the free window opens if the EV isn't plugged in yet, so you don't miss it.
 - **[GoodWe Time Sync](./automations/goodwe_time_sync.yaml)** - syncs the inverter clock to HA once a day. If the inverter's clock drifts away from HA's (and the rest of the world's), TOU schedules start firing at the wrong times and HA's triggers stop matching the inverter's behaviour. Drift is the quiet killer of TOU schedules.
 - **[GoodWe Battery Fault Alert](./automations/goodwe_battery_fault_alert.yaml)** - fires a critical notification if the BMS reports an error or warning. Your battery failing quietly is not the vibe.
 
@@ -86,7 +90,7 @@ Full explanation of each, and why Method 4 is the rounded recommendation on bala
 - **[GloBird Zero Hero strategy + automations](./automations/globird/)** - the four methods (one app-only, three HA-driven) and when to use which.
 
 ### Optional advanced automations
-- **[Advanced automations](./automations/advanced/)** - protective and quality-of-life additions (grid-voltage soaking, inverter thermal management, LFP calibration tracker, polarity-fix template sensor). Optional layer on top of any of the four methods.
+- **[Advanced automations](./automations/advanced/)** - protective and quality-of-life additions (battery SOC cap with fortnightly calibration charge, grid-outage load shedding, grid-voltage soaking and sag alerts, inverter thermal management, LFP calibration tracker, polarity-fix template sensor). Optional layer on top of any of the four methods.
 - **[Tesla charge orchestration](./automations/tesla/)** - for households charging a Tesla at home, via the Teslemetry integration. Aims the car at the free window with dynamic amps (throttled so the house battery still hits its own charge target), blocks charging during peak with a one-tap override, trickles from the house battery overnight behind two reserve floors, and tracks the savings in dollars and petrol-equivalent terms. If you install this, its SOC-aware reminder replaces the generic EV reminder above.
 
 ### Dashboard sensors
@@ -148,7 +152,7 @@ If you're not sure whether something fits, open an issue first and we can figure
 
 ## If this saved you time (optional)
 
-If this guide helped and you're not on GloBird yet, you can sign up via my referral link and we both get $50 credit: <https://quote.globirdenergy.com.au/quote?pcode=refer&ref=NCTBIC>. Completely optional - the guide and all the YAML in this repo work exactly the same whether you use the link or not. No pressure either way; I'm working on these automations for myself anyway, and I kept seeing the same questions come up in the GoodWe ESA group, so I figured I'd write the lot up in one place.
+If this guide helped and you're not on GloBird yet, you can sign up via my referral link and we both get $50 credit: <https://quote.globirdenergy.com.au/quote?pcode=refer&ref=H053S1>. Completely optional - the guide and all the YAML in this repo work exactly the same whether you use the link or not. No pressure either way; I'm working on these automations for myself anyway, and I kept seeing the same questions come up in the GoodWe ESA group, so I figured I'd write the lot up in one place.
 
 ---
 

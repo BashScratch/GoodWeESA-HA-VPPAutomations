@@ -2,11 +2,17 @@ alias: "GoodWe ESA: LFP SOC calibration tracker"
 description: >
   LFP cells have a famously flat voltage curve, which makes voltage-based SOC
   estimation drift over weeks of partial cycling. Periodic full charges reset
-  the BMS coulomb counter and keep your SOC reading honest. GoodWe's BMS
-  recommends a full charge roughly every 14 days; if you're on Zero Hero this
-  happens daily anyway, but if you're on a different plan or you've been away
-  with the system on hold, a tracker like this catches drift before the SOC
-  reading becomes unreliable.
+  the BMS coulomb counter and keep your SOC reading honest. GoodWe doesn't
+  publish a calibration interval for the ESA (the user manual we checked has
+  none), so 14 days is a conservative house rule rather than a GoodWe figure.
+  If your free-window charge reaches 100% most days this barely matters, but
+  if you cap the daily charge below 100%, you're on a different plan, or
+  you've been away with the system on hold, a tracker like this catches
+  drift before the SOC reading becomes unreliable.
+
+  Want it to fix the drift instead of just telling you? See
+  battery_soc_cap_manager.yaml, which forces the calibration charge itself
+  inside the free window (experimental HACS integration required).
 
   This automation has two parts:
     1. When SOC hits 100%, record the timestamp.

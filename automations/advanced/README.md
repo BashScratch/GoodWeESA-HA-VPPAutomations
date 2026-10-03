@@ -6,11 +6,27 @@ Each YAML file in this folder is independent. You can add any subset, in any ord
 
 ## What's here
 
+### [`battery_soc_cap_manager.yaml`](./battery_soc_cap_manager.yaml) + [`battery_set_soc_cap_script.yaml`](./battery_set_soc_cap_script.yaml)
+
+Owns the inverter's battery SOC upper limit (the SEMS+ Battery Protection value). Caps the free-window charge at a daily ceiling (default 90%), lifts the cap back to 100% after the window so free afternoon solar tops the battery off instead of being exported for $0, and forces a full calibration charge inside the free window if the pack hasn't reached 100% in 14 days. Writes go through a companion script that re-reads the register to prove the inverter took the value - the GoodWe integration caches setting registers and reports writes optimistically, so a plain read-back can lie.
+
+**When to use:** you'd rather not push the pack to 100% every day, but still want it to calibrate regularly and still want the free solar. Runs on the reference install.
+
+**Requires:** the experimental HACS integration (the SOC upper limit entity only exists there), five helpers listed in the header, and the script installed first.
+
+### [`grid_outage_response.yaml`](./grid_outage_response.yaml)
+
+Load shedding when the grid drops. Watches the native GoodWe Grid Mode sensor; on a real outage (not an integration dropout) it sends a critical notification, stops EV charging, and switches off any big optional load you nominate, stretching the battery's backup runtime. All-clear notification when the grid returns. Runs on the reference install.
+
+**When to use:** you have backup wired and anything that could drain it fast during an outage - an EV on the charger, a hot-water booster element, a pool pump.
+
+**Requires:** nothing beyond the native GoodWe integration, plus the switch entities for whatever you want shed.
+
 ### [`grid_voltage_soak.yaml`](./grid_voltage_soak.yaml)
 
 Watches grid voltage. If it climbs above your trigger threshold (default 252V - AS/NZS 4777.2 sets 253V as the steady-state maximum, with actual inverter trip thresholds at a 10-minute sustained-average limit around 255-258V depending on DNSP configuration, plus instantaneous trips around 260V (1-2 second) and 265V (0.2 second)), turns on a configurable dump load (heat pump hot water, EV charger, pool pump, anything resistive) to soak the surplus and pull voltage back down before it climbs further. Releases when voltage falls back to a hysteresis threshold (default 247V).
 
-**When to use:** you're in a high-PV-density street where grid voltage gets pushed up on hot afternoons, and you've seen your inverter curtail or trip off as a result.
+**When to use:** you're in a high-PV-density street where grid voltage gets pushed up on hot afternoons, and you've seen your inverter curtail or trip off as a result. The reference install doesn't run this one any more - its local network runs low rather than high, and the inverter's own response has handled everything that's come up - so check your own voltage history (see the statistics sensors below) before assuming you need it.
 
 **Requires:** a switch entity that controls the dump load (smart plug, ESPHome relay, Tuya/Zigbee switch, whatever).
 
@@ -18,15 +34,15 @@ Watches grid voltage. If it climbs above your trigger threshold (default 252V - 
 
 Watches the inverter's internal temperature sensor. If it climbs above your trigger threshold (default 55°C), turns on a configurable cooling fan via a smart plug. Releases at hysteresis threshold (default 48°C).
 
-**When to use:** your inverter is in a thermally challenging location (north-facing wall, hot garage, small enclosure) and you've seen it thermally derate during sustained high-export days.
+**When to use:** your inverter is in a thermally challenging location (north-facing wall, hot garage, small enclosure) and you've seen it thermally derate during sustained high-export days. Note this one hasn't been run on the reference install - it never needed a fan - so treat it as untested and watch the first few traces closely.
 
 **Requires:** a switch entity for an external fan, plus the inverter's internal temperature sensor (`sensor.goodwe_inverter_temperature` or your equivalent).
 
 ### [`lfp_calibration_charge.yaml`](./lfp_calibration_charge.yaml)
 
-Tracks how long it's been since the battery last hit 100% SOC. If 14 days pass without a full charge, fires a notification suggesting a manual top-up. LFP cells need periodic full charges to keep the BMS coulomb counter calibrated; without them, your SOC reading can drift by several percent.
+Tracks how long it's been since the battery last hit 100% SOC. If 14 days pass without a full charge, fires a notification suggesting a manual top-up. LFP cells need periodic full charges to keep the BMS coulomb counter calibrated; without them, your SOC reading can drift by several percent. (The 14 days is our conservative house rule - GoodWe doesn't publish an interval for the ESA.)
 
-**When to use:** you're not on Zero Hero (where daily 100% charges happen anyway), or you've been away with the system on hold and want to know when it's time to recalibrate.
+**When to use:** you want a reminder only, without the HACS dependency of `battery_soc_cap_manager.yaml` above - for example you're not on Zero Hero, or you've been away with the system on hold and want to know when it's time to recalibrate.
 
 **Requires:** an `input_datetime.last_full_charge` helper and an `input_number.lfp_calibration_days` helper (default 14).
 

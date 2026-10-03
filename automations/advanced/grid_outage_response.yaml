@@ -1,0 +1,88 @@
+alias: "Safety: Grid Outage Response"
+description: >
+  Grid-loss load shedding. When the GoodWe meter reports it has left the grid
+  (and it isn't just the integration dropping out to unavailable): critical
+  notification, stop EV charging, and switch off any big optional load you
+  nominate (a hot-water booster element, a pool pump) - stretching the
+  battery's backup runtime. All-clear notification when the grid returns.
+  Every shedding step uses continue_on_error so one failure never blocks the
+  rest.
+mode: queued
+max: 3
+
+# =============================================================================
+# REQUIRES: the native GoodWe integration's Grid Mode sensor. Its states are
+# "Connected to grid", "Not connected to grid" and "Fault".
+#
+# The shedding steps are examples - delete any you don't have, add any you
+# do. Turning off a switch that's already off is harmless. Nothing here
+# turns loads back ON when the grid returns: restart them yourself once you
+# know the outage is really over.
+# =============================================================================
+
+triggers:
+  - trigger: state
+    entity_id: sensor.goodwe_grid_mode   # EDIT: your GoodWe Grid Mode sensor
+    from: "Connected to grid"
+    for:
+      seconds: 10
+    id: grid_down
+  - trigger: state
+    entity_id: sensor.goodwe_grid_mode   # EDIT: same
+    to: "Connected to grid"
+    for:
+      seconds: 30
+    id: grid_back
+
+conditions: []
+
+actions:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: grid_down
+          # An integration dropout (Wi-Fi module wedged, HA restart) also
+          # leaves "Connected to grid" - that's not an outage.
+          - condition: template
+            value_template: "{{ trigger.to_state.state not in ['unavailable', 'unknown'] }}"
+        sequence:
+          - action: notify.mobile_app_your_device_name   # EDIT: your notify service
+            data:
+              title: GRID OUTAGE
+              message: >-
+                Grid down - house running on battery
+                ({{ states('sensor.goodwe_battery_state_of_charge') }}%).
+                Shedding EV charging and optional loads to stretch the backup.
+              data:
+                push:
+                  interruption-level: critical
+                  sound:
+                    name: default
+                    critical: 1
+                    volume: 1
+            continue_on_error: true
+          - action: switch.turn_off
+            target:
+              entity_id: switch.yourcar_charge   # EDIT: your EV charge switch (or delete this step)
+            continue_on_error: true
+          - action: switch.turn_off
+            target:
+              entity_id: switch.hot_water_booster   # EDIT: an optional big load to shed (or delete this step)
+            continue_on_error: true
+
+      - conditions:
+          - condition: trigger
+            id: grid_back
+          # Only announce a real return - not recovery from an integration
+          # dropout, and not a restart that lands on "Connected" twice.
+          - condition: template
+            value_template: >-
+              {{ trigger.from_state.state not in ['unavailable', 'unknown', 'Connected to grid'] }}
+        sequence:
+          - action: notify.mobile_app_your_device_name   # EDIT: your notify service
+            data:
+              title: Grid restored
+              message: >-
+                Back on grid. Battery at
+                {{ states('sensor.goodwe_battery_state_of_charge') }}%.
+                Restart EV charging and any shed loads manually if needed.

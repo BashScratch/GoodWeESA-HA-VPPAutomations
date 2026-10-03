@@ -1,6 +1,6 @@
 alias: "Tesla: Window Summary"
 description: >
-  14:05 daily: reports the free-window result - car SOC, kWh added today
+  5 min after the free window closes: reports the free-window result - car SOC, kWh added today
   (from the ev_charge_daily utility meter in ev_savings_sensors.yaml),
   approximate km gained, and what the charge was worth against the
   shoulder import rate. Silently no-ops until the meter exists, or on
@@ -17,7 +17,7 @@ mode: single
 
 triggers:
   - trigger: time
-    at: "14:05:00"   # EDIT: 5 min after your free window closes
+    at: "15:05:00"   # EDIT: 5 min after your free window closes (14:05 on older plans)
     id: summary
 
 conditions:
@@ -41,7 +41,7 @@ actions:
       # counterfactual).
       dollars: >-
         {{ (states('sensor.ev_charge_daily')|float(0) *
-            states('input_number.globird_import_shoulder')|float(0.385))|round(2) }}
+            states('input_number.globird_import_shoulder')|float(0.3685))|round(2) }}
   - action: notify.mobile_app_your_device_name   # EDIT: your notify service
     data:
       title: "Tesla Window Summary"

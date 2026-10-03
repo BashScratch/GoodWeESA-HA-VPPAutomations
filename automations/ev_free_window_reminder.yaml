@@ -2,9 +2,12 @@ alias: "Energy: EV Free Window Reminder"
 description: Reminds you to plug in your EV before the free charging window opens.
 mode: single
 
+# EDIT: the free-window times in this file. Current Zero Hero offer: 12:00-15:00.
+# Older plans: 11:00-14:00 (reminder 10:45, window-open 11:00, buffer 10:59,
+# end 14:00) - check the Offpeak line on your bill.
 triggers:
   - trigger: time
-    at: "10:45:00"
+    at: "11:45:00"   # EDIT: 15 min before your free window opens
     id: pre_window_reminder
   - trigger: state
     entity_id: binary_sensor.ev_charger_vehicle_connected # EDIT: your EV charger connected binary sensor
@@ -17,7 +20,7 @@ triggers:
   # This third trigger fires at the moment the free window opens and checks
   # whether the car is plugged in.
   - trigger: time
-    at: "11:00:00"
+    at: "12:00:00"   # EDIT: your free window start
     id: window_opens_car_present
 
 conditions: []
@@ -36,7 +39,7 @@ actions:
               title: Free Window in 15min
               message: >-
                 EV is not plugged in. Connect now to charge for free
-                11am-2pm.
+                in the free window.
               data:
                 push:
                   sound:
@@ -44,12 +47,12 @@ actions:
       - conditions:
           - condition: trigger
             id: car_connected_during_window
-          # 11:00:00 minus a 1-minute buffer to catch plug-ins right at the boundary.
-          # Without the buffer, plugging in at 11:00:30 would be ignored if HA's
-          # clock has any drift relative to the EV charger's.
+          # Window start minus a 1-minute buffer to catch plug-ins right at the
+          # boundary. Without the buffer, plugging in at 12:00:30 would be ignored
+          # if HA's clock has any drift relative to the EV charger's.
           - condition: time
-            after: "10:59:00"
-            before: "14:00:00"
+            after: "11:59:00"   # EDIT: 1 min before your free window start
+            before: "15:00:00"   # EDIT: your free window end
         sequence:
           - action: notify.mobile_app_your_device_name # EDIT: your notify service
             data:
@@ -70,4 +73,4 @@ actions:
               message: >-
                 Free window just started and your EV is connected.
                 Open your vehicle app and start the charge now to
-                use the full 11am-2pm window.
+                use the full free window.

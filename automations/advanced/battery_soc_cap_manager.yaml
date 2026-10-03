@@ -1,0 +1,214 @@
+alias: "GoodWe ESA: Battery SOC Cap & Fortnightly Full Charge"
+description: >
+  Owns the inverter's battery SOC upper limit (the SEMS+ "Battery Protection"
+  SOC value). Three jobs:
+
+  1. Five minutes before the free window opens, drop the cap to your daily
+  ceiling (default 90%) so the free window never buys grid import to push
+  the pack to the very top every day.
+
+  2. Five minutes after the free window closes, lift the cap back to 100% so
+  free afternoon solar fills the last few percent instead of being exported
+  for $0 (Zero Hero pays nothing for feed-in before 16:00). Nothing charges
+  the battery from the grid outside the free window, so leaving the cap at
+  100% overnight is safe - the next morning's run resets it.
+
+  3. LFP cells only balance, and the BMS only re-references its SOC estimate,
+  at the top of the charge curve. If the pack hasn't actually reached 100%
+  within your interval (default 14 days), job 1 holds the cap at 100% through
+  the free window instead of dropping it - a forced calibration charge. Any
+  day the pack reaches 100% counts, including an ordinary sunny afternoon
+  after job 2's lift, so the forced run is a weather fallback, not the normal
+  path.
+
+  Every write goes through script.battery_set_soc_cap (see
+  battery_set_soc_cap_script.yaml), which verifies the inverter actually took
+  the value. Never touches the export limit, so it runs alongside any of the
+  four methods.
+mode: queued
+max: 5
+
+# =============================================================================
+# REQUIRES the experimental HACS integration (mletenay) - the SOC upper limit
+# number entity only exists there. And the companion script
+# battery_set_soc_cap_script.yaml, installed first.
+#
+# REQUIRED HELPERS (Settings > Devices & services > Helpers):
+#   input_boolean.batt_soc_management_enabled  - master switch (create OFF)
+#   input_number.batt_soc_cap_daily            - daily free-window ceiling, %
+#                                                 Min 50, max 100, step 5. Start at 90.
+#   input_number.batt_full_charge_interval_days - days between forced full charges
+#                                                 Min 7, max 60, step 1. Start at 14.
+#   input_datetime.batt_last_full_charge       - date the pack last reached 100%
+#                                                 (date only). Set it to today when
+#                                                 you create it.
+#   input_boolean.batt_full_charge_today       - internal flag for a forced run
+#
+# WHY 14 DAYS: GoodWe doesn't publish a calibration interval for the ESA - the
+# ESA user manual we checked has none. Fortnightly is a deliberately
+# conservative house rule, and on Zero Hero it costs nothing because the
+# forced run happens inside the free window.
+#
+# TIMES default to the current Zero Hero free window (12:00-15:00). On an
+# older 11:00-14:00 plan: 10:55 for window_cap and 14:05 for solar_lift.
+# If you run the Tesla add-on, these slot in around the orchestrator's
+# window-end handover - the car keeps priority in the free window, so a
+# forced run can occasionally miss and simply retries the next day.
+# =============================================================================
+
+variables:
+  last_ts: "{{ state_attr('input_datetime.batt_last_full_charge', 'timestamp') | float(0) }}"
+  days_since: >-
+    {% set t = last_ts | float(0) %}
+    {{ ((now().timestamp() - t) / 86400) | round(1) if t > 0 else 999 }}
+  due: >-
+    {{ (days_since | float(999)) >=
+       (states('input_number.batt_full_charge_interval_days') | float(14)) }}
+
+triggers:
+  - trigger: time
+    at: "11:55:00"   # EDIT: 5 min before your free window opens
+    id: window_cap
+  - trigger: time
+    at: "15:05:00"   # EDIT: 5 min after your free window closes (after the TOU slot's cutoff)
+    id: solar_lift
+  # SOC is reported as an integer on most installs, so this fires on the
+  # crossing to 100.
+  - trigger: numeric_state
+    entity_id: sensor.goodwe_battery_state_of_charge   # EDIT: your SOC sensor
+    above: 99
+    id: full_reached
+  # Before Method 4 arms peak export at 17:56.
+  - trigger: time
+    at: "17:30:00"
+    id: due_check
+  # Re-applies the right cap for the current time, so a restart mid-window
+  # can't strand it.
+  - trigger: homeassistant
+    event: start
+    id: ha_start
+
+conditions:
+  - condition: state
+    entity_id: input_boolean.batt_soc_management_enabled
+    state: "on"
+
+actions:
+  - choose:
+
+      # ==========================================================
+      # FREE WINDOW CAP: daily ceiling normally, 100% when due.
+      # ==========================================================
+      - conditions:
+          - condition: or
+            conditions:
+              - condition: trigger
+                id: window_cap
+              - condition: and
+                conditions:
+                  - condition: trigger
+                    id: ha_start
+                  - condition: time
+                    after: "11:55:00"   # EDIT: same as window_cap
+                    before: "15:05:00"   # EDIT: same as solar_lift
+        sequence:
+          - if:
+              - condition: template
+                value_template: "{{ due }}"
+            then:
+              - action: script.battery_set_soc_cap
+                data:
+                  cap: 100
+              - action: input_boolean.turn_on
+                target:
+                  entity_id: input_boolean.batt_full_charge_today
+              - action: notify.mobile_app_your_device_name   # EDIT: your notify service
+                data:
+                  title: "Battery: full-charge day"
+                  message: >-
+                    {{ days_since }} days since the pack last reached 100%.
+                    Cap held at 100% through the free window so the BMS can
+                    re-reference and the cells can balance.
+            else:
+              - action: script.battery_set_soc_cap
+                data:
+                  cap: "{{ states('input_number.batt_soc_cap_daily') | int(90) }}"
+
+      # ==========================================================
+      # AFTERNOON SOLAR LIFT back to 100%.
+      # ==========================================================
+      - conditions:
+          - condition: or
+            conditions:
+              - condition: trigger
+                id: solar_lift
+              - condition: trigger
+                id: ha_start
+        sequence:
+          # Refresh first - the integration caches setting registers, so
+          # the entity can be stale if the cap was changed in SEMS+.
+          - action: homeassistant.update_entity
+            target:
+              entity_id: number.goodwe_soc_upper_limit   # EDIT: your SOC upper limit entity (see the script file)
+          - condition: numeric_state
+            entity_id: number.goodwe_soc_upper_limit   # EDIT: same
+            below: 100
+          - action: script.battery_set_soc_cap
+            data:
+              cap: 100
+
+      # ==========================================================
+      # PACK REACHED 100% - stamp the calibration date.
+      # Notifies only when it ends a forced run; ordinary sunny
+      # days stamp the date silently.
+      # ==========================================================
+      - conditions:
+          - condition: trigger
+            id: full_reached
+        sequence:
+          - condition: template
+            value_template: >-
+              {{ states('input_datetime.batt_last_full_charge') != now().strftime('%Y-%m-%d') }}
+          - action: input_datetime.set_datetime
+            target:
+              entity_id: input_datetime.batt_last_full_charge
+            data:
+              date: "{{ now().strftime('%Y-%m-%d') }}"
+          - if:
+              - condition: state
+                entity_id: input_boolean.batt_full_charge_today
+                state: "on"
+            then:
+              - action: input_boolean.turn_off
+                target:
+                  entity_id: input_boolean.batt_full_charge_today
+              - action: notify.mobile_app_your_device_name   # EDIT: your notify service
+                data:
+                  title: Battery calibrated
+                  message: >-
+                    Pack reached 100% - BMS re-referenced and cells balanced.
+                    Next forced run due in
+                    {{ states('input_number.batt_full_charge_interval_days') | int(14) }} days.
+
+      # ==========================================================
+      # FORCED RUN MISSED - retry tomorrow.
+      # ==========================================================
+      - conditions:
+          - condition: trigger
+            id: due_check
+          - condition: state
+            entity_id: input_boolean.batt_full_charge_today
+            state: "on"
+        sequence:
+          - action: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.batt_full_charge_today
+          - action: notify.mobile_app_your_device_name   # EDIT: your notify service
+            data:
+              title: Battery full charge missed
+              message: >-
+                Held the cap at 100% today but the pack only reached
+                {{ states('sensor.goodwe_battery_state_of_charge') }}%.
+                Still {{ days_since }} days since the last full charge -
+                trying again tomorrow. Usually a low-solar day, or an EV
+                took the free window.

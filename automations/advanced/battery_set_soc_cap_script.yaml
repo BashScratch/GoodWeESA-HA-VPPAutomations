@@ -1,0 +1,66 @@
+# SCRIPT, not an automation: paste via Settings > Automations & Scenes >
+# Scripts > Create script > three-dot menu > Edit in YAML. Save it with the
+# script ID battery_set_soc_cap so battery_soc_cap_manager.yaml can call it.
+#
+# Writes the battery SOC upper limit and proves it landed. Two GoodWe
+# integration behaviours make a plain write untrustworthy:
+#   - it reads setting registers once at startup and then caches them, and
+#   - number.set_value updates the entity optimistically.
+# So reading the entity straight back only echoes what HA just asked for.
+# This script forces homeassistant.update_entity first, which does a fresh
+# Modbus read - on the reference install that's how a stale 100 was caught
+# while the inverter actually held 90. If the inverter didn't take the write
+# (most often SEMS+ re-pushing its own Battery Protection value), you get
+# told instead of the caller silently believing it worked.
+#
+# FINDING THE ENTITY: the SOC upper limit only exists in the experimental
+# HACS integration. Depending on version it may be named
+# number.goodwe_soc_upper_limit, or arrive unnamed as plain number.goodwe
+# (that's what the reference install has). Search Developer Tools > States
+# for an entity with min 0 / max 100 / unit % whose value matches the
+# Battery Protection SOC in SEMS+.
+
+alias: "Battery: Set SOC Upper Limit"
+mode: queued
+max: 3
+icon: mdi:battery-arrow-up
+fields:
+  cap:
+    name: Cap
+    description: SOC upper limit to write, in percent.
+    required: true
+    example: 90
+    selector:
+      number:
+        min: 50
+        max: 100
+        step: 5
+        unit_of_measurement: "%"
+sequence:
+  # continue_on_error so a rejected write still reaches the check below
+  # instead of aborting silently.
+  - action: number.set_value
+    target:
+      entity_id: number.goodwe_soc_upper_limit   # EDIT: your SOC upper limit entity
+    data:
+      value: "{{ cap | int }}"
+    continue_on_error: true
+  # Give the inverter time to commit the register before reading it back.
+  - delay:
+      seconds: 10
+  # Fresh read of the setting register - without this the read-back is
+  # just HA's cached optimistic value.
+  - action: homeassistant.update_entity
+    target:
+      entity_id: number.goodwe_soc_upper_limit   # EDIT: same
+  - if:
+      - condition: template
+        value_template: "{{ states('number.goodwe_soc_upper_limit') | int(-1) != cap | int }}"   # EDIT: same entity
+    then:
+      - action: notify.mobile_app_your_device_name   # EDIT: your notify service
+        data:
+          title: Battery SOC cap write failed
+          message: >-
+            Asked the inverter for {{ cap | int }}% but it reads back
+            {{ states('number.goodwe_soc_upper_limit') }}%. SEMS+ may have
+            re-pushed its own Battery Protection value - check the app.

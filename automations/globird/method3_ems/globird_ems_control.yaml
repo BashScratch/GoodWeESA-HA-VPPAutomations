@@ -42,11 +42,14 @@ triggers:
   - trigger: time
     at: "00:01:00"
     id: midnight_reset
+  # EDIT: free window. Current Zero Hero offer: 12:00-15:00. Older plans:
+  # 11:00-14:00 - check the Offpeak line on your bill. If you change these,
+  # change the watchdog's charge window below to match.
   - trigger: time
-    at: "11:00:00"
+    at: "12:00:00"
     id: free_charge_start
   - trigger: time
-    at: "14:00:00"
+    at: "15:00:00"
     id: free_charge_end
   - trigger: time
     at: "18:00:00"
@@ -78,7 +81,7 @@ actions:
               value: 0
 
       # ==========================================================
-      # 11:00 AM - FORCE CHARGE (EMS RAM COMMAND)
+      # FREE WINDOW START - FORCE CHARGE (EMS RAM COMMAND)
       # Skipped if zero_hero_enabled is off.
       # IMPORTANT: Verify "Charge" is a valid option for your select.goodwe_ems_mode
       # entity before enabling. Check Developer Tools > States first.
@@ -106,7 +109,8 @@ actions:
                 data:
                   title: Zero Hero Aborted
                   message: >-
-                    SOC sensor unavailable at 11:00. Charge command not sent.
+                    SOC sensor unavailable at the free-window start. Charge
+                    command not sent.
               - stop: SOC sensor unavailable
           - action: select.select_option
             target:
@@ -182,12 +186,15 @@ actions:
                     Peak export blocked. SOC {{ states('sensor.goodwe_battery_state_of_charge') }}%
                     is below your minimum export threshold.
               - stop: SOC below threshold
+          # EDIT: your Meter Export sensor (grid feed-in), in the template below.
+          # Keep EDIT notes OUT of multi-line > / >- blocks - YAML treats # there
+          # as text, so a trailing comment becomes part of the rendered value.
           - action: input_number.set_value
             target:
               entity_id: input_number.zero_hero_export_start
             data:
               value: >-
-                {{ states('sensor.goodwe_meter_total_energy_export') | float(0) }}   # EDIT: your Meter Export sensor (grid feed-in)
+                {{ states('sensor.goodwe_meter_total_energy_export') | float(0) }}
           - action: select.select_option
             target:
               entity_id: select.goodwe_ems_mode
@@ -265,7 +272,7 @@ actions:
       # Returns the inverter to Auto if it's stuck in a forced mode outside
       # an active window (HA crashed mid-export, or similar). Also acts
       # immediately when force_safe is flipped on as a panic switch.
-      # Active windows (watchdog suppressed): 11:00-14:01 (charge) and 18:00-21:01
+      # Active windows (watchdog suppressed): 12:00-15:01 (charge) and 18:00-21:01
       # (peak). End times padded 1 min past the end triggers - see the inline note
       # on the time conditions below for why. If the inverter is already Auto, this
       # does nothing.
@@ -286,12 +293,12 @@ actions:
                 state: "on"
               # Or: outside both active windows.
               # Window starts match the trigger times exactly. HA's time condition
-              # treats `after` as inclusive, so at 11:00:00 / 18:00:00 the time
+              # treats `after` as inclusive, so at 12:00:00 / 18:00:00 the time
               # counts as INSIDE the window and the watchdog stays suppressed,
               # letting free_charge_start / peak_export_start run unopposed.
-              # Window ends are set ONE MINUTE PAST the end triggers (14:01 / 21:01).
+              # Window ends are set ONE MINUTE PAST the end triggers (15:01 / 21:01).
               # HA treats `before` as exclusive, so without the extra minute the
-              # watchdog would be un-suppressed at exactly 14:00:00 / 21:00:00 and
+              # watchdog would be un-suppressed at exactly 15:00:00 / 21:00:00 and
               # could fire a spurious "stuck mode" reset/notification racing the
               # free_charge_end / peak_export_end trigger (both converge on Auto,
               # but the watchdog alert is noise). The 1-minute pad keeps it quiet
@@ -300,8 +307,8 @@ actions:
                   - condition: not
                     conditions:
                       - condition: time
-                        after: "11:00:00"
-                        before: "14:01:00"
+                        after: "12:00:00"   # EDIT: 11:00:00 on older plans
+                        before: "15:01:00"   # EDIT: 14:01:00 on older plans
                   - condition: not
                     conditions:
                       - condition: time

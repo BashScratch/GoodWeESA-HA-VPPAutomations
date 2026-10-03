@@ -1,7 +1,7 @@
 alias: "GoodWe ESA: GloBird Zero Hero (Method 4 - Hybrid)"
 description: >
-  Hybrid delegation strategy for GloBird Zero Hero. The 11:00-14:00 free charging
-  window is handled natively by a GoodWe Economic Mode / TOU schedule set in the
+  Hybrid delegation strategy for GloBird Zero Hero. The free charging window
+  (12:00-15:00 on the current offer, 11:00-14:00 on older plans) is handled natively by a GoodWe Economic Mode / TOU schedule set in the
   SolarGo/SEMS+ app - the firmware charges to 100% and holds correctly without HA
   intervention, solving the battery-drain edge case that HA's fast_charging_switch
   could not prevent.
@@ -9,7 +9,8 @@ description: >
   HA handles the smart layer: at 17:56 it evaluates SOC once and sets a STEPPED
   peak export limit by battery level (>=80% -> 5kW, 70-80% -> 3kW, 65-70% -> 2kW,
   60-65% -> 1kW, below 60% -> 0), balancing Super Export earnings against the
-  overnight reserve. A floor guard drops export to 0 if SOC craters during the
+  overnight reserve. An optional air-con haircut holds back extra export on hot
+  evenings (off unless you set it up). A floor guard drops export to 0 if SOC craters during the
   window, and the SOC-sensor-unavailable case fails safe to 0. At peak end HA
   restores the limit and sends the nightly profit notification. All tariff
   values are read from input_number helpers so rates can be updated from the
@@ -35,12 +36,20 @@ max: 5
 #                                              (10000 for the 10kW ESA, 5000 for the 5kW, etc.
 #                                              this is what HA restores the export limit to at peak end)
 #
+# OPTIONAL HELPERS (air-con haircut - leave them out and the feature stays off):
+#   input_number.zero_hero_ac_haircut        - W held back from the bracket on hot evenings
+#                                              (0 = off; the reference install runs 2000)
+#   input_number.zero_hero_ac_temp           - indoor temperature (C) above which the haircut applies
+#                                              (26 on the reference install)
+#
 # GOODWE APP SETUP REQUIRED:
 #   In SolarGo / SEMS+, create an Economic Mode / TOU charge schedule:
-#     Time:    11:00 - 13:55  (not 14:00 - the inverter takes ~30s to wind
-#              down after the slot ends; ending 5 min early keeps the
-#              ramp-down inside the free window instead of billing the
-#              tail at shoulder rates. See prereq 08.)
+#     Time:    12:00 - 14:55  (current offer; 11:00 - 13:55 on older plans
+#              with the 11:00-14:00 window. Not the full hour - the
+#              inverter takes ~30s to wind down after the slot ends;
+#              ending 5 min early keeps the ramp-down inside the free
+#              window instead of billing the tail at shoulder rates.
+#              See prereq 08.)
 #     Target:  100% SOC
 #     Source:  Grid (high priority)
 #   This replaces the HA fast_charging_switch approach and correctly holds the
@@ -163,9 +172,12 @@ actions:
           # (If only the meter-export sensor is dead, export still arms - you
           # just lose tonight's profit notification, which needs the baseline.)
           - if:
+              # EDIT: your SOC sensor (in the template below). Keep EDIT notes
+              # OUT of multi-line > / >- blocks - YAML treats # there as text,
+              # so a trailing comment becomes part of the rendered value.
               - condition: template
                 value_template: >
-                  {{ not is_number(states('sensor.goodwe_battery_state_of_charge')) }}   # EDIT: your SOC sensor
+                  {{ not is_number(states('sensor.goodwe_battery_state_of_charge')) }}
             then:
               - action: number.set_value
                 target:
@@ -230,16 +242,17 @@ actions:
           # else nothing") had a failure mode on low-start days: a battery
           # at 66% would arm the full 5kW, dump 15 kWh across the window,
           # and end the night nearly flat - forcing shoulder-rate imports
-          # before the free window opens at 11:00. Exported kWh earn the
-          # super rate ($0.10); the same kWh cover shoulder imports worth
-          # $0.385. Draining the reserve to chase the cap loses money.
+          # before the free window opens. Exported kWh earn the super rate
+          # ($0.10); the same kWh cover shoulder imports worth ~$0.37-0.39
+          # (36.85c on the current offer, 38.5c on older plans). Draining
+          # the reserve to chase the cap loses money.
           #
           # So instead of one threshold, the export rate scales with what
           # the battery can actually spare. The design math, worked on a
           # 48 kWh pack whose house draws ~13.5-16 kWh between peak end
-          # and the 11:00 free window:
+          # and the next free window:
           #
-          #   SOC 17:56   armed    window kWh   window-end SOC   ~SOC at 11am
+          #   SOC 17:56   armed    window kWh   window-end SOC   ~SOC at free window
           #   >= 80%      5 kW     ~15          ~46-56%          ~16-22%
           #   70-80%      3 kW     ~9           ~48-55%          ~18-22%
           #   65-70%      2 kW     ~6           ~50-53%          ~20-22%
@@ -247,14 +260,14 @@ actions:
           #   < 60%       0        0            (reserve held for overnight)
           #
           # Every bracket lands the battery in the mid-teens-to-twenties by
-          # 11am - full super-window earnings when there's headroom, zero
+          # the time the free window opens - full super-window earnings when there's headroom, zero
           # forced imports when there isn't.
           #
           # EDIT: TUNE THE BRACKETS to your battery. The arithmetic per row:
           #   window kWh = kW x 3 h (your peak window length)
           #   SOC spent  = window kWh / usable kWh x 100
-          #   left at 11am = SOC - SOC spent - (overnight house kWh / usable kWh x 100)
-          # Pick wattages so "left at 11am" stays comfortably above your
+          #   left at window = SOC - SOC spent - (overnight house kWh / usable kWh x 100)
+          # Pick wattages so "left at window" stays comfortably above your
           # inverter's discharge floor in every row. Smaller batteries want
           # fewer, gentler brackets; a 13.5 kWh pack might be a single
           # "above 80% -> 2kW, else 0" step.
@@ -263,8 +276,20 @@ actions:
           # report whole integers - 79.5 arms the 5kW row at a reported
           # 80%, without an exact-boundary ambiguity.
           # ------------------------------------------------------------
+          #
+          # OPTIONAL AIR-CON HAIRCUT. On a hot night the battery has to
+          # carry hours of air-con after the window closes, and a second
+          # unit plus an oven can push a fully-armed export past the
+          # inverter's headroom - forfeiting the Zero-Grid credit. If
+          # someone is home and the indoor temperature is above
+          # zero_hero_ac_temp at 17:56, zero_hero_ac_haircut watts come
+          # off the bracket (clamped at 0): with the reference install's
+          # 2000 W that's 5kW -> 3kW, 3kW -> 1kW, 2kW and 1kW -> 0.
+          # Leave the haircut helper at 0 (or don't create it) and this
+          # does nothing. "Someone home" uses zone.home's person count.
+          # ------------------------------------------------------------
           - variables:
-              export_w: >-
+              base_w: >-
                 {% set soc = states('sensor.goodwe_battery_state_of_charge') | float(0) %}   {# EDIT: your SOC sensor #}
                 {% if soc >= 79.5 %} 5000
                 {% elif soc >= 69.5 %} 3000
@@ -272,17 +297,26 @@ actions:
                 {% elif soc >= 59.5 %} 1000
                 {% else %} 0
                 {% endif %}
+              ac_haircut: >-
+                {% set t = states('sensor.indoor_temperature') | float(0) %}   {# EDIT: an indoor temperature sensor (optional feature) #}
+                {% set home = states('zone.home') | int(0) > 0 %}
+                {% if home and t > states('input_number.zero_hero_ac_temp') | float(26) %}
+                  {{ states('input_number.zero_hero_ac_haircut') | int(0) }}
+                {% else %} 0
+                {% endif %}
+              export_w: "{{ [ (base_w | int(0)) - (ac_haircut | int(0)), 0 ] | max }}"
 
           - if:
               - condition: template
                 value_template: "{{ export_w | int(0) > 0 }}"
             then:
+              # EDIT: your Meter Export sensor (grid feed-in), in the template below.
               - action: input_number.set_value
                 target:
                   entity_id: input_number.zero_hero_export_start
                 data:
                   value: >-
-                    {{ states('sensor.goodwe_meter_total_energy_export') | float(0) }}   # EDIT: your Meter Export sensor (grid feed-in)
+                    {{ states('sensor.goodwe_meter_total_energy_export') | float(0) }}
               - action: number.set_value
                 target:
                   entity_id: number.goodwe_grid_export_limit   # EDIT: your Grid Export Limit entity (may be _2 suffixed)
@@ -294,7 +328,8 @@ actions:
                   message: >-
                     SOC {{ states('sensor.goodwe_battery_state_of_charge') }}% -
                     exporting at {{ (export_w | int(0) / 1000) | round(1) }}kW
-                    until end of peak.
+                    until end of peak.{% if ac_haircut | int(0) > 0 %} Held back
+                    {{ (ac_haircut | int(0) / 1000) | round(1) }}kW for air-con.{% endif %}
             else:
               - if:
                   - condition: numeric_state
@@ -310,9 +345,9 @@ actions:
                 data:
                   title: "Zero Hero: No Export"
                   message: >-
-                    SOC {{ states('sensor.goodwe_battery_state_of_charge') }}%
-                    is below the lowest export bracket. Export held at 0 to
-                    protect the overnight reserve.
+                    SOC {{ states('sensor.goodwe_battery_state_of_charge') }}% -
+                    export held at 0 to protect the overnight reserve.{% if ac_haircut | int(0) > 0 %}
+                    Air-con haircut applied.{% endif %}
 
       # ==========================================================
       # PEAK END (21:01 default; 20:01 for older GloBird plans)
